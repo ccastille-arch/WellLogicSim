@@ -97,8 +97,8 @@ export default function ConfigPanel({ onLaunch }) {
             </label>
             <div className="flex gap-3">
               {[
-                { value: 'greenfield', label: 'Greenfield', desc: 'Standard WellLogic — electronic choke control' },
-                { value: 'brownfield', label: 'Brownfield', desc: 'Recycled gas — suction controller prioritization' },
+                { value: 'greenfield', label: 'Common Discharge Header', desc: 'All compressors feed a shared discharge header — branches to each well' },
+                { value: 'brownfield', label: 'One Compressor to One Well', desc: '1:1 mapping — each compressor feeds a dedicated well directly' },
               ].map(opt => (
                 <button
                   key={opt.value}
