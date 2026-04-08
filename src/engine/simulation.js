@@ -20,24 +20,31 @@ const DEFAULT_STAGING_LOCKOUT = 300 // seconds (5 min)
 export function createInitialState(config) {
   const { compressorCount, wellCount, siteType } = config
 
+  // Use commissioning values from config if provided, otherwise defaults
+  const suctionTarget = config.suctionTarget ?? DEFAULT_SUCTION_TARGET
+  const suctionLowRange = config.suctionLowRange ?? DEFAULT_SUCTION_LOW_RANGE
+  const staggerOffset = config.staggerOffset ?? DEFAULT_STAGGER_OFFSET
+  const dischargeShutdown = config.dischargeShutdownPressure ?? DEFAULT_DISCHARGE_SHUTDOWN
+  const dischargeOffset = config.dischargeSlowdownOffset ?? DEFAULT_DISCHARGE_SLOWDOWN_OFFSET
+  const coolerSP = config.coolerOutletSP ?? DEFAULT_COOLER_OUTLET_SP
+
   const compressors = Array.from({ length: compressorCount }, (_, i) => ({
     id: i,
     name: `C${i + 1}`,
-    status: 'running', // 'running' | 'stopped' | 'tripped' | 'locked_out_running' | 'locked_out_stopped'
-    mode: 'auto', // 'auto' | 'manual'
+    status: 'running',
+    mode: 'auto',
     autoStartAllowed: true,
     personnelLockout: false,
     capacityMcfd: DEFAULT_COMPRESSOR_CAPACITY,
     rpm: 1050,
-    suctionPsi: DEFAULT_SUCTION_TARGET,
+    suctionPsi: suctionTarget,
     dischargePsi: 400,
     loadPct: 0,
     actualThroughput: 0,
-    // Modbus registers from document
-    speedAutoSuctionSP: DEFAULT_SUCTION_LOW_RANGE + 2 + i * DEFAULT_STAGGER_OFFSET,
-    speedAutoDischargeSP: DEFAULT_DISCHARGE_SHUTDOWN - DEFAULT_DISCHARGE_SLOWDOWN_OFFSET,
-    coolerOutletSP: DEFAULT_COOLER_OUTLET_SP,
-    secondStageSuctionCoolerSP: 200,
+    speedAutoSuctionSP: suctionLowRange + 2 + i * staggerOffset,
+    speedAutoDischargeSP: dischargeShutdown - dischargeOffset,
+    coolerOutletSP: coolerSP,
+    secondStageSuctionCoolerSP: config.secondStageSuctionCoolerSP ?? 200,
   }))
 
   const wells = Array.from({ length: wellCount }, (_, i) => ({
@@ -69,30 +76,30 @@ export function createInitialState(config) {
     tickCount: 0,
     simTime: 0,
     // Suction header system (from document section 1)
-    suctionTarget: DEFAULT_SUCTION_TARGET,
-    suctionHighRange: DEFAULT_SUCTION_HIGH_RANGE,
-    suctionLowRange: DEFAULT_SUCTION_LOW_RANGE,
-    staggerOffset: DEFAULT_STAGGER_OFFSET,
-    suctionHeaderPressure: DEFAULT_SUCTION_TARGET,
+    suctionTarget: suctionTarget,
+    suctionHighRange: config.suctionHighRange ?? DEFAULT_SUCTION_HIGH_RANGE,
+    suctionLowRange: suctionLowRange,
+    staggerOffset: staggerOffset,
+    suctionHeaderPressure: suctionTarget,
     // Discharge settings (from document section 2B)
-    dischargeShutdownPressure: DEFAULT_DISCHARGE_SHUTDOWN,
-    dischargeSlowdownOffset: DEFAULT_DISCHARGE_SLOWDOWN_OFFSET,
+    dischargeShutdownPressure: dischargeShutdown,
+    dischargeSlowdownOffset: dischargeOffset,
     // Temperature (from document section 2C)
-    coolerOutletSP: DEFAULT_COOLER_OUTLET_SP,
-    maxTempAtPlate: DEFAULT_MAX_TEMP_AT_PLATE,
-    flowMeterTemp: 155, // simulated
+    coolerOutletSP: coolerSP,
+    maxTempAtPlate: config.maxTempAtPlate ?? DEFAULT_MAX_TEMP_AT_PLATE,
+    flowMeterTemp: 155,
     // Scrubber (from document section 3)
-    scrubberPressure: DEFAULT_SUCTION_TARGET,
+    scrubberPressure: suctionTarget,
     scrubberRateOfChange: 0,
     // Well unload detection (from document section 4)
-    unloadRateThreshold: 5, // psi/sec
-    unloadSpikeThreshold: 15, // psi
+    unloadRateThreshold: config.unloadRateThreshold ?? 5,
+    unloadSpikeThreshold: config.unloadSpikeThreshold ?? 15,
     wellUnloadActive: false,
     // Sales valve (from document section 5)
     salesValvePosition: 0, // 0-100%
     // Staging timers (from document section 12)
-    stabilityTimer: DEFAULT_STABILITY_TIMER,
-    stagingLockoutTimer: DEFAULT_STAGING_LOCKOUT,
+    stabilityTimer: config.stabilityTimer ?? DEFAULT_STABILITY_TIMER,
+    stagingLockoutTimer: config.stagingLockoutTimer ?? DEFAULT_STAGING_LOCKOUT,
     stagingLockoutRemaining: 0,
     // Flow rate control mode
     flowRateMode: 'local', // 'local' | 'remote'
