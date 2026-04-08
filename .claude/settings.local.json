@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(where node:*)",
+      "Bash(where npm:*)",
+      "Bash(where npx:*)",
+      "Bash(cmd.exe /c \"where npm\")",
+      "Bash(cmd.exe /c \"where node\")",
+      "Bash(export PATH=\"$PATH:/c/Program Files/nodejs:/c/Users/ccastille/AppData/Roaming/npm\")",
+      "Bash(npm --version)",
+      "Bash(cmd.exe /c \"node --version\")",
+      "Bash(cmd.exe /c \"npm --version\")",
+      "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")",
+      "Bash(npx create-vite@latest . --template react)",
+      "Bash(npm install:*)",
+      "Bash(python3 \"C:/Users/ccastille/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/c3e3d1f1-a405-45b7-a99c-3b7112f70272/e1e2c4fb-7760-4820-9ec5-aa605e90ca72/skills/docx/scripts/office/unpack.py\" \"C:/Users/ccastille/Desktop/Permian Resources pad optimization panle program change..docx\" /tmp/docx_unpacked/)",
+      "Bash(winget install:*)",
+      "Bash(export PATH=\"/c/Users/ccastille/AppData/Local/Programs/Python/Python312:/c/Users/ccastille/AppData/Local/Programs/Python/Python312/Scripts:$PATH\")",
+      "Bash(pip install:*)",
+      "Bash(python \"C:/Users/ccastille/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/c3e3d1f1-a405-45b7-a99c-3b7112f70272/e1e2c4fb-7760-4820-9ec5-aa605e90ca72/skills/docx/scripts/office/unpack.py\" \"C:/Users/ccastille/Desktop/Permian Resources pad optimization panle program change..docx\" /tmp/docx_unpacked/)",
+      "Read(//tmp/docx_unpacked/**)",
+      "Read(//c/tmp/docx_unpacked/**)",
+      "Read(//c//**)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npx vite:*)",
+      "Bash(export PATH=\"/c/Program Files/GitHub CLI:$PATH\")",
+      "Bash(gh auth:*)",
+      "Bash(git init:*)",
+      "Bash(export PATH=\"/c/Program Files/nodejs:/c/Program Files/GitHub CLI:$PATH\")",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(gh repo:*)",
+      "Bash(git push:*)",
+      "Bash(gh api:*)"
+    ]
+  }
+}

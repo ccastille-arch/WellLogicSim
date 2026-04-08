@@ -5,10 +5,11 @@ import MetricsDashboard from './MetricsDashboard'
 import SiteDiagram from './diagram/SiteDiagram'
 import HMIPanel from './hmi/HMIPanel'
 import TutorialOverlay from './TutorialOverlay'
+import SiteOverview from './SiteOverview'
 
 export default function Simulator({ config, tutorialMode, onTutorialEnd }) {
   const sim = useSimulation(config)
-  const [view, setView] = useState('dashboard') // dashboard | diagram | values | compressors
+  const [view, setView] = useState('overview') // overview | dashboard | diagram | values | compressors
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -19,7 +20,9 @@ export default function Simulator({ config, tutorialMode, onTutorialEnd }) {
 
         {/* Main Content Area */}
         <div className="flex-1 flex overflow-hidden">
-          {view === 'dashboard' ? (
+          {view === 'overview' ? (
+            <SiteOverview state={sim.state} config={config} />
+          ) : view === 'dashboard' ? (
             <HMIPanel
               state={sim.state}
               onCompressorStatus={sim.setCompressorStatus}
@@ -73,6 +76,7 @@ export default function Simulator({ config, tutorialMode, onTutorialEnd }) {
 function HMINav({ currentView, onViewChange }) {
   // Matches actual DE-4000 panel left nav: Dashboard, Values, Trends, Events, Global, Start-Up, Channels
   const items = [
+    { id: 'overview', label: 'Site\nOverview', icon: OverviewIcon },
     { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon },
     { id: 'values', label: 'Values', icon: ValuesIcon },
     { id: 'diagram', label: 'Trends', icon: DiagramIcon },
@@ -95,7 +99,7 @@ function HMINav({ currentView, onViewChange }) {
           }`}
         >
           <item.icon active={currentView === item.id} />
-          <span className="text-[9px] font-medium leading-tight">{item.label}</span>
+          <span className="text-[9px] font-medium leading-tight whitespace-pre-line text-center">{item.label}</span>
         </button>
       ))}
       {/* Down arrow at bottom like actual panel */}
@@ -156,6 +160,19 @@ function StartUpIcon({ active }) {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#fff' : '#888'} strokeWidth="1.5">
       <path d="M12 4v8" />
       <path d="M8 6a8 8 0 1 0 8 0" />
+    </svg>
+  )
+}
+
+function OverviewIcon({ active }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#fff' : '#888'} strokeWidth="1.5">
+      <rect x="2" y="3" width="20" height="18" rx="2" />
+      <path d="M2 8h20" />
+      <circle cx="7" cy="14" r="2" />
+      <circle cx="17" cy="14" r="2" />
+      <path d="M9 14h6" />
+      <path d="M12 8v3" />
     </svg>
   )
 }
