@@ -7,10 +7,16 @@ import HMIPanel from './hmi/HMIPanel'
 import TutorialOverlay from './TutorialOverlay'
 import SiteOverview from './SiteOverview'
 import CommissioningPage from './CommissioningPage'
+import SalesMode from './SalesMode'
 
 export default function Simulator({ config, tutorialMode, onTutorialEnd }) {
   const sim = useSimulation(config)
-  const [view, setView] = useState('overview') // overview | dashboard | diagram | values | compressors
+  const [view, setView] = useState('overview')
+
+  // Sales Demo Mode — completely different UI
+  if (config.salesMode) {
+    return <SalesMode sim={sim} config={config} />
+  }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
