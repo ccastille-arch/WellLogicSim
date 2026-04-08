@@ -6,6 +6,7 @@ import SiteDiagram from './diagram/SiteDiagram'
 import HMIPanel from './hmi/HMIPanel'
 import TutorialOverlay from './TutorialOverlay'
 import SiteOverview from './SiteOverview'
+import CommissioningPage from './CommissioningPage'
 
 export default function Simulator({ config, tutorialMode, onTutorialEnd }) {
   const sim = useSimulation(config)
@@ -54,7 +55,9 @@ export default function Simulator({ config, tutorialMode, onTutorialEnd }) {
             </div>
           ) : view === 'values' ? (
             <ValuesPage state={sim.state} />
-          ) : (view === 'compressors' || view === 'global' || view === 'startup' || view === 'channels') ? (
+          ) : view === 'startup' ? (
+            <CommissioningPage state={sim.state} onFieldChange={sim.setStateField} />
+          ) : (view === 'compressors' || view === 'global' || view === 'channels') ? (
             <CompressorControlPage
               state={sim.state}
               onCompressorStatus={sim.setCompressorStatus}

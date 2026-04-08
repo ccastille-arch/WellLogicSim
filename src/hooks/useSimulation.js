@@ -93,6 +93,11 @@ export function useSimulation(config) {
     }))
   }, [])
 
+  // Generic state field setter for commissioning parameters
+  const setStateField = useCallback((field, value) => {
+    setState(prev => ({ ...prev, [field]: value }))
+  }, [])
+
   const resetToDefaults = useCallback(() => {
     setState(createInitialState(config))
   }, [config])
@@ -116,6 +121,7 @@ export function useSimulation(config) {
     setHuntSequence,
     setChokeManualSP,
     setChokeMode,
+    setStateField,
     resetToDefaults,
   }
 }
