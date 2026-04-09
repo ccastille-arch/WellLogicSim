@@ -125,25 +125,25 @@ export function RevenueTicker({ sim, customerData, brentPrice }) {
   const [cumulativeSaved, setCumulativeSaved] = useState(0)
   const prevAccuracyRef = useRef(100)
 
-  // Safety: bail if sim isn't ready yet
-  if (!sim?.state?.wells) return null
-
+  const wells = sim?.state?.wells || []
   const econ = calculateEconomics(customerData || {}, brentPrice || 72)
-  const totalDesired = sim.state.wells.reduce((s, w) => s + (w.desiredRate || 0), 0)
-  const totalActual = sim.state.wells.reduce((s, w) => s + (w.actualRate || 0), 0)
+  const totalDesired = wells.reduce((s, w) => s + (w.desiredRate || 0), 0)
+  const totalActual = wells.reduce((s, w) => s + (w.actualRate || 0), 0)
   const accuracy = totalDesired > 0 ? totalActual / totalDesired : 1
 
   const lostPerHour = (econ.boePerHour || 0) * (1 - Math.min(1, accuracy)) * (econ.boeValue || 0)
   const productionValuePerHour = (econ.boePerHour || 0) * (econ.boeValue || 0)
 
   useEffect(() => {
-    if (!sim?.state?.tickCount) return
+    if (!wells.length) return
     if (accuracy > prevAccuracyRef.current && accuracy < 0.99) {
       const delta = accuracy - prevAccuracyRef.current
       setCumulativeSaved(prev => prev + delta * (econ.boePerHour || 0) * (econ.boeValue || 0) * 0.5)
     }
     prevAccuracyRef.current = accuracy
   }, [sim?.state?.tickCount])
+
+  if (!wells.length) return null
 
   return (
     <div className="bg-[#0a1a0a] border border-[#22c55e]/30 rounded-lg p-2.5">
@@ -184,9 +184,8 @@ export function BeforeAfterOverlay({ sim, customerData }) {
   const [manualState, setManualState] = useState({ elapsed: 0, phase: 'idle' })
   const intervalRef = useRef(null)
 
-  if (!sim?.state?.wells) return null
-
-  const accuracy = sim.state.wells.reduce((s, w) => s + (w.isAtTarget ? 1 : 0), 0) / Math.max(sim.state.wells.length, 1) * 100
+  const wells = sim?.state?.wells || []
+  const accuracy = wells.reduce((s, w) => s + (w.isAtTarget ? 1 : 0), 0) / Math.max(wells.length, 1) * 100
   const isDisturbance = accuracy < 85
 
   // Manual timeline (scaled for demo — real times shown in labels)
@@ -406,9 +405,8 @@ export function ResponseTimer({ sim, customerData }) {
   const [recovered, setRecovered] = useState(false)
   const intervalRef = useRef(null)
 
-  if (!sim?.state?.wells) return null
-
-  const wellsAtTarget = sim.state.wells.filter(w => w.isAtTarget).length / Math.max(sim.state.wells.length, 1) * 100
+  const wells = sim?.state?.wells || []
+  const wellsAtTarget = wells.length ? wells.filter(w => w.isAtTarget).length / wells.length * 100 : 100
   const isDisturbance = wellsAtTarget < 85
 
   // Full manual cycle times from questionnaire
