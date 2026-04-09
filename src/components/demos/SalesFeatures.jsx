@@ -73,7 +73,7 @@ export function calculateEconomics(customerData, brentPrice) {
   const tripAnnualRevenueSaved = tripRevenueSavedPerEvent * tripsMonth * 12
 
   // === GAS CONSTRAINT SAVINGS ===
-  const constraintLostBoePerEvent = padDailyProduction * R.constraintProductionLoss * (blendedResponseHrs / 24)
+  const constraintLostBoePerEvent = padDailyProduction * R.constraintProductionLoss * (totalManualHrs / 24)
   const constraintSavedPerEvent = constraintLostBoePerEvent * R.wellLogicRecoveryPct * boeValue
   const constraintAnnualSaved = constraintSavedPerEvent * constraintWeek * 52
 

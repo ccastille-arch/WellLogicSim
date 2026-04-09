@@ -1,6 +1,16 @@
-import { useState } from 'react'
+import { useState, Component } from 'react'
 import AdminPanel from './AdminPanel'
 import CustomerQuestionnaire from './demos/CustomerQuestionnaire'
+
+// Error boundary — prevents one crashing component from taking down the whole page
+class SafeWrapper extends Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null } }
+  static getDerivedStateFromError(error) { return { hasError: true, error } }
+  render() {
+    if (this.state.hasError) return null // silently hide crashed component
+    return this.props.children
+  }
+}
 import WellPriorityDemo from './demos/WellPriorityDemo'
 import CompressorTripDemo from './demos/CompressorTripDemo'
 import GasConstrainedDemo from './demos/GasConstrainedDemo'
@@ -107,9 +117,9 @@ export default function SalesMode({ sim, config }) {
       </div>
 
       {/* Revenue ticker */}
-      {features.revenueTicker && (
+      {features.revenueTicker && sim?.state?.wells?.length > 0 && (
         <div className="px-3 py-1.5 bg-[#060610] border-b border-[#1a1a2a] shrink-0">
-          <RevenueTicker sim={sim} customerData={customerData} brentPrice={brentPrice} />
+          <SafeWrapper><RevenueTicker sim={sim} customerData={customerData} brentPrice={brentPrice} /></SafeWrapper>
         </div>
       )}
 
@@ -133,8 +143,8 @@ export default function SalesMode({ sim, config }) {
             {currentDemo && <currentDemo.Component sim={sim} />}
             {(features.beforeAfter || features.responseTimer) && (
               <div className="px-3 pb-2 bg-[#080810] shrink-0 flex gap-2 overflow-x-auto" style={{ maxHeight: 160 }}>
-                {features.beforeAfter && <div className="flex-1 min-w-[250px]"><BeforeAfterOverlay sim={sim} customerData={customerData} /></div>}
-                {features.responseTimer && <div className="flex-1 min-w-[250px]"><ResponseTimer sim={sim} customerData={customerData} /></div>}
+                {features.beforeAfter && <div className="flex-1 min-w-[250px]"><SafeWrapper><BeforeAfterOverlay sim={sim} customerData={customerData} /></SafeWrapper></div>}
+                {features.responseTimer && <div className="flex-1 min-w-[250px]"><SafeWrapper><ResponseTimer sim={sim} customerData={customerData} /></SafeWrapper></div>}
               </div>
             )}
           </div>
