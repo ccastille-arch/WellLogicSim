@@ -6,13 +6,28 @@ import { getMetrics } from '../../engine/simulation'
 export default function DemoPage({ title, pitch, triggers, metrics, children, sim }) {
   const m = getMetrics(sim.state)
 
+  const resetAll = () => {
+    if (!sim?.state) return
+    sim.state.compressors?.forEach(c => sim.setCompressorStatus(c.id, 'running'))
+    sim.state.wells?.forEach(w => { if (w.desiredRate === 0) sim.setWellDesiredRate(w.id, 150) })
+    sim.setTotalAvailableGas(sim.state.maxGasCapacity)
+    sim.setStateField('wellUnloadActive', false)
+    sim.setStateField('salesValvePosition', 0)
+  }
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[#080810]">
       {/* Middle: Diagram + Trigger sidebar — takes all available space */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Live diagram — FULL site visible */}
-        <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
+        <div className="flex-1 min-h-0 min-w-0 overflow-hidden relative">
           <SiteOverview state={sim.state} config={sim.state.config} />
+          {/* RESET ALL button — top right of diagram */}
+          <button onClick={resetAll}
+            className="absolute top-3 right-3 z-10 px-4 py-2 bg-[#22c55e] hover:bg-[#16a34a] text-black text-[11px] font-bold rounded-lg shadow-lg shadow-[#22c55e]/20 transition-all active:scale-95"
+            style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+            ↩ RESET ALL TO NORMAL
+          </button>
         </div>
 
         {/* Trigger buttons sidebar */}
