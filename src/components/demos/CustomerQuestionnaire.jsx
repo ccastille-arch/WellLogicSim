@@ -6,7 +6,7 @@ import { useState } from 'react'
 
 const QUESTIONS = [
   { section: 'About Your Operation', questions: [
-    { key: 'customerName', label: 'Company Name', type: 'text', placeholder: 'e.g. Permian Resources' },
+    { key: 'customerName', label: 'Company Name', type: 'text', placeholder: 'e.g. Company Name' },
     { key: 'padName', label: 'Pad / Lease Name', type: 'text', placeholder: 'e.g. Wolfcamp A 14H' },
     { key: 'basin', label: 'Basin', type: 'select', options: ['Permian — Delaware', 'Permian — Midland', 'Eagle Ford', 'DJ Basin', 'Bakken', 'Other'], default: 'Permian — Delaware' },
     { key: 'wellCount', label: 'How many wells on this pad?', type: 'number', min: 1, max: 20, default: 6 },

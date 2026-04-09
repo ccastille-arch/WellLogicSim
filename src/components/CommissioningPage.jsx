@@ -1,5 +1,5 @@
 // Commissioning Setup Page
-// All configurable parameters from the Permian Resources Pad Optimization Panel Program spec
+// All configurable parameters from the Pad Optimization Panel Program spec
 // Organized by document section with live calculated values shown
 
 export default function CommissioningPage({ state, onFieldChange }) {
@@ -10,7 +10,7 @@ export default function CommissioningPage({ state, onFieldChange }) {
           Commissioning Setup
         </h1>
         <p className="text-[11px] text-[#888] mb-6">
-          Permian Resources — Pad Optimization Panel configuration. All values are written to ASC compressor controllers via Modbus.
+          Pad Optimization Panel configuration. All values are written to ASC compressor controllers via Modbus.
         </p>
 
         {/* ═══════ Section 1: Suction Header Target Pressure ═══════ */}

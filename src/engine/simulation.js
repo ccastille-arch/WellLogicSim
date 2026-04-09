@@ -1,5 +1,5 @@
 // Pure simulation engine — tick(state) → newState
-// Models the Permian Resources Pad Optimization Panel logic
+// Models the Pad Optimization Panel logic
 //
 // REALISTIC BEHAVIOR:
 // When a disturbance occurs (compressor trip, gas change), the system goes through phases:

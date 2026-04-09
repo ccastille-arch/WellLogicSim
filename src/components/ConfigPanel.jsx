@@ -2,7 +2,7 @@ import { useState } from 'react'
 import MarketingHub from './marketing/MarketingHub'
 
 // Commissioning Setup — replaces the old config screen
-// Site configuration + all parameters from the Permian Resources Pad Optimization spec
+// Site configuration + all parameters from the Pad Optimization spec
 // User fills this out, then launches the simulator
 
 const DEFAULTS = {
@@ -49,7 +49,7 @@ export default function ConfigPanel({ onLaunch }) {
             Commissioning Setup
           </h1>
           <p className="text-sm text-[#888]">
-            Permian Resources — Pad Optimization Panel Configuration
+            Pad Optimization Panel Configuration
           </p>
           <p className="text-[11px] text-[#555] mt-1">
             Configure site equipment and commissioning parameters, then launch the simulator.
