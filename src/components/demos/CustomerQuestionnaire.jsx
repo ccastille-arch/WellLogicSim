@@ -118,8 +118,8 @@ export default function CustomerQuestionnaire({ data, onChange, onComplete }) {
           ) : (
             <button
               onClick={onComplete}
-              disabled={!isComplete}
-              className="px-6 py-2 text-[11px] font-bold bg-[#E8200C] text-white rounded hover:bg-[#c01a0a] disabled:opacity-30"
+              className="px-8 py-3 text-sm font-bold bg-[#E8200C] text-white rounded-lg hover:bg-[#ff2510] shadow-lg shadow-[#E8200C]/30 transition-all"
+              style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
             >
               Launch Demo →
             </button>
