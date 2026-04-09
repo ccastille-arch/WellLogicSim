@@ -54,7 +54,8 @@ export default function CustomerQuestionnaire({ data, onChange, onComplete }) {
 
   const set = (key, val) => onChange({ ...data, [key]: val })
 
-  const isComplete = data.customerName && data.wellCount && data.dayResponseMin
+  // Always allow launch — defaults are valid, customer name is optional
+  const isComplete = true
 
   return (
     <div className="flex-1 flex items-center justify-center bg-[#080810] overflow-auto py-8">
