@@ -50,6 +50,35 @@ export default function ConfigPanel({ onLaunch }) {
           </p>
         </div>
 
+        {/* ═══════ SALES DEMO MODE — TOP OF PAGE ═══════ */}
+        <div className="mb-5 bg-[#111118] rounded-lg border-2 border-[#E8200C]/30 p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm text-white font-bold flex items-center gap-2" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+                <span className="text-[#E8200C]">★</span> Sales Demo Mode
+              </h2>
+              <p className="text-[11px] text-[#888] mt-1">
+                Interactive presentation mode for client meetings. Walks through each WellLogic capability with
+                live demonstrations and pre-built scenario triggers. No technical details exposed.
+              </p>
+            </div>
+            <div
+              className={`relative w-14 h-7 rounded-full transition-colors cursor-pointer shrink-0 ml-4 ${cfg.salesMode ? 'bg-[#E8200C]' : 'bg-[#333]'}`}
+              onClick={() => set('salesMode', !cfg.salesMode)}
+            >
+              <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${cfg.salesMode ? 'translate-x-7' : 'translate-x-1'}`} />
+            </div>
+          </div>
+          {cfg.salesMode && (
+            <div className="mt-3 bg-[#E8200C]/5 rounded p-3 border border-[#E8200C]/20">
+              <p className="text-[11px] text-[#E8200C]">
+                Sales Mode will launch with guided demo scenarios. Each scenario has interactive trigger buttons
+                your prospect can click to see WellLogic respond in real-time.
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* ═══════ SITE CONFIGURATION ═══════ */}
         <Section number="" title="Site Equipment Configuration">
           <div className="grid grid-cols-2 gap-4">
@@ -239,35 +268,6 @@ export default function ConfigPanel({ onLaunch }) {
             </p>
           </div>
         </Section>
-
-        {/* ═══════ SALES DEMO MODE ═══════ */}
-        <div className="mb-5 bg-[#111118] rounded-lg border-2 border-[#E8200C]/30 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm text-white font-bold flex items-center gap-2" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
-                <span className="text-[#E8200C]">★</span> Sales Demo Mode
-              </h2>
-              <p className="text-[11px] text-[#888] mt-1">
-                Interactive presentation mode for client meetings. Walks through each WellLogic capability with
-                live demonstrations and pre-built scenario triggers. No technical details exposed.
-              </p>
-            </div>
-            <div
-              className={`relative w-14 h-7 rounded-full transition-colors cursor-pointer shrink-0 ml-4 ${cfg.salesMode ? 'bg-[#E8200C]' : 'bg-[#333]'}`}
-              onClick={() => set('salesMode', !cfg.salesMode)}
-            >
-              <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${cfg.salesMode ? 'translate-x-7' : 'translate-x-1'}`} />
-            </div>
-          </div>
-          {cfg.salesMode && (
-            <div className="mt-3 bg-[#E8200C]/5 rounded p-3 border border-[#E8200C]/20">
-              <p className="text-[11px] text-[#E8200C]">
-                Sales Mode will launch with guided demo scenarios. Each scenario has interactive trigger buttons
-                your prospect can click to see WellLogic respond in real-time.
-              </p>
-            </div>
-          )}
-        </div>
 
         {/* ═══════ LAUNCH BUTTON ═══════ */}
         <div className="mt-6 mb-10">
