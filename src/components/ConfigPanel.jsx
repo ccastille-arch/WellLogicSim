@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import MarketingHub from './marketing/MarketingHub'
 
 // Commissioning Setup — replaces the old config screen
 // Site configuration + all parameters from the Permian Resources Pad Optimization spec
@@ -26,11 +27,16 @@ const DEFAULTS = {
 
 export default function ConfigPanel({ onLaunch }) {
   const [cfg, setCfg] = useState(DEFAULTS)
+  const [showMarketing, setShowMarketing] = useState(false)
 
   const set = (field, value) => setCfg(prev => ({ ...prev, [field]: value }))
 
   const handleLaunch = () => {
     onLaunch(cfg)
+  }
+
+  if (showMarketing) {
+    return <MarketingHub onClose={() => setShowMarketing(false)} />
   }
 
   return (
@@ -78,6 +84,25 @@ export default function ConfigPanel({ onLaunch }) {
             </div>
           )}
         </div>
+
+        {/* ═══════ MARKETING MATERIALS ═══════ */}
+        <button
+          onClick={() => setShowMarketing(true)}
+          className="w-full mb-5 bg-[#111118] rounded-lg border border-[#222] p-4 flex items-center gap-4 hover:border-[#4fc3f7]/50 transition-colors text-left"
+        >
+          <div className="w-12 h-12 rounded-lg bg-[#4fc3f7]/10 border border-[#4fc3f7]/30 flex items-center justify-center shrink-0">
+            <span className="text-2xl">📦</span>
+          </div>
+          <div className="flex-1">
+            <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+              FieldTune™ Marketing Hub
+            </h2>
+            <p className="text-[11px] text-[#888] mt-0.5">
+              Product videos, sales sheets, ROI templates, technical specs, and a full presentation slide deck.
+            </p>
+          </div>
+          <span className="text-[#4fc3f7] text-sm">→</span>
+        </button>
 
         {/* ═══════ SITE CONFIGURATION ═══════ */}
         <Section number="" title="Site Equipment Configuration">
