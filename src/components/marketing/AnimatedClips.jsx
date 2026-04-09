@@ -18,6 +18,11 @@ const CLIPS = [
 export default function AnimatedClips() {
   const [playing, setPlaying] = useState(null)
 
+  const stopPlaying = () => {
+    stopSpeaking()
+    setPlaying(null)
+  }
+
   return (
     <div className="p-6 max-w-[1200px] mx-auto">
       <h2 className="text-lg text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>Product Videos</h2>
@@ -29,7 +34,13 @@ export default function AnimatedClips() {
             {/* Video area — 16:9 */}
             <div className="relative bg-[#060610] overflow-hidden" style={{ aspectRatio: '16/9' }}>
               {playing === clip.id ? (
-                <ClipPlayer id={clip.id} onEnd={() => setPlaying(null)} />
+                <div className="w-full h-full relative">
+                  <ClipPlayer id={clip.id} onEnd={stopPlaying} />
+                  <button onClick={stopPlaying}
+                    className="absolute top-3 right-3 bg-[#111]/80 border border-[#444] rounded px-3 py-1 text-[10px] text-[#ccc] hover:text-white hover:bg-[#E8200C] z-10">
+                    ■ Stop
+                  </button>
+                </div>
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <div className="text-[13px] text-[#888] mb-3">{clip.title}</div>
@@ -53,29 +64,124 @@ export default function AnimatedClips() {
 }
 
 // ═══════════════════════════════════════
-// VIDEO PLAYER — drives frame-by-frame animation
+// NARRATION ENGINE — browser text-to-speech
+// Picks the best available English voice (deep male preferred for industrial product)
+// Can be swapped to ElevenLabs/OpenAI TTS later by replacing speak()
+// ═══════════════════════════════════════
+function getVoice() {
+  const voices = window.speechSynthesis?.getVoices() || []
+  // Prefer a deep male English voice
+  const preferred = ['Google UK English Male', 'Microsoft David', 'Microsoft Mark', 'Daniel', 'Alex',
+    'Google US English', 'Microsoft Guy Online', 'en-US', 'en-GB']
+  for (const name of preferred) {
+    const found = voices.find(v => v.name.includes(name) || v.lang.startsWith(name))
+    if (found) return found
+  }
+  return voices.find(v => v.lang.startsWith('en')) || voices[0] || null
+}
+
+function speak(text, onDone) {
+  if (!window.speechSynthesis) { onDone?.(); return }
+  window.speechSynthesis.cancel()
+  const utter = new SpeechSynthesisUtterance(text)
+  utter.rate = 0.92 // slightly slower for clarity
+  utter.pitch = 0.9 // slightly deeper
+  utter.volume = 1
+  const voice = getVoice()
+  if (voice) utter.voice = voice
+  utter.onend = () => onDone?.()
+  utter.onerror = () => onDone?.()
+  window.speechSynthesis.speak(utter)
+}
+
+function stopSpeaking() {
+  window.speechSynthesis?.cancel()
+}
+
+// Preload voices (Chrome loads them async)
+if (typeof window !== 'undefined' && window.speechSynthesis) {
+  window.speechSynthesis.getVoices()
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices()
+}
+
+// Narration scripts for each video
+const NARRATION = {
+  'what-is-welllogic': [
+    'This is a gas lift injection pad in West Texas.',
+    'Wells produce oil and gas. The gas is separated at the scrubber and recirculated back to the wells.',
+    'Compressors push gas through the discharge header to each well.',
+    'Each well has an injection choke valve that controls how much gas it receives.',
+    'Flow meters on every line measure the actual injection rate in real time.',
+    'Well Logic sits at the center of it all, controlling every choke valve automatically.',
+    'It monitors suction pressure, discharge pressure, and every compressor on the pad.',
+    'When conditions change, Well Logic reacts in seconds. Not hours.',
+    'It prioritizes your highest value wells automatically. Your best producers always get gas first.',
+    'It detects well unloads and pressure spikes, and prevents full pad shutdowns.',
+    'It stages compressors up and down based on actual demand. No wasted fuel.',
+    'Well Logic. Twenty four seven automatic gas lift optimization by Service Compression.',
+  ],
+  'trip-sidebyside': [
+    'Both pads are running normally. Four wells, two compressors, full injection on both sides.',
+    'Compressor C 1 trips. Both pads lose a compressor at the exact same time.',
+    'Immediately, all wells on both pads lose injection pressure. Production is dropping.',
+    'On the left, the manual pad fires a SCADA alarm and dispatches the operator. On the right, Well Logic has already detected the shortfall.',
+    'The operator is driving to the pad. Forty five minutes away. Meanwhile, Well Logic is already closing chokes on low priority wells and redirecting gas.',
+    'All wells on the manual pad are still suffering. On the Well Logic pad, priority wells W 1 and W 2 are already back at full target injection.',
+    'The operator finally arrives at the manual pad and starts diagnosing the problem. Well Logic has been stable for over thirty minutes already.',
+    'The operator calls a mechanic and waits. On the Well Logic pad, top producers have been running at full rate this entire time.',
+    'After the mechanic fixes the compressor, the operator has to drive back out to manually readjust every choke. With Well Logic, that second trip never happens.',
+  ],
+}
+
+// ═══════════════════════════════════════
+// VIDEO PLAYER — drives frame-by-frame animation + narration
 // ═══════════════════════════════════════
 function ClipPlayer({ id, onEnd }) {
-  const [frame, setFrame] = useState(0)
+  const [frame, setFrame] = useState(-1) // -1 = not started yet
   const [tick, setTick] = useState(0)
+  const [speaking, setSpeaking] = useState(false)
   const intervalRef = useRef(null)
+  const frameRef = useRef(-1)
 
+  const narrationLines = NARRATION[id] || []
+  const totalFrames = narrationLines.length
+
+  // Start first frame narration
+  useEffect(() => {
+    // Small delay then start frame 0
+    const t = setTimeout(() => advanceFrame(0), 500)
+    return () => { clearTimeout(t); stopSpeaking() }
+  }, [])
+
+  // Tick for visual animations within a frame
   useEffect(() => {
     intervalRef.current = setInterval(() => setTick(t => t + 1), 500)
     return () => clearInterval(intervalRef.current)
   }, [])
 
-  // Advance frames on tick thresholds
-  const totalFrames = id === 'trip-sidebyside' ? 9 : 12
-  useEffect(() => {
-    const frameDuration = id === 'trip-sidebyside' ? 10 : 10 // ticks per frame
-    const newFrame = Math.floor(tick / frameDuration)
-    if (newFrame !== frame) setFrame(newFrame)
-    if (newFrame >= totalFrames) { clearInterval(intervalRef.current); setTimeout(onEnd, 3000) }
-  }, [tick])
+  const advanceFrame = (nextFrame) => {
+    if (nextFrame >= totalFrames) {
+      // Video done
+      stopSpeaking()
+      setTimeout(onEnd, 2000)
+      return
+    }
+    frameRef.current = nextFrame
+    setFrame(nextFrame)
+    setSpeaking(true)
 
-  if (id === 'what-is-welllogic') return <WhatIsWellLogicVideo frame={frame} tick={tick} />
-  if (id === 'trip-sidebyside') return <TripSideBySideVideo frame={frame} tick={tick} />
+    // Speak the narration for this frame, then advance to next when done
+    speak(narrationLines[nextFrame], () => {
+      setSpeaking(false)
+      // Pause briefly between frames, then advance
+      setTimeout(() => advanceFrame(frameRef.current + 1), 800)
+    })
+  }
+
+  const displayFrame = Math.max(0, frame)
+
+  if (id === 'what-is-welllogic') return <WhatIsWellLogicVideo frame={displayFrame} tick={tick} />
+  if (id === 'trip-sidebyside') return <TripSideBySideVideo frame={displayFrame} tick={tick} />
   return null
 }
 
