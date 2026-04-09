@@ -117,9 +117,10 @@ export default function CustomerQuestionnaire({ data, onChange, onComplete }) {
             </button>
           ) : (
             <button
-              onClick={onComplete}
-              className="px-8 py-3 text-sm font-bold bg-[#E8200C] text-white rounded-lg hover:bg-[#ff2510] shadow-lg shadow-[#E8200C]/30 transition-all"
-              style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onComplete(); }}
+              className="px-8 py-3 text-sm font-bold bg-[#E8200C] text-white rounded-lg hover:bg-[#ff2510] shadow-lg shadow-[#E8200C]/30 transition-all cursor-pointer select-none"
+              style={{ fontFamily: "'Arial Black', Arial, sans-serif", pointerEvents: 'auto', zIndex: 10, position: 'relative' }}
             >
               Launch Demo →
             </button>
@@ -128,7 +129,8 @@ export default function CustomerQuestionnaire({ data, onChange, onComplete }) {
 
         {/* Skip option */}
         <div className="text-center mt-4">
-          <button onClick={onComplete} className="text-[10px] text-[#555] hover:text-[#888] underline">
+          <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onComplete(); }}
+            className="text-[10px] text-[#555] hover:text-[#888] underline cursor-pointer" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}>
             Skip questionnaire — use defaults
           </button>
         </div>
