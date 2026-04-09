@@ -146,7 +146,7 @@ export default function SiteOverview({ state }) {
               {/* Compressor */}
               <CompBox x={cx - 50} y={L.compY} comp={c} alarmed={isAlarmed} />
               {/* Suction pipe from compressor DOWN to SCV */}
-              <AnimPipe points={[[cx, L.compY + 70], [cx, L.scvY - 12]]} rate={isRunning ? c.loadPct / 100 : 0} color="#f97316" />
+              <AnimPipe points={[[cx, L.compY + 80], [cx, L.scvY - 12]]} rate={isRunning ? c.loadPct / 100 : 0} color="#f97316" />
               {/* Suction Control Valve */}
               <Valve x={cx} y={L.scvY} openPct={isRunning ? c.loadPct : 0} label={`SCV ${i + 1}`} alarmed={isAlarmed} />
               {/* SCV → Witch's Hat */}
@@ -278,8 +278,12 @@ function WellBox({ x, y, well, alarmed, pri }) {
       {alarmed && <rect x={0} y={8} width={w} height={h} rx={4} fill="#E8200C" opacity={0.1} />}
       <path d="M 25 18 L 25 27 L 21 32 L 29 37 L 21 42 L 29 47 L 25 50 L 25 58" stroke="#555" strokeWidth={1.5} fill="none" />
       <path d="M 65 18 L 65 27 L 61 32 L 69 37 L 61 42 L 69 47 L 65 50 L 65 58" stroke="#555" strokeWidth={1.5} fill="none" />
-      <text x={w / 2} y={h + 20} textAnchor="middle" fill={bc} fontSize={9} fontWeight="bold">{well.actualRate.toFixed(0)} MCFD</text>
-      <text x={w / 2} y={h + 32} textAnchor="middle" fill="#666" fontSize={7}>{well.productionBoe.toFixed(0)} BOE/d</text>
+      {/* Desired vs Actual — the key comparison */}
+      <text x={w / 2} y={h + 20} textAnchor="middle" fill={bc} fontSize={9} fontWeight="bold">
+        {well.actualRate.toFixed(0)} / {well.desiredRate.toFixed(0)} MCFD
+      </text>
+      <text x={w / 2} y={h + 30} textAnchor="middle" fill="#666" fontSize={7}>actual / desired</text>
+      <text x={w / 2} y={h + 42} textAnchor="middle" fill="#888" fontSize={7}>{well.productionBoe.toFixed(0)} BOE/d</text>
     </g>
   )
 }
@@ -335,29 +339,35 @@ function Scrubber({ x, y, pressure, level, levelColor, alarmed }) {
 }
 
 function CompBox({ x, y, comp, alarmed }) {
-  const w = 100, h = 65
+  const w = 100, h = 78
   const running = comp.status === 'running' || comp.status === 'locked_out_running'
   const bc = alarmed ? '#E8200C' : running ? '#22c55e' : '#555'
+  const flowMcfd = comp.actualThroughput || 0
+  const capacityMcfd = comp.capacityMcfd || 400
   return (
     <g transform={`translate(${x},${y})`}>
       <rect x={0} y={0} width={w} height={h} rx={5} fill="#0a0a16" stroke={bc} strokeWidth={alarmed ? 2.5 : 1.5} />
       {alarmed && <rect x={0} y={0} width={w} height={h} rx={5} fill="#E8200C" opacity={0.12} />}
-      <circle cx={16} cy={15} r={6} fill={bc} />
-      <text x={28} y={19} fill="#fff" fontSize={12} fontWeight="bold">{comp.name}</text>
-      <text x={w - 5} y={19} textAnchor="end" fill={bc} fontSize={8} fontWeight="bold">
+      <circle cx={16} cy={14} r={5} fill={bc} />
+      <text x={27} y={17} fill="#fff" fontSize={11} fontWeight="bold">{comp.name}</text>
+      <text x={w - 5} y={17} textAnchor="end" fill={bc} fontSize={7} fontWeight="bold">
         {alarmed ? 'ALARM' : running ? 'RUN' : 'STOP'}
       </text>
       {running ? (
         <>
-          <text x={7} y={34} fill="#999" fontSize={8}>RPM {comp.rpm.toFixed(0)}</text>
-          <text x={7} y={45} fill="#999" fontSize={8}>Load {comp.loadPct.toFixed(0)}%</text>
-          <text x={7} y={56} fill="#999" fontSize={8}>Suct {comp.suctionPsi.toFixed(0)} PSI</text>
-          <rect x={7} y={59} width={w - 14} height={4} rx={2} fill="#111" />
-          <rect x={7} y={59} width={Math.max(0, (w - 14) * (comp.loadPct / 100))} height={4} rx={2}
+          {/* Flow rate — most important number */}
+          <text x={7} y={31} fill="#4fc3f7" fontSize={9} fontWeight="bold">{flowMcfd.toFixed(0)} MCFD</text>
+          <text x={w - 5} y={31} textAnchor="end" fill="#555" fontSize={7}>/ {capacityMcfd}</text>
+          <text x={7} y={42} fill="#999" fontSize={7}>RPM {comp.rpm.toFixed(0)}</text>
+          <text x={7} y={52} fill="#999" fontSize={7}>Load {comp.loadPct.toFixed(0)}%</text>
+          <text x={7} y={62} fill="#999" fontSize={7}>Suct {comp.suctionPsi.toFixed(0)} PSI</text>
+          {/* Load bar */}
+          <rect x={7} y={67} width={w - 14} height={4} rx={2} fill="#111" />
+          <rect x={7} y={67} width={Math.max(0, (w - 14) * (comp.loadPct / 100))} height={4} rx={2}
             fill={comp.loadPct > 90 ? '#E8200C' : comp.loadPct > 70 ? '#eab308' : '#22c55e'} />
         </>
       ) : (
-        <text x={w / 2} y={45} textAnchor="middle" fill={bc} fontSize={11} opacity={0.7}>
+        <text x={w / 2} y={50} textAnchor="middle" fill={bc} fontSize={11} opacity={0.7}>
           {comp.personnelLockout ? 'LOCKED OUT' : 'OFFLINE'}
         </text>
       )}

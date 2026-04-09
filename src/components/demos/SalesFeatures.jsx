@@ -48,14 +48,20 @@ export function calculateEconomics(customerData, brentPrice) {
   const unloadsWeek = d.wellUnloadWeek || 3
   const siteVisitsWeek = d.siteVisitsWeek || 8
 
-  // Blended response time (assume 50/50 day/night for trips)
-  const blendedResponseMin = (dayResponse + nightResponse) / 2
-  const blendedResponseHrs = blendedResponseMin / 60
+  // FULL manual cycle: drive out + diagnose + wait mechanic + fix + drive BACK + readjust chokes
+  const blendedDriveMin = (dayResponse + nightResponse) / 2
+  const diagnoseMin = 15
+  const mechWaitMin = 60
+  const fixMin = 30
+  const returnDriveMin = blendedDriveMin // operator drives BACK to readjust chokes
+  const chokeAdjustMin = 20
+  const totalManualMin = blendedDriveMin + diagnoseMin + mechWaitMin + fixMin + returnDriveMin + chokeAdjustMin
+  const totalManualHrs = totalManualMin / 60
 
-  // Per-event production loss (BOE lost while waiting for manual response)
+  // Per-event production loss (BOE lost during FULL manual cycle)
   const padDailyProduction = wellCount * avgProd
   const boePerHour = padDailyProduction / 24
-  const boeLostPerTrip = boePerHour * blendedResponseHrs * 0.7 // 70% of pad affected during trip
+  const boeLostPerTrip = boePerHour * totalManualHrs * 0.7 // 70% of pad affected during full cycle
   const boeSavedPerTrip = boeLostPerTrip * R.wellLogicRecoveryPct
 
   // Revenue per BOE (Brent crude is a proxy — actual wellhead price is lower)
@@ -164,24 +170,53 @@ function MiniStat({ label, value, sub, color }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 2. BEFORE / AFTER SPLIT SCREEN
+// 2. PRODUCTION RECOVERY COMPARISON
+// Shows the full manual workflow vs WellLogic automatic response
+// Manual: SCADA alarm → dispatch operator → drive to pad → diagnose →
+//         call out mechanic → mechanic fixes comp → operator returns →
+//         operator readjusts chokes → production restored
+// WellLogic: detects → rebalances chokes automatically → production protected
 // ═══════════════════════════════════════════════════════════
 export function BeforeAfterOverlay({ sim, customerData }) {
-  const [manualState, setManualState] = useState({ elapsed: 0, recovered: false })
+  const [manualState, setManualState] = useState({ elapsed: 0, phase: 'idle' })
   const intervalRef = useRef(null)
 
   const accuracy = sim.state.wells.reduce((s, w) => s + (w.isAtTarget ? 1 : 0), 0) / Math.max(sim.state.wells.length, 1) * 100
   const isDisturbance = accuracy < 85
-  const manualResponseSec = ((customerData?.dayResponseMin || 45) + (customerData?.nightResponseMin || 90)) / 2 * 60
+
+  // Manual timeline (scaled for demo — real times shown in labels)
+  const driveTime1 = (customerData?.dayResponseMin || 45) // min — first dispatch
+  const diagTime = 15 // min to diagnose
+  const mechWait = 60 // min waiting for mechanic
+  const fixTime = 30 // min for mechanic to fix
+  const driveTime2 = driveTime1 // operator drives BACK to readjust chokes
+  const chokeAdjust = 20 // min to manually readjust all chokes
+  const totalManualMin = driveTime1 + diagTime + mechWait + fixTime + driveTime2 + chokeAdjust
+
+  // Scaled for demo (1 real second = ~3 min of real time)
+  const scaleFactor = 3
+  const phase1End = driveTime1 / scaleFactor
+  const phase2End = phase1End + diagTime / scaleFactor
+  const phase3End = phase2End + mechWait / scaleFactor
+  const phase4End = phase3End + fixTime / scaleFactor
+  const phase5End = phase4End + driveTime2 / scaleFactor
+  const phase6End = phase5End + chokeAdjust / scaleFactor
 
   useEffect(() => {
     if (isDisturbance && !intervalRef.current) {
-      setManualState({ elapsed: 0, recovered: false })
+      setManualState({ elapsed: 0, phase: 'alarm' })
       intervalRef.current = setInterval(() => {
-        setManualState(prev => ({
-          elapsed: prev.elapsed + 1,
-          recovered: prev.elapsed > manualResponseSec / 30, // scaled for demo
-        }))
+        setManualState(prev => {
+          const e = prev.elapsed + 1
+          let phase = 'alarm'
+          if (e >= phase1End) phase = 'diagnose'
+          if (e >= phase2End) phase = 'waiting_mechanic'
+          if (e >= phase3End) phase = 'mechanic_fixing'
+          if (e >= phase4End) phase = 'operator_returning'
+          if (e >= phase5End) phase = 'readjusting_chokes'
+          if (e >= phase6End) phase = 'restored'
+          return { elapsed: e, phase }
+        })
       }, 1000)
     }
     if (!isDisturbance && intervalRef.current) {
@@ -192,27 +227,84 @@ export function BeforeAfterOverlay({ sim, customerData }) {
 
   if (!isDisturbance && manualState.elapsed === 0) return null
 
-  const manualProdPct = manualState.recovered ? Math.min(95, 20 + manualState.elapsed) : Math.max(10, 100 - manualState.elapsed * 2)
+  const { elapsed, phase } = manualState
+  const manualProdPct = phase === 'restored' ? 95 : phase === 'readjusting_chokes' ? 60 : phase === 'mechanic_fixing' ? 25 : Math.max(10, 100 - elapsed * 3)
+
+  const phaseLabels = {
+    alarm: `🚨 SCADA alarm fired — dispatching operator (${driveTime1} min drive)`,
+    diagnose: `🔍 Operator on-site — diagnosing issue (~${diagTime} min)`,
+    waiting_mechanic: `📞 Called mechanic — waiting for arrival (~${mechWait} min)`,
+    mechanic_fixing: `🔧 Mechanic repairing compressor (~${fixTime} min)`,
+    operator_returning: `🚗 Comp fixed — dispatching operator BACK to readjust chokes (${driveTime2} min drive)`,
+    readjusting_chokes: `⚙️ Operator manually readjusting chokes on ${sim.state.wells.length} wells (~${chokeAdjust} min)`,
+    restored: `✅ Production finally restored — total time: ${totalManualMin} min (${(totalManualMin / 60).toFixed(1)} hrs)`,
+  }
 
   return (
     <div className="bg-[#111] border border-[#333] rounded-lg p-2.5">
-      <div className="text-[8px] text-[#f97316] uppercase tracking-wider font-bold mb-2">⚡ Manual vs WellLogic</div>
+      <div className="text-[8px] text-[#f97316] uppercase tracking-wider font-bold mb-1">
+        Production Recovery Comparison — What Happens When a Compressor Goes Down?
+      </div>
       <div className="grid grid-cols-2 gap-2">
+        {/* MANUAL SIDE */}
         <div className="bg-[#1a0808] rounded p-2 border border-[#E8200C]/20">
-          <div className="text-[9px] text-[#E8200C] font-bold">❌ Without WellLogic</div>
-          <div className="w-full bg-[#200] rounded h-3 mt-1 overflow-hidden">
+          <div className="text-[9px] text-[#E8200C] font-bold mb-1">❌ TODAY — Manual Response</div>
+          <div className="w-full bg-[#200] rounded h-3 overflow-hidden">
             <div className="h-full bg-[#E8200C] transition-all duration-1000" style={{ width: `${manualProdPct}%` }} />
           </div>
-          <div className="text-[9px] text-[#E8200C] font-bold mt-1">{manualProdPct.toFixed(0)}%</div>
-          <div className="text-[8px] text-[#888]">{manualState.recovered ? 'Pumper fixing...' : `Waiting ${manualState.elapsed}s...`}</div>
+          <div className="text-[10px] text-[#E8200C] font-bold mt-1">{manualProdPct.toFixed(0)}% production</div>
+          <div className="text-[8px] text-[#ccc] mt-1 leading-relaxed">{phaseLabels[phase]}</div>
+          {/* Timeline steps */}
+          <div className="mt-1.5 space-y-0.5">
+            {[
+              { p: 'alarm', t: `Drive to pad (${driveTime1} min)` },
+              { p: 'diagnose', t: `Diagnose (${diagTime} min)` },
+              { p: 'waiting_mechanic', t: `Wait for mechanic (${mechWait} min)` },
+              { p: 'mechanic_fixing', t: `Mechanic repairs (${fixTime} min)` },
+              { p: 'operator_returning', t: `Operator drives back (${driveTime2} min)` },
+              { p: 'readjusting_chokes', t: `Readjust chokes (${chokeAdjust} min)` },
+            ].map((step, i) => {
+              const phases = ['alarm','diagnose','waiting_mechanic','mechanic_fixing','operator_returning','readjusting_chokes','restored']
+              const current = phases.indexOf(phase)
+              const stepIdx = phases.indexOf(step.p)
+              const done = current > stepIdx
+              const active = current === stepIdx
+              return (
+                <div key={i} className={`text-[7px] flex items-center gap-1 ${done ? 'text-[#E8200C]' : active ? 'text-white' : 'text-[#444]'}`}>
+                  <span>{done ? '✓' : active ? '►' : '○'}</span>
+                  <span>{step.t}</span>
+                </div>
+              )
+            })}
+          </div>
         </div>
+
+        {/* WELLLOGIC SIDE */}
         <div className="bg-[#081a08] rounded p-2 border border-[#22c55e]/20">
-          <div className="text-[9px] text-[#22c55e] font-bold">✅ With WellLogic</div>
-          <div className="w-full bg-[#020] rounded h-3 mt-1 overflow-hidden">
+          <div className="text-[9px] text-[#22c55e] font-bold mb-1">✅ WITH WellLogic — Automatic</div>
+          <div className="w-full bg-[#020] rounded h-3 overflow-hidden">
             <div className="h-full bg-[#22c55e] transition-all duration-1000" style={{ width: `${accuracy}%` }} />
           </div>
-          <div className="text-[9px] text-[#22c55e] font-bold mt-1">{accuracy.toFixed(0)}%</div>
-          <div className="text-[8px] text-[#888]">Auto-rebalancing</div>
+          <div className="text-[10px] text-[#22c55e] font-bold mt-1">{accuracy.toFixed(0)}% production</div>
+          <div className="text-[8px] text-[#ccc] mt-1 leading-relaxed">
+            {accuracy >= 95
+              ? '✅ Priority wells at full injection. Low-priority wells curtailed to protect top producers.'
+              : accuracy >= 70
+              ? '⚡ Rebalancing in progress — closing chokes on low-priority wells, protecting top producers.'
+              : '🔄 Disturbance detected — reallocating gas by well priority...'}
+          </div>
+          <div className="mt-1.5 space-y-0.5">
+            <div className="text-[7px] text-[#22c55e] flex items-center gap-1"><span>✓</span><span>Detects shortfall (instant)</span></div>
+            <div className={`text-[7px] flex items-center gap-1 ${accuracy >= 50 ? 'text-[#22c55e]' : 'text-white'}`}>
+              <span>{accuracy >= 50 ? '✓' : '►'}</span><span>Rebalances chokes (30-60 sec)</span>
+            </div>
+            <div className={`text-[7px] flex items-center gap-1 ${accuracy >= 90 ? 'text-[#22c55e]' : 'text-[#444]'}`}>
+              <span>{accuracy >= 90 ? '✓' : '○'}</span><span>Priority wells at target</span>
+            </div>
+            <div className={`text-[7px] flex items-center gap-1 ${accuracy >= 95 ? 'text-[#22c55e]' : 'text-[#444]'}`}>
+              <span>{accuracy >= 95 ? '✓' : '○'}</span><span>Stable — no operator needed</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -299,7 +391,9 @@ function ROILine({ label, value }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 6. RESPONSE TIME TIMER
+// 6. TIME TO FULL PRODUCTION RECOVERY
+// Manual: drive1 + diagnose + wait mechanic + fix + drive2 + readjust chokes
+// WellLogic: 30-60 seconds automatic
 // ═══════════════════════════════════════════════════════════
 export function ResponseTimer({ sim, customerData }) {
   const [eventStart, setEventStart] = useState(null)
@@ -309,7 +403,15 @@ export function ResponseTimer({ sim, customerData }) {
 
   const wellsAtTarget = sim.state.wells.filter(w => w.isAtTarget).length / Math.max(sim.state.wells.length, 1) * 100
   const isDisturbance = wellsAtTarget < 85
-  const manualMin = ((customerData?.dayResponseMin || 45) + (customerData?.nightResponseMin || 90)) / 2
+
+  // Full manual cycle times from questionnaire
+  const drive1 = customerData?.dayResponseMin || 45
+  const diagnose = 15
+  const mechWait = 60
+  const fix = 30
+  const drive2 = drive1 // RETURN TRIP — operator drives back to readjust
+  const chokeAdj = 20
+  const totalManualMin = drive1 + diagnose + mechWait + fix + drive2 + chokeAdj
 
   useEffect(() => {
     if (isDisturbance && !eventStart) {
@@ -335,17 +437,36 @@ export function ResponseTimer({ sim, customerData }) {
 
   return (
     <div className="bg-[#111] border border-[#333] rounded-lg p-2.5">
-      <div className="text-[8px] text-[#f97316] uppercase tracking-wider font-bold mb-2">⏱ Response Time</div>
-      <div className="grid grid-cols-2 gap-3 text-center">
-        <div>
-          <div className="text-[8px] text-[#E8200C] font-bold">Manual</div>
-          <div className="text-[18px] text-[#E8200C] font-bold" style={{ fontFamily: "'Arial Black'" }}>{fmt(Math.min(elapsed, manualMin * 60))}</div>
-          <div className="text-[8px] text-[#888]">{elapsed < manualMin * 60 ? `Pumper ${manualMin.toFixed(0)} min away` : 'Arrived'}</div>
+      <div className="text-[8px] text-[#f97316] uppercase tracking-wider font-bold mb-1">
+        ⏱ Time to Full Production Recovery
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {/* MANUAL */}
+        <div className="text-center bg-[#1a0808] rounded p-2 border border-[#E8200C]/20">
+          <div className="text-[8px] text-[#E8200C] font-bold mb-0.5">Manual — Operator + Mechanic</div>
+          <div className="text-[20px] text-[#E8200C] font-bold" style={{ fontFamily: "'Arial Black'" }}>
+            {totalManualMin} min
+          </div>
+          <div className="text-[7px] text-[#888] leading-relaxed mt-1">
+            Drive out ({drive1}m) + Diagnose ({diagnose}m) + Wait for mechanic ({mechWait}m) + Repair ({fix}m) + <span className="text-[#E8200C]">Operator drives BACK ({drive2}m)</span> + Readjust chokes ({chokeAdj}m)
+          </div>
+          <div className="text-[8px] text-[#E8200C] font-bold mt-1">= {(totalManualMin / 60).toFixed(1)} hours of lost production</div>
         </div>
-        <div>
-          <div className="text-[8px] text-[#22c55e] font-bold">WellLogic</div>
-          <div className="text-[18px] font-bold" style={{ fontFamily: "'Arial Black'", color: recovered ? '#22c55e' : '#eab308' }}>{recovered ? fmt(Math.min(elapsed, 60)) : fmt(elapsed)}</div>
-          <div className="text-[8px] text-[#888]">{recovered ? '✅ Recovered' : 'Rebalancing...'}</div>
+
+        {/* WELLLOGIC */}
+        <div className="text-center bg-[#081a08] rounded p-2 border border-[#22c55e]/20">
+          <div className="text-[8px] text-[#22c55e] font-bold mb-0.5">WellLogic — Fully Automatic</div>
+          <div className="text-[20px] font-bold" style={{ fontFamily: "'Arial Black'", color: recovered ? '#22c55e' : '#eab308' }}>
+            {recovered ? fmt(Math.min(elapsed, 60)) : fmt(elapsed)}
+          </div>
+          <div className="text-[7px] text-[#888] leading-relaxed mt-1">
+            {recovered
+              ? 'Priority wells at target. No operator dispatch needed. Mechanic dispatched only for compressor — chokes already handled.'
+              : 'Detecting shortfall and rebalancing injection across wells by priority...'}
+          </div>
+          <div className="text-[8px] text-[#22c55e] font-bold mt-1">
+            {recovered ? '✅ Production protected — zero operator trips for choke adjustment' : '⚡ Rebalancing...'}
+          </div>
         </div>
       </div>
     </div>
