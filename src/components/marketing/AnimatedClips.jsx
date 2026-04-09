@@ -3,15 +3,15 @@ import { useState, useEffect, useRef } from 'react'
 const CLIPS = [
   {
     id: 'what-is-welllogic',
-    title: 'What is WellLogic™?',
-    duration: '60 sec',
-    description: 'Full overview of what WellLogic is, how it sits on your pad, and what it controls — from wells to compressors to injection chokes.',
+    title: 'WellLogic™ — What It Does On Your Pad',
+    duration: '45 sec',
+    description: 'Your pad, your equipment, your gas. See how WellLogic controls every choke, reads every meter, and keeps your top wells producing — automatically.',
   },
   {
     id: 'trip-sidebyside',
-    title: 'Compressor Trip — Manual vs WellLogic',
-    duration: '45 sec',
-    description: 'Side-by-side comparison: watch the same compressor trip event play out with and without WellLogic controlling the pad.',
+    title: 'Compressor Trip — Your Pad vs a WellLogic Pad',
+    duration: '40 sec',
+    description: 'Same compressor trips on two identical pads at the same time. One has WellLogic, one does not. Watch what happens to your production.',
   },
 ]
 
@@ -70,22 +70,33 @@ export default function AnimatedClips() {
 // ═══════════════════════════════════════
 function getVoice() {
   const voices = window.speechSynthesis?.getVoices() || []
-  // Prefer a deep male English voice
-  const preferred = ['Google UK English Male', 'Microsoft David', 'Microsoft Mark', 'Daniel', 'Alex',
-    'Google US English', 'Microsoft Guy Online', 'en-US', 'en-GB']
+  // US English male — NO British/Australian. Prefer deep American voices.
+  const preferred = [
+    'Google US English',           // Chrome default US
+    'Microsoft Guy Online',        // Edge US male
+    'Microsoft David',             // Windows US male
+    'Microsoft Mark',              // Windows US male
+    'Microsoft Eric Online',       // Edge US male
+    'Aaron',                       // macOS US male
+    'Fred',                        // macOS US male
+    'Alex',                        // macOS US male
+  ]
   for (const name of preferred) {
-    const found = voices.find(v => v.name.includes(name) || v.lang.startsWith(name))
+    const found = voices.find(v => v.name.includes(name))
     if (found) return found
   }
-  return voices.find(v => v.lang.startsWith('en')) || voices[0] || null
+  // Fallback: any en-US voice, avoid en-GB and en-AU
+  const usVoice = voices.find(v => v.lang === 'en-US' && !v.name.includes('Female') && !v.name.includes('Zira'))
+  if (usVoice) return usVoice
+  return voices.find(v => v.lang.startsWith('en-US')) || voices.find(v => v.lang.startsWith('en')) || voices[0] || null
 }
 
 function speak(text, onDone) {
   if (!window.speechSynthesis) { onDone?.(); return }
   window.speechSynthesis.cancel()
   const utter = new SpeechSynthesisUtterance(text)
-  utter.rate = 0.92 // slightly slower for clarity
-  utter.pitch = 0.9 // slightly deeper
+  utter.rate = 1.15  // fast paced — oilfield guys don't have time for slow talk
+  utter.pitch = 0.85 // deeper — sounds like a foreman not a news anchor
   utter.volume = 1
   const voice = getVoice()
   if (voice) utter.voice = voice
@@ -104,32 +115,33 @@ if (typeof window !== 'undefined' && window.speechSynthesis) {
   window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices()
 }
 
-// Narration scripts for each video
+// Narration scripts — written for production foremen, not boardroom suits
+// Fast-paced, oilfield terminology, no fluff
 const NARRATION = {
   'what-is-welllogic': [
-    'This is a gas lift injection pad in West Texas.',
-    'Wells produce oil and gas. The gas is separated at the scrubber and recirculated back to the wells.',
-    'Compressors push gas through the discharge header to each well.',
-    'Each well has an injection choke valve that controls how much gas it receives.',
-    'Flow meters on every line measure the actual injection rate in real time.',
-    'Well Logic sits at the center of it all, controlling every choke valve automatically.',
-    'It monitors suction pressure, discharge pressure, and every compressor on the pad.',
-    'When conditions change, Well Logic reacts in seconds. Not hours.',
-    'It prioritizes your highest value wells automatically. Your best producers always get gas first.',
-    'It detects well unloads and pressure spikes, and prevents full pad shutdowns.',
-    'It stages compressors up and down based on actual demand. No wasted fuel.',
-    'Well Logic. Twenty four seven automatic gas lift optimization by Service Compression.',
+    'Here is your pad. Four wells on gas lift, two compressors, recirculated gas off the scrubber.',
+    'Gas comes off the vertical scrubber, hits the suction header, feeds your compressors.',
+    'Compressors push it through the discharge header. From there it splits to each well.',
+    'Every well has a motor valve choke and a flow meter on the injection line. That is what WellLogic controls.',
+    'WellLogic reads every flow meter, every pressure transmitter, every compressor status. All real time. All Modbus.',
+    'It sets your choke positions automatically. No pumper driving out. No manual adjustments.',
+    'Suction pressure drops? WellLogic adjusts compressor staging. Discharge spikes? It backs off before you trip.',
+    'Your number one well always gets gas first. Period. WellLogic enforces priority across every choke on the pad.',
+    'Well slugs out and scrubber pressure spikes? Sales valve opens. Compressors stay running. No pad shutdown.',
+    'Demand changes? WellLogic stages compressors up or down. No wasted fuel, no starved wells.',
+    'This runs twenty four seven. Nights, weekends, holidays. Same response at two A M as two P M.',
+    'WellLogic by Service Compression. Your pad, optimized. All the time.',
   ],
   'trip-sidebyside': [
-    'Both pads are running normally. Four wells, two compressors, full injection on both sides.',
-    'Compressor C 1 trips. Both pads lose a compressor at the exact same time.',
-    'Immediately, all wells on both pads lose injection pressure. Production is dropping.',
-    'On the left, the manual pad fires a SCADA alarm and dispatches the operator. On the right, Well Logic has already detected the shortfall.',
-    'The operator is driving to the pad. Forty five minutes away. Meanwhile, Well Logic is already closing chokes on low priority wells and redirecting gas.',
-    'All wells on the manual pad are still suffering. On the Well Logic pad, priority wells W 1 and W 2 are already back at full target injection.',
-    'The operator finally arrives at the manual pad and starts diagnosing the problem. Well Logic has been stable for over thirty minutes already.',
-    'The operator calls a mechanic and waits. On the Well Logic pad, top producers have been running at full rate this entire time.',
-    'After the mechanic fixes the compressor, the operator has to drive back out to manually readjust every choke. With Well Logic, that second trip never happens.',
+    'Two identical pads. Same wells, same compressors, same gas. One has WellLogic. One does not.',
+    'C 1 trips. High discharge temp. Both pads lose half their compression at the same time. Right now.',
+    'Every well on both pads just lost injection pressure. Production is falling. Barrels are being lost.',
+    'Left side, your SCADA fires an alarm. Dispatcher calls the pumper. He is forty five minutes out. Right side, WellLogic already knows.',
+    'Left side, pumper is still driving. Every well still starving. Right side, WellLogic is closing chokes on the low priority wells, pushing all available gas to your top producers.',
+    'Left pad is still losing barrels across all four wells. Right pad, wells one and two are back at full target injection. Your best producers are protected.',
+    'Pumper finally shows up on the left pad. Starts looking at the unit. Right pad has been stable for thirty plus minutes. Your top wells never stopped producing.',
+    'Left side, pumper calls the mechanic. Waits an hour. Right side, WellLogic has been running at full optimization this entire time. Zero intervention.',
+    'Mechanic fixes the unit. Now the pumper has to drive back out and reset every choke by hand. That is another trip, another hour. With WellLogic, that trip never happens. It is already done.',
   ],
 }
 
@@ -173,8 +185,8 @@ function ClipPlayer({ id, onEnd }) {
     // Speak the narration for this frame, then advance to next when done
     speak(narrationLines[nextFrame], () => {
       setSpeaking(false)
-      // Pause briefly between frames, then advance
-      setTimeout(() => advanceFrame(frameRef.current + 1), 800)
+      // Quick pause between frames — keep it moving
+      setTimeout(() => advanceFrame(frameRef.current + 1), 400)
     })
   }
 
