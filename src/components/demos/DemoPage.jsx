@@ -1,5 +1,4 @@
-// Reusable demo page shell
-// Layout: pitch (left top) | live diagram (center) | triggers (right) | metrics (bottom)
+// Reusable demo page shell — full site diagram visible at all times
 
 import SiteOverview from '../SiteOverview'
 import { getMetrics } from '../../engine/simulation'
@@ -9,39 +8,40 @@ export default function DemoPage({ title, pitch, triggers, metrics, children, si
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[#080810]">
-      {/* Top: Title + Pitch */}
-      <div className="px-6 py-4 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0">
-        <h2 className="text-lg text-white font-bold" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
-          {title}
-        </h2>
-        <p className="text-[13px] text-[#bbb] mt-1 max-w-[700px]">{pitch}</p>
-      </div>
-
-      {/* Middle: Diagram + Trigger sidebar */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Live diagram */}
-        <div className="flex-1 overflow-hidden">
+      {/* Middle: Diagram + Trigger sidebar — takes all available space */}
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        {/* Live diagram — FULL site visible */}
+        <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
           <SiteOverview state={sim.state} config={sim.state.config} />
         </div>
 
         {/* Trigger buttons sidebar */}
-        <div className="w-[240px] shrink-0 bg-[#0e0e18] border-l border-[#1a1a2a] p-4 overflow-y-auto">
-          <div className="text-[9px] text-[#E8200C] uppercase tracking-wider font-bold mb-3"
-            style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
-            Scenario Controls
+        <div className="w-[260px] shrink-0 bg-[#0e0e18] border-l border-[#1a1a2a] flex flex-col overflow-hidden">
+          {/* Title + pitch in sidebar top */}
+          <div className="px-4 pt-3 pb-2 border-b border-[#1a1a2a] shrink-0">
+            <h2 className="text-[13px] text-white font-bold" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+              {title}
+            </h2>
+            <p className="text-[10px] text-[#999] mt-1 leading-relaxed">{pitch}</p>
           </div>
-          <div className="space-y-2">
+
+          {/* Scrollable triggers */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 sidebar-scroll">
+            <div className="text-[8px] text-[#E8200C] uppercase tracking-wider font-bold mb-1"
+              style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+              Scenario Controls
+            </div>
             {triggers.map((t, i) => (
               <TriggerButton key={i} {...t} />
             ))}
+            {/* Extra content from specific demos */}
+            {children && <div className="mt-3 pt-3 border-t border-[#1a1a2a]">{children}</div>}
           </div>
-          {/* Extra content from specific demos */}
-          {children && <div className="mt-4">{children}</div>}
         </div>
       </div>
 
-      {/* Bottom: Live Metrics */}
-      <div className="flex items-center gap-2 px-4 py-2 bg-[#0c0c16] border-t border-[#1a1a2a] shrink-0">
+      {/* Bottom: Live Metrics — compact */}
+      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0c0c16] border-t border-[#1a1a2a] shrink-0 overflow-x-auto">
         {(metrics || defaultMetrics(m)).map((met, i) => (
           <MetricChip key={i} {...met} />
         ))}
@@ -54,30 +54,30 @@ function TriggerButton({ label, description, onClick, active, color = '#E8200C',
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
+      className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${
         active
-          ? `bg-[${color}]/15 border-[${color}]`
+          ? 'border-[#E8200C]'
           : 'bg-[#111120] border-[#2a2a3a] hover:border-[#444] hover:bg-[#16162a]'
       }`}
-      style={active ? { backgroundColor: `${color}15`, borderColor: color } : undefined}
+      style={active ? { backgroundColor: '#E8200C15', borderColor: '#E8200C' } : undefined}
     >
       <div className="flex items-center gap-2">
         {icon && <span className="text-sm">{icon}</span>}
-        <span className={`text-[12px] font-bold ${active ? 'text-white' : 'text-[#ccc]'}`}>{label}</span>
+        <span className={`text-[11px] font-bold ${active ? 'text-white' : 'text-[#ccc]'}`}>{label}</span>
       </div>
-      {description && <p className="text-[10px] text-[#777] mt-0.5">{description}</p>}
+      {description && <p className="text-[9px] text-[#666] mt-0.5 leading-tight">{description}</p>}
     </button>
   )
 }
 
 function MetricChip({ label, value, unit, color }) {
   return (
-    <div className="bg-[#111120] rounded px-3 py-1.5 min-w-[110px]">
-      <div className="text-[8px] text-[#666] uppercase tracking-wider">{label}</div>
-      <span className="text-sm font-bold" style={{ color: color || '#fff', fontFamily: "'Arial Black', Arial, sans-serif" }}>
+    <div className="bg-[#111120] rounded px-2.5 py-1 min-w-[100px] shrink-0">
+      <div className="text-[7px] text-[#555] uppercase tracking-wider">{label}</div>
+      <span className="text-[12px] font-bold" style={{ color: color || '#fff', fontFamily: "'Arial Black', Arial, sans-serif" }}>
         {value}
       </span>
-      {unit && <span className="text-[8px] text-[#666] ml-1">{unit}</span>}
+      {unit && <span className="text-[7px] text-[#555] ml-1">{unit}</span>}
     </div>
   )
 }
