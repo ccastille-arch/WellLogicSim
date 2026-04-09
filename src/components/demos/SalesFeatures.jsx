@@ -125,22 +125,25 @@ export function RevenueTicker({ sim, customerData, brentPrice }) {
   const [cumulativeSaved, setCumulativeSaved] = useState(0)
   const prevAccuracyRef = useRef(100)
 
-  const econ = calculateEconomics(customerData, brentPrice)
-  const totalDesired = sim.state.wells.reduce((s, w) => s + w.desiredRate, 0)
-  const totalActual = sim.state.wells.reduce((s, w) => s + w.actualRate, 0)
+  // Safety: bail if sim isn't ready yet
+  if (!sim?.state?.wells) return null
+
+  const econ = calculateEconomics(customerData || {}, brentPrice || 72)
+  const totalDesired = sim.state.wells.reduce((s, w) => s + (w.desiredRate || 0), 0)
+  const totalActual = sim.state.wells.reduce((s, w) => s + (w.actualRate || 0), 0)
   const accuracy = totalDesired > 0 ? totalActual / totalDesired : 1
 
-  const lostPerHour = econ.boePerHour * (1 - Math.min(1, accuracy)) * econ.boeValue
-  const productionValuePerHour = econ.boePerHour * econ.boeValue
+  const lostPerHour = (econ.boePerHour || 0) * (1 - Math.min(1, accuracy)) * (econ.boeValue || 0)
+  const productionValuePerHour = (econ.boePerHour || 0) * (econ.boeValue || 0)
 
   useEffect(() => {
-    // Accumulate savings each tick when accuracy is recovering
+    if (!sim?.state?.tickCount) return
     if (accuracy > prevAccuracyRef.current && accuracy < 0.99) {
       const delta = accuracy - prevAccuracyRef.current
-      setCumulativeSaved(prev => prev + delta * econ.boePerHour * econ.boeValue * 0.5)
+      setCumulativeSaved(prev => prev + delta * (econ.boePerHour || 0) * (econ.boeValue || 0) * 0.5)
     }
     prevAccuracyRef.current = accuracy
-  }, [sim.state.tickCount])
+  }, [sim?.state?.tickCount])
 
   return (
     <div className="bg-[#0a1a0a] border border-[#22c55e]/30 rounded-lg p-2.5">
@@ -180,6 +183,8 @@ function MiniStat({ label, value, sub, color }) {
 export function BeforeAfterOverlay({ sim, customerData }) {
   const [manualState, setManualState] = useState({ elapsed: 0, phase: 'idle' })
   const intervalRef = useRef(null)
+
+  if (!sim?.state?.wells) return null
 
   const accuracy = sim.state.wells.reduce((s, w) => s + (w.isAtTarget ? 1 : 0), 0) / Math.max(sim.state.wells.length, 1) * 100
   const isDisturbance = accuracy < 85
@@ -400,6 +405,8 @@ export function ResponseTimer({ sim, customerData }) {
   const [elapsed, setElapsed] = useState(0)
   const [recovered, setRecovered] = useState(false)
   const intervalRef = useRef(null)
+
+  if (!sim?.state?.wells) return null
 
   const wellsAtTarget = sim.state.wells.filter(w => w.isAtTarget).length / Math.max(sim.state.wells.length, 1) * 100
   const isDisturbance = wellsAtTarget < 85

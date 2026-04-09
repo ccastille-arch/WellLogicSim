@@ -61,9 +61,14 @@ export default function SalesMode({ sim, config }) {
       <CustomerQuestionnaire
         data={customerData}
         onChange={setCustomerData}
-        onComplete={() => setQuestionnaireComplete(true)}
+        onComplete={() => { console.log('Questionnaire complete'); setQuestionnaireComplete(true) }}
       />
     )
+  }
+
+  // Safety check — make sure simulation is ready
+  if (!sim?.state?.wells) {
+    return <div className="flex-1 flex items-center justify-center bg-[#080810] text-white">Loading simulation...</div>
   }
 
   return (
