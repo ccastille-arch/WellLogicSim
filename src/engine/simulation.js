@@ -24,15 +24,21 @@ const DEFAULT_MAX_TEMP_AT_PLATE = 165
 const DEFAULT_STABILITY_TIMER = 60
 const DEFAULT_STAGING_LOCKOUT = 300
 
-// Smoothing factors — SLOW for realistic valve/process response
-const CHOKE_MOVE_RATE = 0.04      // Choke valves move slowly (4% per tick = ~12 seconds to full travel)
-const FLOW_RESPONSE_RATE = 0.06   // Flow takes time to establish through piping
-const PRODUCTION_LAG = 0.03       // Production responds slowest (well inertia)
-const COMPRESSOR_RAMP = 0.08      // Compressor RPM/load changes
-const PRESSURE_RESPONSE = 0.10    // Pressure responds moderately fast
-
-// Rebalancing: how fast WellLogic adjusts allocation targets after a disturbance
-const REBALANCE_RATE = 0.02       // Target allocation moves 2% per tick toward optimum = ~25 sec to full correction
+// Default tuning parameters — can be overridden at runtime via admin panel
+export const DEFAULT_TUNING = {
+  chokeMoveRate: 0.04,        // Choke valve travel speed per tick
+  flowResponseRate: 0.06,     // Flow establishment through piping per tick
+  productionLag: 0.03,        // Well production inertia per tick
+  compressorRamp: 0.08,       // Compressor RPM/load change rate per tick
+  pressureResponse: 0.10,     // Pressure change rate per tick
+  rebalanceRate: 0.02,        // WellLogic allocation correction speed per tick
+  disturbanceThreshold: 20,   // MCFD capacity change to trigger disturbance
+  salesValveOpenRate: 0.15,   // Sales valve opening speed per tick
+  salesValveCloseRate: 0.05,  // Sales valve closing speed per tick
+  compressorSpindownRate: 0.06, // Compressor spindown speed per tick
+  tickInterval: 500,          // Milliseconds per simulation tick
+  unloadChance: 0.015,        // Random unload event probability per tick
+}
 
 export function createInitialState(config) {
   const { compressorCount, wellCount, siteType } = config
@@ -117,11 +123,14 @@ export function createInitialState(config) {
     alarms: [],
     systemRunning: true,
     runningWellsLabel: '',
+    // Tuning parameters — adjustable via admin panel
+    tuning: { ...DEFAULT_TUNING, ...(config.tuning || {}) },
   }
 }
 
 export function tick(state) {
-  const { compressors, wells, totalAvailableGas, huntSequenceEnabled, tickCount } = state
+  const { compressors, wells, totalAvailableGas, huntSequenceEnabled, tickCount, tuning } = state
+  const T = tuning || DEFAULT_TUNING
   const newTickCount = tickCount + 1
   const simTime = newTickCount * 3
 
@@ -145,7 +154,7 @@ export function tick(state) {
 
   // Detect if a disturbance just happened (capacity changed significantly)
   const capacityDelta = Math.abs(effectiveGas - prevEffective)
-  const disturbanceOccurred = capacityDelta > 20
+  const disturbanceOccurred = capacityDelta > T.disturbanceThreshold
 
   // ──────────────────────────────────────────────
   // 3. Calculate OPTIMUM allocation (what WellLogic WANTS to achieve)
@@ -182,24 +191,24 @@ export function tick(state) {
     } else {
       // PHASE 2-3: WellLogic gradually moves allocation toward optimum
       // High priority wells recover first (they get opened), low priority close down
-      allocTarget = allocTarget + (optimum - allocTarget) * REBALANCE_RATE
+      allocTarget = allocTarget + (optimum - allocTarget) * T.rebalanceRate
     }
 
     // Clamp
     allocTarget = Math.max(0, Math.min(desired, allocTarget))
 
     // Actual flow lags behind the allocation target (valve travel + piping)
-    const actualRate = smooth(w.actualRate, allocTarget, FLOW_RESPONSE_RATE)
+    const actualRate = smooth(w.actualRate, allocTarget, T.flowResponseRate)
 
     // Choke position moves at realistic valve speed
     const targetChokeAO = desired > 0 ? Math.min(100, (allocTarget / desired) * 100) : 0
-    const chokeAO = smooth(w.chokeAO, targetChokeAO, CHOKE_MOVE_RATE)
+    const chokeAO = smooth(w.chokeAO, targetChokeAO, T.chokeMoveRate)
 
     // Production has the most inertia
     const accuracy = desired > 0 ? actualRate / desired : 1
     const isAtTarget = accuracy >= 0.95
     const targetProd = w.baseProduction * Math.min(accuracy, 1)
-    const productionBoe = smooth(w.productionBoe, targetProd, PRODUCTION_LAG)
+    const productionBoe = smooth(w.productionBoe, targetProd, T.productionLag)
 
     const { _huntAdjustedRate, ...rest } = w
     return {
@@ -221,7 +230,7 @@ export function tick(state) {
 
   // On disturbance, pressure swings harder before settling
   const pressureNoise = disturbanceOccurred ? (Math.random() - 0.5) * 8 : (Math.random() - 0.5) * 2
-  const suctionHeaderPressure = smooth(state.suctionHeaderPressure, targetSuction + pressureNoise, PRESSURE_RESPONSE)
+  const suctionHeaderPressure = smooth(state.suctionHeaderPressure, targetSuction + pressureNoise, T.pressureResponse)
 
   // ──────────────────────────────────────────────
   // 6. Scrubber pressure
@@ -230,7 +239,7 @@ export function tick(state) {
   const unloadChance = Math.random()
   let scrubberPressure = state.scrubberPressure
   let wellUnloadActive = state.wellUnloadActive
-  if (unloadChance > 0.985) {
+  if (unloadChance > (1 - T.unloadChance)) {
     scrubberPressure = scrubberBase + 20 + Math.random() * 15
     wellUnloadActive = true
   } else {
@@ -245,9 +254,9 @@ export function tick(state) {
   let salesValvePosition = state.salesValvePosition
   const upperLimit = state.suctionTarget + state.suctionHighRange
   if (suctionHeaderPressure > upperLimit || wellUnloadActive) {
-    salesValvePosition = smooth(salesValvePosition, Math.min(100, (suctionHeaderPressure - upperLimit) * 5 + 30), 0.15)
+    salesValvePosition = smooth(salesValvePosition, Math.min(100, (suctionHeaderPressure - upperLimit) * 5 + 30), T.salesValveOpenRate)
   } else {
-    salesValvePosition = smooth(salesValvePosition, 0, 0.05)
+    salesValvePosition = smooth(salesValvePosition, 0, T.salesValveCloseRate)
   }
 
   // ──────────────────────────────────────────────
@@ -267,11 +276,11 @@ export function tick(state) {
       // Compressor spinning down — takes time to stop
       return {
         ...c,
-        rpm: smooth(c.rpm, 0, 0.06),
-        suctionPsi: smooth(c.suctionPsi, suctionHeaderPressure, 0.08),
-        dischargePsi: smooth(c.dischargePsi, 0, 0.06),
-        loadPct: smooth(c.loadPct, 0, 0.06),
-        actualThroughput: smooth(c.actualThroughput, 0, 0.08),
+        rpm: smooth(c.rpm, 0, T.compressorSpindownRate),
+        suctionPsi: smooth(c.suctionPsi, suctionHeaderPressure, T.pressureResponse),
+        dischargePsi: smooth(c.dischargePsi, 0, T.compressorSpindownRate),
+        loadPct: smooth(c.loadPct, 0, T.compressorSpindownRate),
+        actualThroughput: smooth(c.actualThroughput, 0, T.compressorSpindownRate),
       }
     }
 
@@ -289,11 +298,11 @@ export function tick(state) {
 
     return {
       ...c,
-      rpm: smooth(c.rpm, rpm + noise() * 5, COMPRESSOR_RAMP),
-      suctionPsi: smooth(c.suctionPsi, suctionPsi, PRESSURE_RESPONSE),
-      dischargePsi: smooth(c.dischargePsi, dischargePsi + noise() * 5, COMPRESSOR_RAMP),
-      loadPct: smooth(c.loadPct, clampedLoad, COMPRESSOR_RAMP),
-      actualThroughput: smooth(c.actualThroughput, shareOfLoad, FLOW_RESPONSE_RATE),
+      rpm: smooth(c.rpm, rpm + noise() * 5, T.compressorRamp),
+      suctionPsi: smooth(c.suctionPsi, suctionPsi, T.pressureResponse),
+      dischargePsi: smooth(c.dischargePsi, dischargePsi + noise() * 5, T.compressorRamp),
+      loadPct: smooth(c.loadPct, clampedLoad, T.compressorRamp),
+      actualThroughput: smooth(c.actualThroughput, shareOfLoad, T.flowResponseRate),
       speedAutoSuctionSP,
       speedAutoDischargeSP: state.dischargeShutdownPressure - state.dischargeSlowdownOffset,
     }

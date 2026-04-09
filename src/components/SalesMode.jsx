@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import AdminPanel from './AdminPanel'
 import WellPriorityDemo from './demos/WellPriorityDemo'
 import CompressorTripDemo from './demos/CompressorTripDemo'
 import GasConstrainedDemo from './demos/GasConstrainedDemo'
@@ -19,6 +20,7 @@ const DEMOS = [
 
 export default function SalesMode({ sim, config }) {
   const [activeDemo, setActiveDemo] = useState('priority')
+  const [showAdmin, setShowAdmin] = useState(false)
   const currentDemo = DEMOS.find(d => d.id === activeDemo)
 
   return (
@@ -38,6 +40,11 @@ export default function SalesMode({ sim, config }) {
           <div className="px-3 py-1 bg-[#E8200C]/10 border border-[#E8200C]/30 rounded text-[10px] text-[#E8200C] font-bold uppercase tracking-wider">
             Sales Presentation Mode
           </div>
+          <button onClick={() => setShowAdmin(true)} className="p-1.5 text-[#555] hover:text-white" title="Admin Tuning">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="3" /><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+            </svg>
+          </button>
           <span className="text-[10px] text-[#555] uppercase tracking-widest">Service Compression</span>
         </div>
       </div>
@@ -64,6 +71,11 @@ export default function SalesMode({ sim, config }) {
         {/* Active demo page */}
         {currentDemo && <currentDemo.Component sim={sim} />}
       </div>
+
+      {/* Admin Panel */}
+      {showAdmin && (
+        <AdminPanel state={sim.state} onFieldChange={sim.setStateField} onClose={() => setShowAdmin(false)} />
+      )}
     </div>
   )
 }

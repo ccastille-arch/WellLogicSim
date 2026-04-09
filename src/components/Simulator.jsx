@@ -8,10 +8,12 @@ import TutorialOverlay from './TutorialOverlay'
 import SiteOverview from './SiteOverview'
 import CommissioningPage from './CommissioningPage'
 import SalesMode from './SalesMode'
+import AdminPanel from './AdminPanel'
 
 export default function Simulator({ config, tutorialMode, onTutorialEnd }) {
   const sim = useSimulation(config)
   const [view, setView] = useState('overview')
+  const [showAdmin, setShowAdmin] = useState(false)
 
   // Sales Demo Mode — completely different UI
   if (config.salesMode) {
@@ -74,10 +76,15 @@ export default function Simulator({ config, tutorialMode, onTutorialEnd }) {
       </div>
 
       {/* Bottom Status Bar — matches screenshot */}
-      <BottomBar state={sim.state} onReset={sim.resetToDefaults} running={sim.running} onToggleRunning={sim.toggleRunning} />
+      <BottomBar state={sim.state} onReset={sim.resetToDefaults} running={sim.running} onToggleRunning={sim.toggleRunning} onAdminOpen={() => setShowAdmin(true)} />
 
       {/* Tutorial Overlay */}
       <TutorialOverlay active={tutorialMode} onEnd={onTutorialEnd} />
+
+      {/* Admin Panel */}
+      {showAdmin && (
+        <AdminPanel state={sim.state} onFieldChange={sim.setStateField} onClose={() => setShowAdmin(false)} />
+      )}
     </div>
   )
 }
@@ -444,7 +451,7 @@ function StatusIndicator({ status }) {
   )
 }
 
-function BottomBar({ state, onReset, running, onToggleRunning }) {
+function BottomBar({ state, onReset, running, onToggleRunning, onAdminOpen }) {
   const runningWells = state.wells.filter(w => w.actualRate > 0).map(w => w.name).join(', ')
   const siteType = state.config.siteType === 'greenfield' ? 'Gas Lift' : 'Oil'
 
@@ -480,8 +487,8 @@ function BottomBar({ state, onReset, running, onToggleRunning }) {
         {running ? `Running: ${runningWells} : ${siteType}` : 'PAUSED'}
       </div>
 
-      {/* Settings gear */}
-      <button className="p-1.5 text-[#888] hover:text-white">
+      {/* Settings gear — opens Admin Panel */}
+      <button onClick={onAdminOpen} className="p-1.5 text-[#888] hover:text-white" title="Admin Tuning">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
           <circle cx="12" cy="12" r="3" />
           <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />

@@ -13,14 +13,15 @@ export function useSimulation(config) {
 
   useEffect(() => {
     if (running) {
+      const interval = state.tuning?.tickInterval || 500
       intervalRef.current = setInterval(() => {
         setState(prev => tick(prev))
-      }, 500)
+      }, interval)
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [running])
+  }, [running, state.tuning?.tickInterval])
 
   const setCompressorStatus = useCallback((id, status) => {
     setState(prev => {
