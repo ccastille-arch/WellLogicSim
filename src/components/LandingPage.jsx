@@ -54,6 +54,14 @@ export default function LandingPage({ onNavigate }) {
           <div className="text-[10px] text-[#555] uppercase tracking-widest mt-3">Service Compression</div>
         </div>
 
+        {/* ONE-CLICK PRESENTATION BUTTON */}
+        <button onClick={() => onNavigate('autopilot')}
+          className="w-full mb-6 py-5 bg-[#E8200C] hover:bg-[#c01a0a] text-white font-bold rounded-xl text-lg transition-all hover:scale-[1.01] shadow-xl shadow-[#E8200C]/20"
+          style={{ fontFamily: "'Arial Black'" }}>
+          ▶ START CUSTOMER PRESENTATION
+          <div className="text-[11px] font-normal mt-1 opacity-80">Auto-guided demo with voice narration — just click and present</div>
+        </button>
+
         {/* 4 Big Cards */}
         <div className="grid grid-cols-2 gap-5 mb-8">
           {SECTIONS.map(section => (

@@ -36,6 +36,7 @@ import UnderConstruction from './components/UnderConstruction'
 import LoginModal from './components/auth/LoginModal'
 import AdminDashboard from './components/auth/AdminDashboard'
 import { ForumButton, ForumPanel } from './components/Forum'
+import AutoPilot from './components/demos/AutoPilot'
 
 function AppContent() {
   const { user, isAdmin, isTech, canViewQuotes, logout, trackActivity } = useAuth()
@@ -78,6 +79,20 @@ function AppContent() {
 
       case 'marketing':
         return <MarketingHub onClose={() => setPage('home')} />
+
+      case 'autopilot': {
+        // Auto-pilot needs a running simulation
+        const apConfig = config || {
+          compressorCount: 2, wellCount: 4, siteType: 'greenfield', salesMode: true,
+          suctionTarget: 80, suctionHighRange: 20, suctionLowRange: 40, staggerOffset: 2,
+          dischargeShutdownPressure: 600, dischargeSlowdownOffset: 50,
+          maxTempAtPlate: 165, coolerOutletSP: 200, secondStageSuctionCoolerSP: 200,
+          unloadRateThreshold: 5, unloadSpikeThreshold: 15, stabilityTimer: 60, stagingLockoutTimer: 300,
+        }
+        if (!config) setConfig(apConfig)
+        return <Simulator config={apConfig} tutorialMode={false} onTutorialEnd={() => {}} autoPresentation
+          onExitPresentation={() => setPage('home')} />
+      }
 
       case 'sales': {
         const salesConfig = config || {

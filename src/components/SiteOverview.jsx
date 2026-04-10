@@ -278,12 +278,12 @@ function WellBox({ x, y, well, alarmed, pri }) {
       {alarmed && <rect x={0} y={8} width={w} height={h} rx={4} fill="#E8200C" opacity={0.1} />}
       <path d="M 25 18 L 25 27 L 21 32 L 29 37 L 21 42 L 29 47 L 25 50 L 25 58" stroke="#555" strokeWidth={1.5} fill="none" />
       <path d="M 65 18 L 65 27 L 61 32 L 69 37 L 61 42 L 69 47 L 65 50 L 65 58" stroke="#555" strokeWidth={1.5} fill="none" />
-      {/* Desired vs Actual — the key comparison */}
+      {/* Desired vs Actual — plain English */}
       <text x={w / 2} y={h + 20} textAnchor="middle" fill={bc} fontSize={9} fontWeight="bold">
         {well.actualRate.toFixed(0)} / {well.desiredRate.toFixed(0)} MCFD
       </text>
-      <text x={w / 2} y={h + 30} textAnchor="middle" fill="#666" fontSize={7}>actual / desired</text>
-      <text x={w / 2} y={h + 42} textAnchor="middle" fill="#888" fontSize={7}>{well.productionBoe.toFixed(0)} BOE/d</text>
+      <text x={w / 2} y={h + 30} textAnchor="middle" fill="#666" fontSize={7}>getting / needs (gas rate)</text>
+      <text x={w / 2} y={h + 42} textAnchor="middle" fill="#888" fontSize={7}>{well.productionBoe.toFixed(0)} barrels/day</text>
     </g>
   )
 }
@@ -355,12 +355,11 @@ function CompBox({ x, y, comp, alarmed }) {
       </text>
       {running ? (
         <>
-          {/* Flow rate — most important number */}
-          <text x={7} y={31} fill="#4fc3f7" fontSize={9} fontWeight="bold">{flowMcfd.toFixed(0)} MCFD</text>
-          <text x={w - 5} y={31} textAnchor="end" fill="#555" fontSize={7}>/ {capacityMcfd}</text>
-          <text x={7} y={42} fill="#999" fontSize={7}>RPM {comp.rpm.toFixed(0)}</text>
-          <text x={7} y={52} fill="#999" fontSize={7}>Load {comp.loadPct.toFixed(0)}%</text>
-          <text x={7} y={62} fill="#999" fontSize={7}>Suct {comp.suctionPsi.toFixed(0)} PSI</text>
+          {/* Flow rate — plain English */}
+          <text x={7} y={31} fill="#4fc3f7" fontSize={9} fontWeight="bold">{flowMcfd.toFixed(0)} / {capacityMcfd} MCFD</text>
+          <text x={7} y={40} fill="#555" fontSize={6}>flowing / max capacity</text>
+          <text x={7} y={51} fill="#999" fontSize={7}>Speed {comp.rpm.toFixed(0)} RPM</text>
+          <text x={7} y={61} fill="#999" fontSize={7}>Working {comp.loadPct.toFixed(0)}% hard</text>
           {/* Load bar */}
           <rect x={7} y={67} width={w - 14} height={4} rx={2} fill="#111" />
           <rect x={7} y={67} width={Math.max(0, (w - 14) * (comp.loadPct / 100))} height={4} rx={2}

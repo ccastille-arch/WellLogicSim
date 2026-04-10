@@ -9,11 +9,17 @@ import SiteOverview from './SiteOverview'
 import CommissioningPage from './CommissioningPage'
 import SalesMode from './SalesMode'
 import AdminPanel from './AdminPanel'
+import AutoPilot from './demos/AutoPilot'
 
-export default function Simulator({ config, tutorialMode, onTutorialEnd }) {
+export default function Simulator({ config, tutorialMode, onTutorialEnd, autoPresentation, onExitPresentation }) {
   const sim = useSimulation(config)
   const [view, setView] = useState('overview')
   const [showAdmin, setShowAdmin] = useState(false)
+
+  // Auto-Pilot Presentation Mode
+  if (autoPresentation) {
+    return <AutoPilot sim={sim} onExit={onExitPresentation || (() => {})} />
+  }
 
   // Sales Demo Mode — completely different UI
   if (config.salesMode) {
