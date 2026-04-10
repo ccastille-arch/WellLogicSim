@@ -36,7 +36,7 @@ const SECTIONS = [
 ]
 
 export default function LandingPage({ onNavigate }) {
-  const { user, isAdmin, isTech } = useAuth()
+  const { user, isAdmin, isTech, canViewQuotes } = useAuth()
 
   return (
     <div className="flex-1 flex items-center justify-center bg-[#080810] overflow-auto py-10">
@@ -83,6 +83,12 @@ export default function LandingPage({ onNavigate }) {
             <button onClick={() => onNavigate('simulator')}
               className="px-4 py-2 text-[11px] font-bold text-[#4fc3f7] border border-[#4fc3f7]/30 rounded hover:bg-[#4fc3f7]/10 transition-colors">
               🔧 Tech Simulator
+            </button>
+          )}
+          {canViewQuotes && (
+            <button onClick={() => onNavigate('pipeline')}
+              className="px-4 py-2 text-[11px] font-bold text-[#22c55e] border border-[#22c55e]/30 rounded hover:bg-[#22c55e]/10 transition-colors">
+              📋 Sales Pipeline
             </button>
           )}
           {isAdmin && (

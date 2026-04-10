@@ -31,13 +31,14 @@ import ConfigPanel from './components/ConfigPanel'
 import Simulator from './components/Simulator'
 import MarketingHub from './components/marketing/MarketingHub'
 import QuoteSystem from './components/QuoteSystem'
+import QuoteRequest from './components/QuoteRequest'
 import UnderConstruction from './components/UnderConstruction'
 import LoginModal from './components/auth/LoginModal'
 import AdminDashboard from './components/auth/AdminDashboard'
 import { ForumButton, ForumPanel } from './components/Forum'
 
 function AppContent() {
-  const { user, isAdmin, isTech, logout, trackActivity } = useAuth()
+  const { user, isAdmin, isTech, canViewQuotes, logout, trackActivity } = useAuth()
   const [page, setPage] = useState('home')
   const [config, setConfig] = useState(null)
   const [tutorialMode, setTutorialMode] = useState(false)
@@ -55,6 +56,9 @@ function AppContent() {
     } else if (target === 'admin') {
       if (!isAdmin) { setShowLogin({ target: 'admin' }); return }
       setPage('admin')
+    } else if (target === 'pipeline') {
+      if (!canViewQuotes) { setShowLogin({ target: 'pipeline' }); return }
+      setPage('pipeline')
     } else {
       setPage(target)
     }
@@ -93,6 +97,9 @@ function AppContent() {
           onBack={() => setPage('home')} />
 
       case 'quote':
+        return <QuoteRequest onBack={() => setPage('home')} />
+
+      case 'pipeline':
         return <QuoteSystem onBack={() => setPage('home')} />
 
       case 'simulator':
@@ -120,7 +127,7 @@ function AppContent() {
   return (
     <div className="flex flex-col h-screen bg-[#080810]">
       {/* Header for pages that need it */}
-      {(page === 'home' || page === 'technical' || page === 'quote' || page === 'admin') && (
+      {(page === 'home' || page === 'technical' || page === 'quote' || page === 'admin' || page === 'pipeline') && (
         <header className="flex items-center justify-between px-5 py-2.5 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0" style={{ minHeight: 48 }}>
           <div className="flex items-center gap-4 cursor-pointer" onClick={() => { setPage('home'); setConfig(null) }}>
             <span className="text-lg tracking-tight" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>FieldTune™</span>
