@@ -93,6 +93,12 @@ export default function LandingPage({ onNavigate }) {
               🔧 Tech Simulator
             </button>
           )}
+          {isTech && (
+            <button onClick={() => onNavigate('livedata')}
+              className="px-4 py-2 text-[11px] font-bold text-[#22c55e] border border-[#22c55e]/30 rounded hover:bg-[#22c55e]/10 transition-colors">
+              📡 Live Field Data
+            </button>
+          )}
           {canViewQuotes && (
             <button onClick={() => onNavigate('pipeline')}
               className="px-4 py-2 text-[11px] font-bold text-[#22c55e] border border-[#22c55e]/30 rounded hover:bg-[#22c55e]/10 transition-colors">
