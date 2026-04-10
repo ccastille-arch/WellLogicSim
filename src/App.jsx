@@ -1,5 +1,29 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, Component } from 'react'
 import { AuthProvider, useAuth } from './components/auth/AuthProvider'
+
+// Global error boundary — catches any crash and shows recovery UI
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { hasError: false } }
+  static getDerivedStateFromError() { return { hasError: true } }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex-1 flex items-center justify-center bg-[#080810] h-screen">
+          <div className="text-center">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h2 className="text-lg text-white font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>Something went wrong</h2>
+            <p className="text-[12px] text-[#888] mb-4">The page encountered an error.</p>
+            <button onClick={() => { this.setState({ hasError: false }); window.location.reload() }}
+              className="px-6 py-2 bg-[#E8200C] text-white font-bold rounded-lg hover:bg-[#c01a0a]">
+              Reload
+            </button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 import SignupGate from './components/auth/SignupGate'
 import LandingPage from './components/LandingPage'
 import Header from './components/Header'
@@ -135,9 +159,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
 
