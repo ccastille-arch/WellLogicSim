@@ -25,14 +25,14 @@ const DEFAULTS = {
   salesMode: false,
 }
 
-export default function ConfigPanel({ onLaunch }) {
-  const [cfg, setCfg] = useState(DEFAULTS)
+export default function ConfigPanel({ onLaunch, forceSalesMode }) {
+  const [cfg, setCfg] = useState({ ...DEFAULTS, salesMode: forceSalesMode || false })
   const [showMarketing, setShowMarketing] = useState(false)
 
   const set = (field, value) => setCfg(prev => ({ ...prev, [field]: value }))
 
   const handleLaunch = () => {
-    onLaunch(cfg)
+    onLaunch({ ...cfg, salesMode: forceSalesMode || cfg.salesMode })
   }
 
   if (showMarketing) {
