@@ -50,18 +50,18 @@ function AppContent() {
       case 'marketing':
         return <MarketingHub onClose={() => setPage('home')} />
 
-      case 'sales':
-        return (
-          <>
-            <Header onReconfigure={() => setPage('home')} tutorialMode={tutorialMode}
-              onTutorialToggle={() => setTutorialMode(t => !t)} showTutorial={!!config} />
-            {!config ? (
-              <ConfigPanel onLaunch={cfg => setConfig({ ...cfg, salesMode: true })} forceSalesMode />
-            ) : (
-              <Simulator config={config} tutorialMode={tutorialMode} onTutorialEnd={() => setTutorialMode(false)} />
-            )}
-          </>
-        )
+      case 'sales': {
+        // Sales demo launches directly with defaults — no config page
+        const salesConfig = config || {
+          compressorCount: 2, wellCount: 4, siteType: 'greenfield', salesMode: true,
+          suctionTarget: 80, suctionHighRange: 20, suctionLowRange: 40, staggerOffset: 2,
+          dischargeShutdownPressure: 600, dischargeSlowdownOffset: 50,
+          maxTempAtPlate: 165, coolerOutletSP: 200, secondStageSuctionCoolerSP: 200,
+          unloadRateThreshold: 5, unloadSpikeThreshold: 15, stabilityTimer: 60, stagingLockoutTimer: 300,
+        }
+        if (!config) setConfig(salesConfig)
+        return <Simulator config={salesConfig} tutorialMode={tutorialMode} onTutorialEnd={() => setTutorialMode(false)} />
+      }
 
       case 'technical':
         return (
