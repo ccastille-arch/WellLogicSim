@@ -114,6 +114,15 @@ function AppContent() {
 
       {renderPage()}
 
+      {/* Home button — every page except home */}
+      {page !== 'home' && (
+        <button onClick={() => { setPage('home'); setConfig(null) }}
+          className="fixed bottom-5 left-5 z-40 px-4 py-2.5 bg-[#1a1a2a] hover:bg-[#E8200C] border border-[#333] hover:border-[#E8200C] text-[#ccc] hover:text-white rounded-full shadow-lg text-[11px] font-bold transition-all flex items-center gap-2"
+          style={{ fontFamily: "'Arial Black'" }}>
+          🏠 Home
+        </button>
+      )}
+
       {/* Forum — every page */}
       <ForumButton onClick={() => setShowForum(true)} />
       {showForum && <ForumPanel onClose={() => setShowForum(false)} />}
