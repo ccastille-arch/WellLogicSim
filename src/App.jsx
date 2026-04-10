@@ -123,8 +123,8 @@ function AppContent() {
               </>
             ) : (
               <button onClick={() => setShowLogin({ target: 'general' })}
-                className="px-3 py-1.5 text-[10px] font-bold text-[#888] border border-[#333] rounded hover:text-white hover:border-[#E8200C]">
-                Login
+                className="px-4 py-2 text-[12px] font-bold text-white bg-[#E8200C] rounded-lg hover:bg-[#c01a0a] transition-colors flex items-center gap-2">
+                🔐 Login
               </button>
             )}
           </div>
