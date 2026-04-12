@@ -130,53 +130,96 @@ function DashboardPage({ wells, compressors, flowRateMode, state, onChokeManualS
 
 // Individual well choke controller row — matches actual panel layout:
 // [↓ VALUE ↑] [MODE] [WellHead Control #X AO VALUE]
+// Expanded: shows injection pressure, diff pressure, temp from Klondike-calibrated engine
 function WellChokeRow({ well, onManualSP, onMode }) {
-  const { id, chokeManualSP, chokeMode, chokeAO } = well
+  const { id, chokeManualSP, chokeMode, chokeAO, injectionPressure, diffPressure, injectionTemp, actualRate, desiredRate } = well
+  const [expanded, setExpanded] = useState(false)
+
+  const accuracy = desiredRate > 0 ? (actualRate / desiredRate) * 100 : 100
+  const accuracyColor = accuracy >= 95 ? '#22c55e' : accuracy >= 80 ? '#eab308' : '#E8200C'
 
   return (
-    <div className="flex gap-2.5 items-stretch" style={{ minHeight: 56 }} data-tutorial={`choke-row-${id}`}>
-      {/* Manual SP card — WHITE background, black text, ↓ VALUE ↑ */}
-      <div className="flex-1 bg-white rounded-lg border border-[#999] flex items-center min-w-0" data-tutorial={`choke-manual-${id}`}>
-        <button
-          onClick={() => onManualSP?.(id, Math.max(0, chokeManualSP - 1))}
-          className="text-black text-xl px-3 py-2 hover:bg-[#eee] rounded-l-lg h-full flex items-center"
-        >↓</button>
-        <div className="flex-1 text-center">
-          <div className="text-[8px] text-[#666] leading-tight truncate px-1">
-            WellHead Choke Ctrl {id + 1}_Manual...
+    <div data-tutorial={`choke-row-${id}`}>
+      <div className="flex gap-2.5 items-stretch" style={{ minHeight: 56 }}>
+        {/* Manual SP card — WHITE background, black text, ↓ VALUE ↑ */}
+        <div className="flex-1 bg-white rounded-lg border border-[#999] flex items-center min-w-0" data-tutorial={`choke-manual-${id}`}>
+          <button
+            onClick={() => onManualSP?.(id, Math.max(0, chokeManualSP - 1))}
+            className="text-black text-xl px-3 py-2 hover:bg-[#eee] rounded-l-lg h-full flex items-center"
+          >↓</button>
+          <div className="flex-1 text-center">
+            <div className="text-[8px] text-[#666] leading-tight truncate px-1">
+              WellHead Choke Ctrl {id + 1}_Manual...
+            </div>
+            <div className="text-3xl font-bold text-black leading-none" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+              {Math.round(chokeManualSP)}
+            </div>
           </div>
-          <div className="text-3xl font-bold text-black leading-none" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
-            {Math.round(chokeManualSP)}
+          <button
+            onClick={() => onManualSP?.(id, Math.min(100, chokeManualSP + 1))}
+            className="text-black text-xl px-3 py-2 hover:bg-[#eee] rounded-r-lg h-full flex items-center"
+          >↑</button>
+        </div>
+
+        {/* Mode card — WHITE background, shows Auto or Manual */}
+        <div
+          data-tutorial={`choke-mode-${id}`}
+          className="w-[180px] bg-white rounded-lg border border-[#999] flex flex-col items-center justify-center cursor-pointer hover:bg-[#f5f5f5]"
+          onClick={() => onMode?.(id, chokeMode === 'auto' ? 'manual' : 'auto')}
+        >
+          <div className="text-[8px] text-[#666] leading-tight">
+            WellHead Choke Ctrl {id + 1}_Mode
+          </div>
+          <div className="text-2xl font-bold text-black" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+            {chokeMode === 'auto' ? 'Auto' : 'Manual'}
           </div>
         </div>
+
+        {/* AO (Analog Output) card — GRAY background, right-aligned value */}
+        <div className="w-[170px] bg-[#c8c8c8] rounded-lg border border-[#999] px-3 flex flex-col justify-center" data-tutorial={`choke-ao-${id}`}>
+          <div className="text-[8px] text-[#444] leading-tight">
+            WellHead Control #{id + 1} AO
+          </div>
+          <div className="text-3xl font-bold text-black text-right leading-none" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+            {Math.round(chokeAO)}
+          </div>
+        </div>
+
+        {/* Expand toggle — shows wellhead parameters */}
         <button
-          onClick={() => onManualSP?.(id, Math.min(100, chokeManualSP + 1))}
-          className="text-black text-xl px-3 py-2 hover:bg-[#eee] rounded-r-lg h-full flex items-center"
-        >↑</button>
+          onClick={() => setExpanded(e => !e)}
+          className="w-8 bg-[#2a2a30] rounded-lg border border-[#555] flex items-center justify-center text-[#888] hover:text-white text-xs"
+          title="Toggle wellhead parameters"
+        >
+          {expanded ? '▲' : '▼'}
+        </button>
       </div>
 
-      {/* Mode card — WHITE background, shows Auto or Manual */}
-      <div
-        data-tutorial={`choke-mode-${id}`}
-        className="w-[180px] bg-white rounded-lg border border-[#999] flex flex-col items-center justify-center cursor-pointer hover:bg-[#f5f5f5]"
-        onClick={() => onMode?.(id, chokeMode === 'auto' ? 'manual' : 'auto')}
-      >
-        <div className="text-[8px] text-[#666] leading-tight">
-          WellHead Choke Ctrl {id + 1}_Mode
+      {/* Expanded wellhead parameters row — Klondike-calibrated live values */}
+      {expanded && (
+        <div className="flex gap-2 mt-1 pl-1">
+          <WellheadParam label="Inj Flow" value={actualRate?.toFixed(0)} unit="MCFD" color={accuracyColor} />
+          <WellheadParam label="Static Press" value={injectionPressure?.toFixed(0)} unit="PSI" color="#eab308" />
+          <WellheadParam label="Diff Press" value={diffPressure?.toFixed(1)} unit="PSI"
+            color={diffPressure > 200 ? '#E8200C' : '#4fc3f7'} />
+          <WellheadParam label="Inj Temp" value={injectionTemp?.toFixed(1)} unit="°F"
+            color={injectionTemp > 150 ? '#E8200C' : '#a78bfa'} />
+          <WellheadParam label="Accuracy" value={accuracy?.toFixed(1)} unit="%" color={accuracyColor} />
         </div>
-        <div className="text-2xl font-bold text-black" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
-          {chokeMode === 'auto' ? 'Auto' : 'Manual'}
-        </div>
-      </div>
+      )}
+    </div>
+  )
+}
 
-      {/* AO (Analog Output) card — GRAY background, right-aligned value */}
-      <div className="w-[170px] bg-[#c8c8c8] rounded-lg border border-[#999] px-3 flex flex-col justify-center" data-tutorial={`choke-ao-${id}`}>
-        <div className="text-[8px] text-[#444] leading-tight">
-          WellHead Control #{id + 1} AO
-        </div>
-        <div className="text-3xl font-bold text-black text-right leading-none" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
-          {Math.round(chokeAO)}
-        </div>
+function WellheadParam({ label, value, unit, color }) {
+  return (
+    <div className="flex-1 bg-[#1a1a22] rounded border border-[#2a2a3a] px-2 py-1">
+      <div className="text-[8px] text-[#666] uppercase tracking-wider">{label}</div>
+      <div className="flex items-baseline gap-0.5">
+        <span className="text-[13px] font-bold" style={{ color, fontFamily: "'Arial Black', Arial, sans-serif" }}>
+          {value ?? '—'}
+        </span>
+        <span className="text-[8px] text-[#555]">{unit}</span>
       </div>
     </div>
   )

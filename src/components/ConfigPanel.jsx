@@ -25,6 +25,33 @@ const DEFAULTS = {
   salesMode: false,
 }
 
+// Klondike COP0001 — calibrated from 30-day field data
+// 4 wells, 2 compressors, West Texas gas lift pad
+// Setpoints: W1=1.0, W2=0.75, W3=0.8, W4=0.8 MMSCFD
+// Injection pressure: ~805 PSI static, ~45 PSI differential
+// Temperature: ~137°F
+const KLONDIKE_PRESET = {
+  compressorCount: 2,
+  wellCount: 4,
+  siteType: 'brownfield',
+  suctionTarget: 80,
+  suctionHighRange: 20,
+  suctionLowRange: 40,
+  staggerOffset: 2,
+  dischargeShutdownPressure: 600,
+  dischargeSlowdownOffset: 50,
+  maxTempAtPlate: 165,
+  coolerOutletSP: 200,
+  secondStageSuctionCoolerSP: 200,
+  unloadRateThreshold: 5,
+  unloadSpikeThreshold: 15,
+  stabilityTimer: 60,
+  stagingLockoutTimer: 300,
+  salesMode: false,
+  // Klondike-specific: well setpoints in MCFD (W1=1000, W2=750, W3=800, W4=800)
+  wellSetpoints: [1000, 750, 800, 800],
+}
+
 export default function ConfigPanel({ onLaunch, forceSalesMode }) {
   const [cfg, setCfg] = useState({ ...DEFAULTS, salesMode: forceSalesMode || false })
   const [showMarketing, setShowMarketing] = useState(false)
@@ -54,6 +81,21 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
           <p className="text-[11px] text-[#555] mt-1">
             Configure site equipment and commissioning parameters, then launch the simulator.
           </p>
+        </div>
+
+        {/* ═══════ FIELD DATA PRESETS ═══════ */}
+        <div className="mb-5 bg-[#0a1420] rounded-lg border border-[#1a3a5a] p-4">
+          <div className="text-[10px] text-[#4fc3f7] font-bold uppercase tracking-wider mb-2">📂 Load from Field Data</div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setCfg({ ...KLONDIKE_PRESET })}
+              className="flex-1 text-left bg-[#0c1c30] rounded border border-[#1a3a5a] hover:border-[#4fc3f7] p-3 transition-colors"
+            >
+              <div className="text-[11px] text-white font-bold">Klondike COP0001</div>
+              <div className="text-[9px] text-[#888] mt-0.5">2 compressors · 4 wells · W1=1.0 W2=0.75 W3=0.8 W4=0.8 MMSCFD</div>
+              <div className="text-[9px] text-[#4fc3f7] mt-0.5">Calibrated from 30-day field data</div>
+            </button>
+          </div>
         </div>
 
         {/* ═══════ SALES DEMO MODE — TOP OF PAGE ═══════ */}

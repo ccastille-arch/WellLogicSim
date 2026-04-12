@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useKlondikeData } from '../engine/klondikeData'
 
 // MLINK Live Dashboard — pulls real data from a WellLogic panel running in the field
 // ALL customer names, site names, and device IDs are stripped. Generic labels only.
@@ -60,7 +61,8 @@ export default function MLinkDashboard({ onBack }) {
   const [runReports, setRunReports] = useState({ compA: null, compB: null })
   const [loading, setLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState(null)
-  const [tab, setTab] = useState('live') // live | history
+  const [tab, setTab] = useState('live') // live | history | klondike
+  const klondike = useKlondikeData()
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -157,6 +159,7 @@ export default function MLinkDashboard({ onBack }) {
       <div className="flex gap-2 px-6 py-2 bg-[#0a0a14] border-b border-[#1a1a2a] shrink-0">
         <button onClick={() => setTab('live')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'live' ? 'bg-[#E8200C] text-white' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Live Data</button>
         <button onClick={() => setTab('history')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'history' ? 'bg-[#E8200C] text-white' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Run History</button>
+        <button onClick={() => setTab('klondike')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'klondike' ? 'bg-[#4fc3f7] text-black' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>📂 30-Day Field Data</button>
       </div>
 
       <div className="flex-1 overflow-auto p-6">
@@ -217,7 +220,7 @@ export default function MLinkDashboard({ onBack }) {
               </>
             )}
           </div>
-        ) : (
+        ) : tab === 'history' ? (
           /* Run History Tab */
           <div className="max-w-[1000px] mx-auto">
             <h2 className="text-sm text-white font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>
@@ -231,6 +234,9 @@ export default function MLinkDashboard({ onBack }) {
               Run reports available for the last 30 days in 24-hour windows. Additional date ranges coming soon.
             </p>
           </div>
+        ) : (
+          /* 30-Day Klondike Field Data Tab */
+          <KlondikeHistoryTab klondike={klondike} />
         )}
       </div>
     </div>
@@ -282,6 +288,244 @@ function DataPoint({ label, value, unit, color }) {
         <span className="text-[8px] text-[#666]">{unit}</span>
       </div>
     </div>
+  )
+}
+
+// ─── Klondike 30-Day History Tab ───────────────────────────────────────────
+
+function KlondikeHistoryTab({ klondike }) {
+  const { data, loading, error } = klondike
+  const [cursor, setCursor] = useState(0)
+  const [playing, setPlaying] = useState(false)
+  const [view, setView] = useState('overview') // overview | well1 | well2 | well3 | well4
+
+  useEffect(() => {
+    if (!playing || !data) return
+    const id = setInterval(() => {
+      setCursor(c => {
+        if (c >= data.length - 1) { setPlaying(false); return c }
+        return c + 1
+      })
+    }, 120)
+    return () => clearInterval(id)
+  }, [playing, data])
+
+  if (loading) return <div className="flex items-center justify-center h-40 text-[#888] text-sm">Loading field data...</div>
+  if (error) return <div className="p-6 text-[#E8200C] text-sm">Error: {error}</div>
+  if (!data?.length) return <div className="p-6 text-[#888] text-sm">No data available.</div>
+
+  const row = data[cursor]
+  const prev = cursor > 0 ? data[cursor - 1] : null
+
+  // Mini sparkline data — last 40 points up to cursor
+  const windowData = data.slice(Math.max(0, cursor - 39), cursor + 1)
+
+  return (
+    <div className="max-w-[1100px] mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>
+            Klondike COP0001 — 30-Day Field Data
+          </h2>
+          <p className="text-[10px] text-[#888]">{data.length} samples · 15-min intervals · {data[0]?.timestamp} → {data[data.length-1]?.timestamp}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {['overview','1','2','3','4'].map(v => (
+            <button key={v} onClick={() => setView(v === 'overview' ? 'overview' : `well${v}`)}
+              className={`px-3 py-1 text-[10px] font-bold rounded ${
+                view === (v === 'overview' ? 'overview' : `well${v}`)
+                  ? 'bg-[#4fc3f7] text-black' : 'text-[#888] border border-[#333] hover:text-white'
+              }`}>
+              {v === 'overview' ? 'Overview' : `Well ${v}`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Playback controls */}
+      <div className="bg-[#0c0c18] rounded-lg border border-[#1a1a2a] p-3 mb-4 flex items-center gap-3">
+        <button onClick={() => setCursor(0)} className="text-[10px] text-[#888] border border-[#333] rounded px-2 py-1 hover:text-white">⏮</button>
+        <button onClick={() => setCursor(c => Math.max(0, c - 1))} className="text-[10px] text-[#888] border border-[#333] rounded px-2 py-1 hover:text-white">◀</button>
+        <button onClick={() => setPlaying(p => !p)}
+          className={`px-4 py-1 text-[10px] font-bold rounded ${playing ? 'bg-[#eab308] text-black' : 'bg-[#22c55e] text-black'}`}>
+          {playing ? '⏸ Pause' : '▶ Play'}
+        </button>
+        <button onClick={() => setCursor(c => Math.min(data.length - 1, c + 1))} className="text-[10px] text-[#888] border border-[#333] rounded px-2 py-1 hover:text-white">▶</button>
+        <button onClick={() => setCursor(data.length - 1)} className="text-[10px] text-[#888] border border-[#333] rounded px-2 py-1 hover:text-white">⏭</button>
+
+        <div className="flex-1 mx-2">
+          <input type="range" min={0} max={data.length - 1} value={cursor}
+            onChange={e => { setCursor(+e.target.value); setPlaying(false) }}
+            className="w-full accent-[#E8200C]" />
+        </div>
+
+        <div className="text-right shrink-0">
+          <div className="text-[10px] text-[#4fc3f7] font-bold">{row.timestamp}</div>
+          <div className="text-[9px] text-[#555]">{cursor + 1} / {data.length}</div>
+        </div>
+      </div>
+
+      {view === 'overview' ? (
+        <KlondikeOverview row={row} prev={prev} windowData={windowData} />
+      ) : (
+        <KlondikeWellDetail row={row} prev={prev} wellIdx={parseInt(view.replace('well','')) - 1} windowData={windowData} />
+      )}
+    </div>
+  )
+}
+
+function KlondikeOverview({ row, prev, windowData }) {
+  const totalFlow = row.totalFlowMscfd
+
+  return (
+    <div className="space-y-4">
+      {/* Pad Summary */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-[#111118] rounded-lg border border-[#222] p-4 col-span-1">
+          <div className="text-[9px] text-[#888] uppercase tracking-wider mb-1">Total Pad Injection</div>
+          <div className="text-3xl font-bold text-[#22c55e]" style={{ fontFamily: "'Arial Black'" }}>
+            {totalFlow?.toLocaleString() ?? '—'}
+          </div>
+          <div className="text-[9px] text-[#888]">MSCFD</div>
+          {prev && <div className={`text-[9px] mt-1 ${totalFlow > prev.totalFlowMscfd ? 'text-[#22c55e]' : totalFlow < prev.totalFlowMscfd ? 'text-[#E8200C]' : 'text-[#888]'}`}>
+            {totalFlow > prev.totalFlowMscfd ? '▲' : totalFlow < prev.totalFlowMscfd ? '▼' : '—'} {Math.abs(totalFlow - prev.totalFlowMscfd).toFixed(0)} from prev
+          </div>}
+          <MiniSparkline data={windowData.map(r => r.totalFlowMscfd)} color="#22c55e" />
+        </div>
+
+        <div className="bg-[#111118] rounded-lg border border-[#222] p-4">
+          <div className="text-[9px] text-[#888] uppercase tracking-wider mb-1">Compressor Status</div>
+          <div className="space-y-2 mt-2">
+            {[row.comp1Status, row.comp2Status].map((s, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className={`w-2.5 h-2.5 rounded-full ${s === 'Running' ? 'bg-[#22c55e]' : 'bg-[#E8200C]'}`} />
+                <span className="text-[11px] text-white">Comp {i+1}</span>
+                <span className={`text-[10px] font-bold ml-auto ${s === 'Running' ? 'text-[#22c55e]' : 'text-[#E8200C]'}`}>{s || '—'}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 text-[9px] text-[#888]">Hour Meter: <span className="text-white">{row.hourMeter?.toLocaleString()} hrs</span></div>
+        </div>
+
+        <div className="bg-[#111118] rounded-lg border border-[#222] p-4">
+          <div className="text-[9px] text-[#888] uppercase tracking-wider mb-2">Well Flow Distribution</div>
+          {row.wells.map((w, i) => {
+            const flow = w.flowMmscfd ?? 0
+            const sp = w.setpointMmscfd ?? 1
+            const pct = Math.min(100, (flow / sp) * 100)
+            return (
+              <div key={i} className="mb-1.5">
+                <div className="flex justify-between text-[9px] mb-0.5">
+                  <span className="text-[#888]">W{i+1}</span>
+                  <span className="text-white">{flow.toFixed(3)} MMSCFD</span>
+                </div>
+                <div className="w-full bg-[#1a1a2a] rounded-full h-1.5">
+                  <div className="h-full rounded-full bg-[#22c55e]" style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 4-well summary table */}
+      <div className="bg-[#111118] rounded-lg border border-[#222] overflow-hidden">
+        <div className="px-4 py-2 border-b border-[#1a1a2a] bg-[#0c0c18]">
+          <span className="text-[10px] text-white font-bold uppercase tracking-wider">Per-Well Parameters — {row.timestamp}</span>
+        </div>
+        <table className="w-full text-[10px]">
+          <thead>
+            <tr className="bg-[#0a0a14]">
+              {['Well', 'Flow (MMSCFD)', 'Setpoint', 'Static Pres (PSI)', 'Diff Pres (PSI)', 'Temp (°F)', 'Choke AO (%)', 'Run Status'].map(h => (
+                <th key={h} className="px-3 py-2 text-left text-[#888] font-normal border-b border-[#1a1a2a]">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {row.wells.map((w, i) => (
+              <tr key={i} className={i % 2 === 0 ? 'bg-[#080810]' : 'bg-[#0c0c18]'}>
+                <td className="px-3 py-2 text-[#E8200C] font-bold">Well {i+1}</td>
+                <td className="px-3 py-2 text-[#22c55e] font-bold">{w.flowMmscfd?.toFixed(3) ?? '—'}</td>
+                <td className="px-3 py-2 text-[#888]">{w.setpointMmscfd?.toFixed(3) ?? '—'}</td>
+                <td className="px-3 py-2 text-white">{w.staticPressure ?? '—'}</td>
+                <td className="px-3 py-2 text-white">{w.diffPressure ?? '—'}</td>
+                <td className="px-3 py-2 text-white">{w.temp ?? '—'}</td>
+                <td className="px-3 py-2 text-white">{w.analogOutput ?? '—'}</td>
+                <td className="px-3 py-2">
+                  <span className={`font-bold ${w.runStatus === 'Online' ? 'text-[#22c55e]' : 'text-[#888]'}`}>
+                    {w.runStatus || '—'}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function KlondikeWellDetail({ row, prev, wellIdx, windowData }) {
+  const w = row.wells[wellIdx]
+  const pw = prev?.wells[wellIdx]
+
+  const params = [
+    { label: 'Injection Flow', value: w.flowMmscfd?.toFixed(3), unit: 'MMSCFD', color: '#22c55e', spark: windowData.map(r => r.wells[wellIdx]?.flowMmscfd ?? 0) },
+    { label: 'Setpoint', value: w.setpointMmscfd?.toFixed(3), unit: 'MMSCFD', color: '#4fc3f7', spark: windowData.map(r => r.wells[wellIdx]?.setpointMmscfd ?? 0) },
+    { label: 'Static Pressure', value: w.staticPressure, unit: 'PSI', color: '#eab308', spark: windowData.map(r => r.wells[wellIdx]?.staticPressure ?? 0) },
+    { label: 'Differential Pres', value: w.diffPressure, unit: 'PSI', color: '#f97316', spark: windowData.map(r => r.wells[wellIdx]?.diffPressure ?? 0) },
+    { label: 'Injection Temp', value: w.temp, unit: '°F', color: '#E8200C', spark: windowData.map(r => r.wells[wellIdx]?.temp ?? 0) },
+    { label: 'Choke AO', value: w.analogOutput, unit: '%', color: '#a78bfa', spark: windowData.map(r => r.wells[wellIdx]?.analogOutput ?? 0) },
+  ]
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`w-3 h-3 rounded-full ${w.runStatus === 'Online' ? 'bg-[#22c55e]' : 'bg-[#555]'}`} />
+        <span className="text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>Well {wellIdx + 1}</span>
+        <span className={`text-[10px] font-bold ${w.runStatus === 'Online' ? 'text-[#22c55e]' : 'text-[#888]'}`}>{w.runStatus || '—'}</span>
+        <span className="text-[9px] text-[#555] ml-auto">{row.timestamp}</span>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {params.map(p => (
+          <div key={p.label} className="bg-[#111118] rounded-lg border border-[#222] p-4">
+            <div className="text-[9px] text-[#888] uppercase tracking-wider mb-1">{p.label}</div>
+            <div className="text-2xl font-bold mb-0.5" style={{ color: p.color, fontFamily: "'Arial Black'" }}>
+              {p.value ?? '—'}
+            </div>
+            <div className="text-[9px] text-[#888]">{p.unit}</div>
+            <MiniSparkline data={p.spark} color={p.color} />
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 bg-[#0c0c18] rounded border border-[#1a1a2a] p-3 text-[10px] text-[#888]">
+        Yesterday total: <span className="text-white">{w.yesterdayTotal?.toFixed(3) ?? '—'} MMSCFD</span>
+        &nbsp;·&nbsp; Desired: <span className="text-white">{w.calcDesiredFlow?.toFixed(3) ?? '—'} MMSCFD</span>
+        &nbsp;·&nbsp; Max rate: <span className="text-white">{w.maxFlowRate?.toFixed(3) ?? '—'} MMSCFD</span>
+      </div>
+    </div>
+  )
+}
+
+function MiniSparkline({ data, color }) {
+  if (!data?.length) return null
+  const valid = data.filter(v => v != null && !isNaN(v))
+  if (valid.length < 2) return null
+  const mn = Math.min(...valid), mx = Math.max(...valid)
+  const range = mx - mn || 1
+  const W = 120, H = 24
+  const pts = valid.map((v, i) => {
+    const x = (i / (valid.length - 1)) * W
+    const y = H - ((v - mn) / range) * H
+    return `${x},${y}`
+  }).join(' ')
+  return (
+    <svg width={W} height={H} className="mt-2 opacity-70">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
   )
 }
 

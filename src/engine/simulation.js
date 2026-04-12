@@ -8,10 +8,24 @@
 //   Phase 3 - REBALANCING (15-60 sec): Chokes on low-priority wells close gradually,
 //             high-priority wells recover to target. Not instant — valves move at realistic speed.
 //   Phase 4 - STABLE: System reaches new steady state
+//
+// WELLHEAD PARAMETERS calibrated from Klondike COP0001 30-day field data:
+//   Total pad injection: 2910–3380 MSCFD (4 wells, 2 compressors)
+//   Per-well flow: ~800 MCFD at setpoint
+//   Static injection pressure: 779–861 PSI (typical ~805)
+//   Differential pressure: 41–50 PSI typical (spikes to 800+ during unload events)
+//   Injection temperature: 116–151°F (typical ~137)
+//   Choke AO: 65–68% (tight band — system well-optimized)
 
 const DEFAULT_COMPRESSOR_CAPACITY = 400 // MCFD per compressor
-const DEFAULT_WELL_RATE = 150 // MCFD desired injection per well
+const DEFAULT_WELL_RATE = 800 // MCFD desired injection per well (Klondike calibrated)
 const DEFAULT_WELL_PRODUCTION = 120 // BOE/day at full injection accuracy
+
+// Klondike-calibrated wellhead parameter defaults
+const KLONDIKE_STATIC_PRESSURE = 805   // PSI — typical injection static pressure
+const KLONDIKE_DIFF_PRESSURE = 45      // PSI — typical differential across choke
+const KLONDIKE_TEMP = 137              // °F — typical injection temperature
+const KLONDIKE_CHOKE_AO = 66.5        // % — typical choke analog output
 
 const DEFAULT_SUCTION_TARGET = 80
 const DEFAULT_SUCTION_HIGH_RANGE = 20
@@ -69,23 +83,33 @@ export function createInitialState(config) {
     secondStageSuctionCoolerSP: config.secondStageSuctionCoolerSP ?? 200,
   }))
 
-  const wells = Array.from({ length: wellCount }, (_, i) => ({
-    id: i,
-    name: `W${i + 1}`,
-    priority: i,
-    desiredRate: DEFAULT_WELL_RATE,
-    actualRate: DEFAULT_WELL_RATE, // Start at steady state
-    productionBoe: DEFAULT_WELL_PRODUCTION,
-    baseProduction: DEFAULT_WELL_PRODUCTION + (Math.random() * 40 - 20),
-    isHunting: false,
-    huntPhase: Math.random() * Math.PI * 2,
-    chokeManualSP: 80 + Math.floor(Math.random() * 20),
-    chokeMode: 'auto',
-    chokeAO: 100, // Start fully open at steady state
-    isAtTarget: true,
-    // WellLogic's CURRENT allocation target for this well (moves slowly toward optimum)
-    _allocTarget: DEFAULT_WELL_RATE,
-  }))
+  // Klondike setpoints: W1=1000, W2=750, W3=800, W4=800 MCFD
+  const KLONDIKE_SETPOINTS = [1000, 750, 800, 800]
+
+  const wells = Array.from({ length: wellCount }, (_, i) => {
+    const setpoint = config.wellSetpoints?.[i] ?? KLONDIKE_SETPOINTS[i] ?? DEFAULT_WELL_RATE
+    return {
+      id: i,
+      name: `W${i + 1}`,
+      priority: i,
+      desiredRate: setpoint,
+      actualRate: setpoint, // Start at steady state
+      productionBoe: DEFAULT_WELL_PRODUCTION,
+      baseProduction: DEFAULT_WELL_PRODUCTION + (Math.random() * 40 - 20),
+      isHunting: false,
+      huntPhase: Math.random() * Math.PI * 2,
+      chokeManualSP: 80 + Math.floor(Math.random() * 20),
+      chokeMode: 'auto',
+      chokeAO: KLONDIKE_CHOKE_AO + (Math.random() * 2 - 1), // Start near field-calibrated AO
+      isAtTarget: true,
+      // WellLogic's CURRENT allocation target for this well (moves slowly toward optimum)
+      _allocTarget: setpoint,
+      // Wellhead sensor parameters (Klondike-calibrated starting values)
+      injectionPressure: KLONDIKE_STATIC_PRESSURE + (Math.random() * 10 - 5),
+      diffPressure: KLONDIKE_DIFF_PRESSURE + (Math.random() * 4 - 2),
+      injectionTemp: KLONDIKE_TEMP + (Math.random() * 6 - 3),
+    }
+  })
 
   const totalCapacity = compressors.reduce((sum, c) => sum + c.capacityMcfd, 0)
 
@@ -179,7 +203,7 @@ export function tick(state) {
   const totalDesired = updatedWells.reduce((sum, w) => sum + (w._huntAdjustedRate || w.desiredRate), 0)
   const supplyRatio = totalDesired > 0 ? effectiveGas / totalDesired : 1
 
-  const finalWells = updatedWells.map(w => {
+  const finalWells = updatedWells.map((w, i) => {
     const desired = w._huntAdjustedRate || w.desiredRate
     const optimum = optimumAlloc.get(w.id) || 0
     let allocTarget = w._allocTarget || desired
@@ -210,6 +234,23 @@ export function tick(state) {
     const targetProd = w.baseProduction * Math.min(accuracy, 1)
     const productionBoe = smooth(w.productionBoe, targetProd, T.productionLag)
 
+    // Wellhead sensor parameters — evolve realistically
+    // Static injection pressure: rises when choke closes (less flow), falls when open
+    // Diff pressure: proportional to flow through choke (ΔP ∝ flow²)
+    const flowFraction = desired > 0 ? allocTarget / desired : 1
+    const targetStaticPress = KLONDIKE_STATIC_PRESSURE + (1 - flowFraction) * 30 + (Math.random() - 0.5) * 4
+    const injectionPressure = smooth(w.injectionPressure ?? KLONDIKE_STATIC_PRESSURE, targetStaticPress, 0.08)
+
+    // Diff pressure: ~45 PSI at normal flow, spikes during unload events
+    const targetDiff = state.wellUnloadActive && i === 0
+      ? KLONDIKE_DIFF_PRESSURE + Math.random() * 200  // unload spike on priority well
+      : KLONDIKE_DIFF_PRESSURE * (flowFraction * flowFraction) + (Math.random() - 0.5) * 3
+    const diffPressure = smooth(w.diffPressure ?? KLONDIKE_DIFF_PRESSURE, Math.max(0, targetDiff), 0.10)
+
+    // Temperature: slight rise at lower flow (less cooling effect)
+    const targetTemp = KLONDIKE_TEMP - flowFraction * 8 + (Math.random() - 0.5) * 2
+    const injectionTemp = smooth(w.injectionTemp ?? KLONDIKE_TEMP, targetTemp, 0.04)
+
     const { _huntAdjustedRate, ...rest } = w
     return {
       ...rest,
@@ -218,6 +259,9 @@ export function tick(state) {
       chokeAO,
       isAtTarget,
       _allocTarget: allocTarget,
+      injectionPressure: Math.max(700, Math.min(900, injectionPressure)),
+      diffPressure: Math.max(0, diffPressure),
+      injectionTemp: Math.max(100, Math.min(180, injectionTemp)),
     }
   })
 
