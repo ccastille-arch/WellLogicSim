@@ -33,6 +33,7 @@ import MarketingHub from './components/marketing/MarketingHub'
 import QuoteSystem from './components/QuoteSystem'
 import QuoteRequest from './components/QuoteRequest'
 import UnderConstruction from './components/UnderConstruction'
+import TechnicalInfo from './components/TechnicalInfo'
 import LoginModal from './components/auth/LoginModal'
 import AdminDashboard from './components/auth/AdminDashboard'
 import { ForumButton, ForumPanel } from './components/Forum'
@@ -108,9 +109,7 @@ function AppContent() {
       }
 
       case 'technical':
-        return <UnderConstruction title="Technical Information"
-          description="Technical documentation, engineering specifications, and approved operator resources will be available here."
-          onBack={() => setPage('home')} />
+        return <TechnicalInfo onBack={() => setPage('home')} />
 
       case 'quote':
         return <QuoteRequest onBack={() => setPage('home')} />
