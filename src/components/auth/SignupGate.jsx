@@ -28,8 +28,8 @@ export default function SignupGate() {
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-[#080810]">
-      <div className="w-[440px] max-w-full px-4">
+    <div className="flex-1 flex flex-col bg-[#080810] overflow-auto py-10">
+      <div className="w-[440px] max-w-full px-4 mx-auto my-auto">
         {/* Branding */}
         <div className="text-center mb-8">
           <div className="text-3xl tracking-tight mb-1" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>
