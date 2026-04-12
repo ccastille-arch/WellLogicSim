@@ -38,9 +38,11 @@ import AdminDashboard from './components/auth/AdminDashboard'
 import { ForumButton, ForumPanel } from './components/Forum'
 import MLinkDashboard from './components/MLinkDashboard'
 import AutoPilot from './components/demos/AutoPilot'
+import { getSelectedLogo } from './components/BrandLogos'
 
 function AppContent() {
-  const { user, isAdmin, isTech, canViewQuotes, logout, trackActivity } = useAuth()
+  const { user, isAdmin, isTech, canViewQuotes, logout, trackActivity, settings } = useAuth()
+  const activeLogo = getSelectedLogo(settings)
   const [page, setPage] = useState('home')
   const [config, setConfig] = useState(null)
   const [tutorialMode, setTutorialMode] = useState(false)
@@ -149,9 +151,15 @@ function AppContent() {
       {(page === 'home' || page === 'technical' || page === 'quote' || page === 'admin' || page === 'pipeline' || page === 'livedata') && (
         <header className="flex items-center justify-between px-3 sm:px-5 py-2 sm:py-2.5 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0 gap-2" style={{ minHeight: 44 }}>
           <div className="flex items-center gap-2 sm:gap-4 cursor-pointer shrink-0" onClick={() => { setPage('home'); setConfig(null) }}>
-            <span className="text-sm sm:text-lg tracking-tight" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>FieldTune™</span>
-            <div className="w-px h-5 bg-[#333] hidden sm:block" />
-            <span className="text-xs sm:text-sm text-[#ccc] tracking-wide hidden sm:block" style={{ fontFamily: "'Arial Black'" }}>WellLogic™</span>
+            {activeLogo ? (
+              <activeLogo.Compact size={32} />
+            ) : (
+              <>
+                <span className="text-sm sm:text-lg tracking-tight" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>FieldTune™</span>
+                <div className="w-px h-5 bg-[#333] hidden sm:block" />
+                <span className="text-xs sm:text-sm text-[#ccc] tracking-wide hidden sm:block" style={{ fontFamily: "'Arial Black'" }}>WellLogic™</span>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap justify-end">
             <span className="text-[9px] sm:text-[11px] text-[#888] hidden sm:inline">👤 {user.name}</span>

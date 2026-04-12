@@ -1,4 +1,5 @@
 import { useAuth } from './auth/AuthProvider'
+import { getSelectedLogo } from './BrandLogos'
 
 const SECTIONS = [
   {
@@ -36,22 +37,31 @@ const SECTIONS = [
 ]
 
 export default function LandingPage({ onNavigate }) {
-  const { user, isAdmin, isTech, canViewQuotes } = useAuth()
+  const { user, isAdmin, isTech, canViewQuotes, settings } = useAuth()
+  const activeLogo = getSelectedLogo(settings)
 
   return (
     <div className="flex-1 flex items-start sm:items-center justify-center bg-[#080810] overflow-auto py-6 sm:py-10">
       <div className="max-w-[900px] w-full px-4 sm:px-6">
-        {/* Branding */}
+        {/* Branding — Logo or text fallback */}
         <div className="text-center mb-6 sm:mb-10">
-          <div className="text-2xl sm:text-4xl tracking-tight mb-1 sm:mb-2" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>
-            FieldTune™
-          </div>
-          <div className="text-xl sm:text-2xl text-white font-bold mb-1 sm:mb-2" style={{ fontFamily: "'Arial Black'" }}>
-            WellLogic™
-          </div>
-          <div className="text-xs sm:text-sm text-[#888]">Automated Gas Lift Injection Optimization</div>
-          <div className="w-24 h-0.5 bg-[#E8200C] mx-auto mt-3 sm:mt-4" />
-          <div className="text-[9px] sm:text-[10px] text-[#555] uppercase tracking-widest mt-2 sm:mt-3">Service Compression</div>
+          {activeLogo ? (
+            <div className="flex justify-center mb-2">
+              <activeLogo.Full size={170} />
+            </div>
+          ) : (
+            <>
+              <div className="text-2xl sm:text-4xl tracking-tight mb-1 sm:mb-2" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>
+                FieldTune™
+              </div>
+              <div className="text-xl sm:text-2xl text-white font-bold mb-1 sm:mb-2" style={{ fontFamily: "'Arial Black'" }}>
+                WellLogic™
+              </div>
+              <div className="text-xs sm:text-sm text-[#888]">Automated Gas Lift Injection Optimization</div>
+              <div className="w-24 h-0.5 bg-[#E8200C] mx-auto mt-3 sm:mt-4" />
+              <div className="text-[9px] sm:text-[10px] text-[#555] uppercase tracking-widest mt-2 sm:mt-3">Service Compression</div>
+            </>
+          )}
         </div>
 
         {/* ADMIN DASHBOARD — big button for admins */}
