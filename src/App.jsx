@@ -50,9 +50,6 @@ function AppContent() {
   const [showLogin, setShowLogin] = useState(null)
   const [showForum, setShowForum] = useState(false)
 
-  // Require signup/login before accessing anything
-  if (!user) return <SignupGate />
-
   const navigate = useCallback((target) => {
     trackActivity?.(`Navigated to ${target}`)
     if (target === 'simulator') {
@@ -67,7 +64,10 @@ function AppContent() {
     } else {
       setPage(target)
     }
-  }, [isTech, isAdmin, trackActivity])
+  }, [isTech, isAdmin, canViewQuotes, trackActivity])
+
+  // Require signup/login before accessing anything
+  if (!user) return <SignupGate />
 
   const handleLoginComplete = (loggedInUser) => {
     setShowLogin(null)
