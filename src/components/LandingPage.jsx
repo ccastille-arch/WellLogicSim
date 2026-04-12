@@ -39,8 +39,8 @@ export default function LandingPage({ onNavigate }) {
   const { user, isAdmin, isTech, canViewQuotes } = useAuth()
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-[#080810] overflow-auto py-10">
-      <div className="max-w-[900px] w-full px-6">
+    <div className="flex-1 flex flex-col bg-[#080810] overflow-auto py-10">
+      <div className="max-w-[900px] w-full px-6 mx-auto my-auto">
         {/* Branding */}
         <div className="text-center mb-10">
           <div className="text-4xl tracking-tight mb-2" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>
