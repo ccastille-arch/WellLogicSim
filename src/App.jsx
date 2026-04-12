@@ -38,9 +38,11 @@ import AdminDashboard from './components/auth/AdminDashboard'
 import { ForumButton, ForumPanel } from './components/Forum'
 import MLinkDashboard from './components/MLinkDashboard'
 import AutoPilot from './components/demos/AutoPilot'
+import { getSelectedLogo } from './components/BrandLogos'
 
 function AppContent() {
-  const { user, isAdmin, isTech, canViewQuotes, logout, trackActivity } = useAuth()
+  const { user, isAdmin, isTech, canViewQuotes, logout, trackActivity, settings } = useAuth()
+  const activeLogo = getSelectedLogo(settings)
   const [page, setPage] = useState('home')
   const [config, setConfig] = useState(null)
   const [tutorialMode, setTutorialMode] = useState(false)
@@ -147,17 +149,23 @@ function AppContent() {
     <div className="flex flex-col h-screen bg-[#080810]">
       {/* Header for pages that need it */}
       {(page === 'home' || page === 'technical' || page === 'quote' || page === 'admin' || page === 'pipeline' || page === 'livedata') && (
-        <header className="flex items-center justify-between px-5 py-2.5 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0" style={{ minHeight: 48 }}>
-          <div className="flex items-center gap-4 cursor-pointer" onClick={() => { setPage('home'); setConfig(null) }}>
-            <span className="text-lg tracking-tight" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>FieldTune™</span>
-            <div className="w-px h-6 bg-[#333]" />
-            <span className="text-sm text-[#ccc] tracking-wide" style={{ fontFamily: "'Arial Black'" }}>WellLogic™</span>
+        <header className="flex items-center justify-between px-3 sm:px-5 py-2 sm:py-2.5 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0 gap-2" style={{ minHeight: 44 }}>
+          <div className="flex items-center gap-2 sm:gap-4 cursor-pointer shrink-0" onClick={() => { setPage('home'); setConfig(null) }}>
+            {activeLogo ? (
+              <activeLogo.Compact size={32} />
+            ) : (
+              <>
+                <span className="text-sm sm:text-lg tracking-tight" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>FieldTune™</span>
+                <div className="w-px h-5 bg-[#333] hidden sm:block" />
+                <span className="text-xs sm:text-sm text-[#ccc] tracking-wide hidden sm:block" style={{ fontFamily: "'Arial Black'" }}>WellLogic™</span>
+              </>
+            )}
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] text-[#888]">👤 {user.name}</span>
-            {isTech && <button onClick={() => navigate('simulator')} className="text-[10px] text-[#4fc3f7] hover:text-white font-bold">🔧 Simulator</button>}
-            {isAdmin && <button onClick={() => navigate('admin')} className="text-[10px] text-[#f97316] hover:text-white font-bold">⚙️ Admin</button>}
-            <button onClick={logout} className="px-3 py-1 text-[10px] font-bold text-[#888] border border-[#333] rounded hover:text-white hover:border-[#E8200C]">Logout</button>
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap justify-end">
+            <span className="text-[9px] sm:text-[11px] text-[#888] hidden sm:inline">👤 {user.name}</span>
+            {isTech && <button onClick={() => navigate('simulator')} className="text-[9px] sm:text-[10px] text-[#4fc3f7] hover:text-white font-bold">🔧 Simulator</button>}
+            {isAdmin && <button onClick={() => navigate('admin')} className="text-[9px] sm:text-[10px] text-[#f97316] hover:text-white font-bold">⚙️ Admin</button>}
+            <button onClick={logout} className="px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-[#888] border border-[#333] rounded hover:text-white hover:border-[#E8200C]">Logout</button>
           </div>
         </header>
       )}

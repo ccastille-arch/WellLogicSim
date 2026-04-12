@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from './AuthProvider'
+import { LOGO_OPTIONS, getSelectedLogo } from '../BrandLogos'
 
 export default function AdminDashboard({ onBack }) {
   const { users, addUser, removeUser, updateUserRole, settings, updateSettings, activity, quotes } = useAuth()
@@ -21,7 +22,7 @@ export default function AdminDashboard({ onBack }) {
       </div>
 
       <div className="flex gap-2 px-6 py-2 bg-[#0a0a14] border-b border-[#1a1a2a] shrink-0 overflow-x-auto">
-        {['users', 'analytics', 'forum', 'quotes', 'settings'].map(t => (
+        {['users', 'branding', 'analytics', 'forum', 'quotes', 'settings'].map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-1.5 rounded text-[11px] font-bold capitalize ${tab === t ? 'bg-[#E8200C] text-white' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>{t}</button>
         ))}
@@ -83,6 +84,55 @@ export default function AdminDashboard({ onBack }) {
               <button onClick={() => { if (newUser.username && newUser.password) { addUser(newUser); setNewUser({ username: '', password: '', role: 'viewer', name: '' }) } }}
                 className="px-4 py-1.5 text-[10px] font-bold bg-[#E8200C] text-white rounded">Add User</button>
             </div>
+          </div>
+        )}
+
+        {/* ═══ BRANDING ═══ */}
+        {tab === 'branding' && (
+          <div className="max-w-[1000px]">
+            <h2 className="text-sm text-white font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>Brand Logo Selection</h2>
+            <p className="text-[11px] text-[#888] mb-6">Choose the active logo displayed across the app. The selected logo appears on the landing page and header.</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {LOGO_OPTIONS.map(logo => {
+                const isSelected = settings.selectedLogo === logo.id
+                const Logo = logo.Full
+                return (
+                  <div key={logo.id}
+                    className={`relative bg-[#0a0a14] rounded-xl border-2 p-6 transition-all cursor-pointer hover:scale-[1.02] ${isSelected ? 'border-[#E8200C] shadow-xl shadow-[#E8200C]/20' : 'border-[#2a2a3a] hover:border-[#555]'}`}
+                    onClick={() => updateSettings('selectedLogo', logo.id)}>
+                    {/* Selected badge */}
+                    {isSelected && (
+                      <div className="absolute top-3 right-3 px-2 py-0.5 bg-[#E8200C] rounded text-[8px] text-white font-bold uppercase">Active</div>
+                    )}
+
+                    {/* Logo preview */}
+                    <div className="flex items-center justify-center py-4 mb-4 bg-[#060609] rounded-lg min-h-[240px]">
+                      <Logo size={180} />
+                    </div>
+
+                    {/* Info */}
+                    <h3 className="text-[14px] text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>{logo.name}</h3>
+                    <p className="text-[10px] text-[#888] leading-relaxed">{logo.desc}</p>
+
+                    {/* Select button */}
+                    <button
+                      onClick={e => { e.stopPropagation(); updateSettings('selectedLogo', logo.id) }}
+                      className={`w-full mt-4 py-2 rounded-lg text-[11px] font-bold transition-all ${isSelected ? 'bg-[#E8200C] text-white' : 'bg-[#111120] border border-[#333] text-[#888] hover:text-white hover:border-[#E8200C]'}`}>
+                      {isSelected ? '✓ Selected' : 'Select This Logo'}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Clear selection */}
+            {settings.selectedLogo && (
+              <button onClick={() => updateSettings('selectedLogo', null)}
+                className="mt-4 px-4 py-2 text-[10px] text-[#888] border border-[#333] rounded hover:text-white hover:border-[#E8200C] transition-colors">
+                Reset to Default (Text-Only Branding)
+              </button>
+            )}
           </div>
         )}
 
