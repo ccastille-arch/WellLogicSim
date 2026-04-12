@@ -5,7 +5,7 @@ const AuthContext = createContext(null)
 const DEFAULT_USERS = [
   { username: 'cody', password: 'Brayden25!', role: 'admin', name: 'Cody Castille', createdAt: new Date().toISOString() },
   { username: 'techteam', password: '123', role: 'tech', name: 'Tech Team', createdAt: new Date().toISOString() },
-  { username: 'don', password: '12345678', role: 'viewer', name: 'Don Smith', createdAt: new Date().toISOString() },
+  { username: 'don', password: '12345678', role: 'viewer', name: 'Don', createdAt: new Date().toISOString() },
 ]
 
 function load(key, fallback) {
