@@ -46,8 +46,8 @@ export default function LandingPage({ onNavigate }) {
         {/* Branding — Logo or text fallback */}
         <div className="text-center mb-6 sm:mb-10">
           {activeLogo ? (
-            <div className="flex justify-center mb-2">
-              <activeLogo.Full size={170} />
+            <div className="flex justify-center mb-2 pt-2 overflow-visible">
+              <activeLogo.Full size={140} />
             </div>
           ) : (
             <>
