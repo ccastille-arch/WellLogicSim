@@ -46,7 +46,8 @@ export default function MLinkDashboard({ onBack }) {
   const [panelData, setPanelData] = useState(null)
   const [compAData, setCompAData] = useState(null)
   const [compBData, setCompBData] = useState(null)
-  const [runReports, setRunReports] = useState({ compA: null, compB: null })
+  const [runReports, setRunReports] = useState({ compA: undefined, compB: undefined })
+  const [runReportsLoading, setRunReportsLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState(null)
   const [tab, setTab] = useState('live') // live | history | klondike
@@ -67,17 +68,22 @@ export default function MLinkDashboard({ onBack }) {
   }, [])
 
   const loadRunReports = useCallback(async () => {
+    setRunReportsLoading(true)
     // Yesterday's 24hr report (API requires endTs < current UTC day)
     const now = new Date()
     const utcToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
     const endTs = Math.floor(utcToday.getTime() / 1000) - 1
     const startTs = endTs - 86399
 
-    const [rA, rB] = await Promise.all([
+    const [rA, rB] = await Promise.allSettled([
       fetchRunReport(DEVICES.compA, startTs, endTs),
       fetchRunReport(DEVICES.compB, startTs, endTs),
     ])
-    setRunReports({ compA: rA, compB: rB })
+    setRunReports({
+      compA: rA.status === 'fulfilled' ? rA.value : null,
+      compB: rB.status === 'fulfilled' ? rB.value : null,
+    })
+    setRunReportsLoading(false)
   }, [])
 
   useEffect(() => {
@@ -192,12 +198,13 @@ export default function MLinkDashboard({ onBack }) {
             <h2 className="text-sm text-white font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>
               Yesterday's Run Report
             </h2>
-            <div className="grid grid-cols-2 gap-4">
-              <RunReportCard label="Compressor A" report={runReports.compA} />
-              <RunReportCard label="Compressor B" report={runReports.compB} />
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <RunReportCard label="Compressor A" report={runReports.compA} loading={runReportsLoading} />
+              <RunReportCard label="Compressor B" report={runReports.compB} loading={runReportsLoading} />
             </div>
+            <WellAchievementSection klondike={klondike} />
             <p className="text-[9px] text-[#555] mt-4 text-center">
-              Run reports available for the last 30 days in 24-hour windows. Additional date ranges coming soon.
+              Compressor run reports cover yesterday's 24-hour window. Well achievement uses 30-day field data.
             </p>
           </div>
         ) : (
@@ -495,11 +502,67 @@ function MiniSparkline({ data, color }) {
   )
 }
 
-function RunReportCard({ label, report }) {
+function WellAchievementSection({ klondike }) {
+  const { data } = klondike
+  if (!data?.length) return null
+
+  // Calculate % of samples where each well flow >= setpoint
+  const wellCount = data[0]?.wells?.length || 0
+  const stats = Array.from({ length: wellCount }, (_, i) => {
+    const samples = data.filter(r => r.wells?.[i] != null)
+    if (!samples.length) return { pct: 0, avg: 0, sp: 0 }
+    const sp = samples[0].wells[i].setpointMmscfd || 1
+    const atTarget = samples.filter(r => {
+      const flow = r.wells[i]?.flowMmscfd ?? 0
+      return flow >= sp * 0.95 // within 5% of setpoint counts as hitting it
+    }).length
+    const avg = samples.reduce((s, r) => s + (r.wells[i]?.flowMmscfd ?? 0), 0) / samples.length
+    return { pct: (atTarget / samples.length) * 100, avg, sp }
+  })
+
+  return (
+    <div className="bg-[#111118] rounded-xl border border-[#222] p-5">
+      <h3 className="text-[13px] text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>
+        Well Injection Rate Achievement
+      </h3>
+      <p className="text-[9px] text-[#888] mb-4">% of time each well hit its desired injection rate (within 5%) — based on 30-day field data</p>
+      <div className="grid grid-cols-4 gap-3">
+        {stats.map((s, i) => (
+          <div key={i} className="text-center">
+            <div className="text-[9px] text-[#888] mb-1">Well {i + 1}</div>
+            <div className="text-2xl font-bold mb-1" style={{
+              fontFamily: "'Arial Black'",
+              color: s.pct >= 90 ? '#22c55e' : s.pct >= 70 ? '#eab308' : '#E8200C'
+            }}>
+              {s.pct.toFixed(0)}%
+            </div>
+            <div className="w-full bg-[#1a1a2a] rounded h-2 overflow-hidden mb-1">
+              <div className="h-full rounded transition-all" style={{
+                width: `${s.pct}%`,
+                background: s.pct >= 90 ? '#22c55e' : s.pct >= 70 ? '#eab308' : '#E8200C'
+              }} />
+            </div>
+            <div className="text-[8px] text-[#666]">avg {s.avg.toFixed(3)}</div>
+            <div className="text-[8px] text-[#555]">sp {s.sp.toFixed(3)} MMscfd</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function RunReportCard({ label, report, loading }) {
+  if (loading) return (
+    <div className="bg-[#111118] rounded-xl border border-[#222] p-5 text-center">
+      <h3 className="text-[13px] text-white font-bold mb-2">{label}</h3>
+      <div className="text-[#555] text-sm animate-pulse">Loading report...</div>
+    </div>
+  )
   if (!report) return (
     <div className="bg-[#111118] rounded-xl border border-[#222] p-5 text-center">
       <h3 className="text-[13px] text-white font-bold mb-2">{label}</h3>
-      <span className="text-[#555]">Loading...</span>
+      <div className="text-[#E8200C] text-[11px]">No data available</div>
+      <div className="text-[9px] text-[#555] mt-1">Report may not be ready yet — check back after midnight UTC</div>
     </div>
   )
 
