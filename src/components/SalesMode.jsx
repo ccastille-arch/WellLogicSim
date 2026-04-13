@@ -19,6 +19,7 @@ import SuctionPressureDemo from './demos/SuctionPressureDemo'
 import AutoStagingDemo from './demos/AutoStagingDemo'
 import PersonnelLockoutDemo from './demos/PersonnelLockoutDemo'
 import BreakItChallenge from './demos/BreakItChallenge'
+import SetpointChangeDemo from './demos/SetpointChangeDemo'
 import {
   RevenueTicker, BeforeAfterOverlay, BadDayButton,
   ROICalculator, ResponseTimer, SaturdayNightButton, FeatureToggles,
@@ -33,6 +34,7 @@ const DEMOS = [
   { id: 'suction', label: 'Suction\nPressure', icon: '📐', Component: SuctionPressureDemo },
   { id: 'staging', label: 'Auto\nStaging', icon: '🔄', Component: AutoStagingDemo },
   { id: 'lockout', label: 'Personnel\nLockout', icon: '🔒', Component: PersonnelLockoutDemo },
+  { id: 'setpoint', label: 'Setpoint\nChange', icon: '🎯', Component: SetpointChangeDemo },
   { id: 'breakit', label: 'Break It\nChallenge', icon: '🎮', Component: BreakItChallenge },
 ]
 
