@@ -105,6 +105,19 @@ export default function LandingPage({ onNavigate }) {
           ))}
         </div>
 
+        {/* Logo vote banner */}
+        <button onClick={() => onNavigate('vote')}
+          className="w-full mb-4 sm:mb-6 bg-[#111118] border border-[#a78bfa]/30 rounded-xl px-5 py-3 flex items-center justify-between hover:border-[#a78bfa]/70 transition-colors group">
+          <div className="flex items-center gap-3">
+            <span className="text-xl">🗳</span>
+            <div className="text-left">
+              <div className="text-[12px] text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>Vote on the New Logo</div>
+              <div className="text-[10px] text-[#888]">15 designs to choose from — pick your favorite</div>
+            </div>
+          </div>
+          <span className="text-[11px] font-bold text-[#a78bfa] group-hover:text-white transition-colors">View & Vote →</span>
+        </button>
+
         {/* Tech Team access at bottom */}
         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
           {isTech && (
