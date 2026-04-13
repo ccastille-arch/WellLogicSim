@@ -40,13 +40,15 @@ app.use('/api',       dataRoutes)
 app.post('/api/tts', async (req, res) => {
   const key = process.env.OPENAI_API_KEY
   if (!key) return res.status(503).json({ error: 'TTS not configured' })
-  const { text, voice = 'onyx' } = req.body
+  const { text, voice = 'fable' } = req.body
   if (!text) return res.status(400).json({ error: 'text required' })
+  // Normalize ellipses to commas for natural pauses (OpenAI TTS ignores … but reads , with a pause)
+  const processedText = text.replace(/…/g, ', ').replace(/\.\.\./g, ', ')
   try {
     const r = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'tts-1', voice, input: text, response_format: 'mp3', speed: 0.95 }),
+      body: JSON.stringify({ model: 'tts-1-hd', voice, input: processedText, response_format: 'mp3', speed: 0.9 }),
     })
     if (!r.ok) {
       const err = await r.json().catch(() => ({}))

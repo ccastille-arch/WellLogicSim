@@ -13,7 +13,13 @@ export default function SalesSheets() {
   if (viewing) {
     return (
       <div className="p-6 max-w-[900px] mx-auto">
-        <button onClick={() => setViewing(null)} className="text-[11px] text-[#888] hover:text-white mb-4 flex items-center gap-1">← Back to all sheets</button>
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={() => setViewing(null)} className="text-[11px] text-[#888] hover:text-white flex items-center gap-1">← Back to all sheets</button>
+          <button onClick={() => window.print()}
+            className="px-4 py-1.5 text-[11px] font-bold text-white bg-[#E8200C] hover:bg-[#c01a0a] rounded-lg flex items-center gap-2">
+            ↓ Download / Print
+          </button>
+        </div>
         {viewing === 'overview' && <OverviewSheet />}
         {viewing === 'roi' && <ROISheet />}
         {viewing === 'comparison' && <ComparisonSheet />}

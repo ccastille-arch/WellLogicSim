@@ -192,7 +192,7 @@ export default function AutoPilot({ sim, onExit }) {
       fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: s.say, voice: 'onyx' }),
+        body: JSON.stringify({ text: s.say, voice: 'fable' }),
       }).then(async res => {
         if (res.ok) {
           const blob = await res.blob()

@@ -96,7 +96,7 @@ async function speak(text, onDone) {
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice: 'onyx' }),
+        body: JSON.stringify({ text, voice: 'fable' }),
       })
       if (res.ok) {
         const blob = await res.blob()
