@@ -157,8 +157,22 @@ const SCRIPT = [
 export default function AutoPilot({ sim, onExit }) {
   const [step, setStep] = useState(-1) // -1 = not started
   const [paused, setPaused] = useState(false)
+  const [voices, setVoices] = useState([])
+  const [selectedVoiceName, setSelectedVoiceName] = useState('')
   const timerRef = useRef(null)
   const speakingRef = useRef(false)
+
+  // Load available voices — browsers fire voiceschanged when ready
+  useEffect(() => {
+    const load = () => {
+      const all = window.speechSynthesis?.getVoices() || []
+      const en = all.filter(v => v.lang?.startsWith('en'))
+      setVoices(en.length ? en : all)
+    }
+    load()
+    window.speechSynthesis?.addEventListener('voiceschanged', load)
+    return () => window.speechSynthesis?.removeEventListener('voiceschanged', load)
+  }, [])
 
   const currentStep = step >= 0 && step < SCRIPT.length ? SCRIPT[step] : null
   const m = getMetrics(sim.state)
@@ -177,9 +191,11 @@ export default function AutoPilot({ sim, onExit }) {
       const utter = new SpeechSynthesisUtterance(s.say)
       utter.rate = 1.1
       utter.pitch = 0.85
-      const voices = window.speechSynthesis.getVoices()
-      const usVoice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Microsoft David') || v.name.includes('Microsoft Guy')) || voices.find(v => v.lang === 'en-US') || voices[0]
-      if (usVoice) utter.voice = usVoice
+      const allVoices = window.speechSynthesis.getVoices()
+      const chosenVoice = selectedVoiceName
+        ? allVoices.find(v => v.name === selectedVoiceName)
+        : allVoices.find(v => v.name.includes('Google US English') || v.name.includes('Microsoft David') || v.name.includes('Microsoft Guy')) || allVoices.find(v => v.lang === 'en-US') || allVoices[0]
+      if (chosenVoice) utter.voice = chosenVoice
       speakingRef.current = true
       utter.onend = () => { speakingRef.current = false }
       window.speechSynthesis.speak(utter)
@@ -238,6 +254,30 @@ export default function AutoPilot({ sim, onExit }) {
             <div className="text-3xl mb-2" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>FieldTune™</div>
             <div className="text-4xl text-white font-bold mb-3" style={{ fontFamily: "'Arial Black'" }}>WellLogic™</div>
             <div className="text-sm text-[#888] mb-8">Automated Gas Lift Injection Optimization</div>
+            {voices.length > 0 && (
+              <div className="mb-6">
+                <label className="block text-[10px] text-[#888] mb-1.5">Narrator Voice</label>
+                <select value={selectedVoiceName} onChange={e => setSelectedVoiceName(e.target.value)}
+                  className="w-64 bg-[#111118] border border-[#333] rounded-lg px-3 py-2 text-white text-[11px] outline-none focus:border-[#E8200C]">
+                  <option value="">Auto (default)</option>
+                  {voices.map(v => (
+                    <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>
+                  ))}
+                </select>
+                {selectedVoiceName && (
+                  <button onClick={() => {
+                    const v = window.speechSynthesis.getVoices().find(x => x.name === selectedVoiceName)
+                    const u = new SpeechSynthesisUtterance('Welcome to the WellLogic presentation.')
+                    u.rate = 1.1; u.pitch = 0.85
+                    if (v) u.voice = v
+                    window.speechSynthesis.cancel()
+                    window.speechSynthesis.speak(u)
+                  }} className="mt-1.5 text-[9px] text-[#4fc3f7] hover:underline block">
+                    Preview voice
+                  </button>
+                )}
+              </div>
+            )}
             <button onClick={start}
               className="px-12 py-4 bg-[#E8200C] hover:bg-[#c01a0a] text-white font-bold rounded-xl text-lg transition-all hover:scale-105 shadow-xl shadow-[#E8200C]/30"
               style={{ fontFamily: "'Arial Black'" }}>
