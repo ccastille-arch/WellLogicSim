@@ -1,148 +1,171 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { api } from '../../services/api'
 
 const AuthContext = createContext(null)
 
-const DEFAULT_USERS = [
-  { username: 'cody', password: 'Brayden25!', role: 'admin', name: 'Cody Castille', createdAt: new Date().toISOString() },
-  { username: 'techteam', password: '123', role: 'tech', name: 'Tech Team', createdAt: new Date().toISOString() },
-  { username: 'don', password: '12345678', role: 'viewer', name: 'Don', createdAt: new Date().toISOString() },
-]
-
-function load(key, fallback) {
-  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback } catch { return fallback }
-}
-function save(key, val) { localStorage.setItem(key, JSON.stringify(val)) }
-
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => load('welllogic_session', null))
-  const [users, setUsers] = useState(() => load('welllogic_users', DEFAULT_USERS))
-  const [settings, setSettings] = useState(() => load('welllogic_settings', { forumPublic: true, quoteViewers: [] }))
-  const [activity, setActivity] = useState(() => load('welllogic_activity', []))
-  const [quotes, setQuotes] = useState(() => load('welllogic_quotes', []))
+  const [user, setUser]       = useState(null)
+  const [users, setUsers]     = useState([])
+  const [settings, setSettings] = useState({ forumPublic: true, quoteViewers: [] })
+  const [activity, setActivity] = useState([])
+  const [quotes, setQuotes]   = useState([])
+  const [loading, setLoading] = useState(true) // true while restoring session
 
-  useEffect(() => { save('welllogic_users', users) }, [users])
-  useEffect(() => { save('welllogic_settings', settings) }, [settings])
-  useEffect(() => { save('welllogic_activity', activity) }, [activity])
-  useEffect(() => { save('welllogic_quotes', quotes) }, [quotes])
+  // ─── Restore session on mount ───────────────────────────────────
+  useEffect(() => {
+    const token = api.token.get()
+    if (!token) { setLoading(false); return }
 
-  // Track user activity
+    api.auth.me()
+      .then(({ user }) => {
+        setUser(user)
+        // Prefetch shared data now that we're logged in
+        return Promise.all([
+          api.settings.get().then(setSettings).catch(() => {}),
+        ])
+      })
+      .catch(() => {
+        // Token expired / invalid — clear it
+        api.token.set(null)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  // ─── Load admin data when user becomes admin/tech ───────────────
+  useEffect(() => {
+    if (!user) return
+    if (user.role === 'admin') {
+      api.users.list().then(setUsers).catch(() => {})
+      api.activity.list().then(setActivity).catch(() => {})
+      api.quotes.list().then(setQuotes).catch(() => {})
+    } else if (user.role === 'tech') {
+      api.quotes.list().then(setQuotes).catch(() => {})
+    }
+  }, [user?.role])
+
+  // ─── Auth actions ────────────────────────────────────────────────
+  const login = useCallback(async (username, password) => {
+    try {
+      const { token, user } = await api.auth.login(username, password)
+      api.token.set(token)
+      setUser(user)
+      if (user.role === 'admin') {
+        api.settings.get().then(setSettings).catch(() => {})
+        api.users.list().then(setUsers).catch(() => {})
+        api.activity.list().then(setActivity).catch(() => {})
+        api.quotes.list().then(setQuotes).catch(() => {})
+      }
+      return { success: true, user }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }, [])
+
+  const signup = useCallback(async (firstName, lastName) => {
+    try {
+      const { token, user } = await api.auth.signup(firstName, lastName)
+      api.token.set(token)
+      setUser(user)
+      api.settings.get().then(setSettings).catch(() => {})
+      return { success: true, user }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }, [])
+
+  const logout = useCallback(async () => {
+    await api.auth.logout().catch(() => {})
+    api.token.set(null)
+    setUser(null)
+    setUsers([])
+    setActivity([])
+    setQuotes([])
+  }, [])
+
+  // ─── Track activity ──────────────────────────────────────────────
   const trackActivity = useCallback((action) => {
     if (!user) return
-    const entry = { user: user.name || user.username, action, timestamp: new Date().toISOString() }
-    setActivity(prev => [entry, ...prev].slice(0, 500)) // keep last 500
+    api.activity.log(action).catch(() => {})
+    // Optimistically update local list (admin sees it immediately)
+    if (user.role === 'admin') {
+      const entry = { user: user.name, action, timestamp: new Date().toISOString() }
+      setActivity(prev => [entry, ...prev].slice(0, 500))
+    }
   }, [user])
 
-  // Login
-  const login = (username, password) => {
-    const found = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password)
-    if (found) {
-      const session = { username: found.username, role: found.role, name: found.name }
-      setUser(session)
-      save('welllogic_session', session)
-      // Track login
-      const entry = { user: found.name, action: 'Logged in', timestamp: new Date().toISOString() }
-      setActivity(prev => [entry, ...prev].slice(0, 500))
-      return { success: true, user: session }
-    }
-    return { success: false, error: 'Invalid credentials' }
-  }
+  // ─── User management (admin) ─────────────────────────────────────
+  const addUser = useCallback(async (newUser) => {
+    try {
+      await api.users.create(newUser)
+      const updated = await api.users.list()
+      setUsers(updated)
+      return true
+    } catch { return false }
+  }, [])
 
-  // Self-signup — first name + last name
-  const signup = (firstName, lastName) => {
-    const fn = firstName.trim()
-    const ln = lastName.trim()
-    if (!fn || !ln) return { success: false, error: 'First and last name required' }
-    const username = fn.toLowerCase()
-    const password = ln.toLowerCase()
-    const name = `${fn} ${ln}`
-    // Check if already exists
-    const existing = users.find(u => u.username.toLowerCase() === username && u.password === password)
-    if (existing) {
-      // Just log them in
-      const session = { username: existing.username, role: existing.role, name: existing.name }
-      setUser(session)
-      save('welllogic_session', session)
-      return { success: true, user: session }
-    }
-    // Create new viewer account
-    const newUser = { username, password, role: 'viewer', name, createdAt: new Date().toISOString() }
-    setUsers(prev => [...prev, newUser])
-    const session = { username, role: 'viewer', name }
-    setUser(session)
-    save('welllogic_session', session)
-    const entry = { user: name, action: 'Created account & logged in', timestamp: new Date().toISOString() }
-    setActivity(prev => [entry, ...prev].slice(0, 500))
-    return { success: true, user: session }
-  }
-
-  const logout = () => {
-    if (user) {
-      const entry = { user: user.name, action: 'Logged out', timestamp: new Date().toISOString() }
-      setActivity(prev => [entry, ...prev].slice(0, 500))
-    }
-    setUser(null)
-    localStorage.removeItem('welllogic_session')
-  }
-
-  const isAdmin = user?.role === 'admin'
-  const isTech = user?.role === 'tech' || isAdmin
-  const isLoggedIn = !!user
-  const canViewQuotes = isAdmin || (settings.quoteViewers || []).includes(user?.username)
-
-  const addUser = (newUser) => {
-    if (users.find(u => u.username === newUser.username)) return false
-    setUsers(prev => [...prev, { ...newUser, createdAt: new Date().toISOString() }])
-    return true
-  }
-
-  const removeUser = (username) => {
+  const removeUser = useCallback(async (username) => {
     if (username === 'cody') return false
-    setUsers(prev => prev.filter(u => u.username !== username))
-    return true
-  }
+    try {
+      await api.users.remove(username)
+      setUsers(prev => prev.filter(u => u.username !== username))
+      return true
+    } catch { return false }
+  }, [])
 
-  const updateUserRole = (username, role) => {
+  const updateUserRole = useCallback(async (username, role) => {
     if (username === 'cody') return
-    setUsers(prev => prev.map(u => u.username === username ? { ...u, role } : u))
-  }
+    try {
+      await api.users.updateRole(username, role)
+      setUsers(prev => prev.map(u => u.username === username ? { ...u, role } : u))
+    } catch {}
+  }, [])
 
-  const updateSettings = (key, value) => {
-    setSettings(prev => ({ ...prev, [key]: value }))
-  }
+  // ─── Settings ────────────────────────────────────────────────────
+  const updateSettings = useCallback(async (key, value) => {
+    const update = { [key]: value }
+    setSettings(prev => ({ ...prev, ...update }))
+    await api.settings.update(update).catch(() => {})
+  }, [])
 
-  // Quote / CRM functions
-  const addQuote = (quote) => {
-    const newQuote = {
-      ...quote,
-      id: Date.now(),
-      createdBy: user?.name || 'Unknown',
-      createdAt: new Date().toISOString(),
-      status: 'New',
-      history: [{ action: 'Quote created', by: user?.name, at: new Date().toISOString() }],
-    }
-    setQuotes(prev => [newQuote, ...prev])
-    trackActivity(`Created quote for ${quote.customerName}`)
-    return newQuote
-  }
+  // ─── Quotes ──────────────────────────────────────────────────────
+  const addQuote = useCallback(async (quote) => {
+    try {
+      const newQuote = await api.quotes.create(quote)
+      setQuotes(prev => [newQuote, ...prev])
+      trackActivity(`Created quote for ${quote.customerName}`)
+      return newQuote
+    } catch { return null }
+  }, [trackActivity])
 
-  const updateQuote = (id, updates) => {
-    setQuotes(prev => prev.map(q => {
-      if (q.id !== id) return q
-      const historyEntry = { action: `Updated: ${Object.keys(updates).join(', ')}`, by: user?.name, at: new Date().toISOString() }
-      return { ...q, ...updates, history: [...(q.history || []), historyEntry] }
-    }))
-    trackActivity(`Updated quote #${id}`)
-  }
+  const updateQuote = useCallback(async (id, updates) => {
+    try {
+      await api.quotes.update(id, updates)
+      setQuotes(prev => prev.map(q => q.id === id ? { ...q, ...updates } : q))
+      trackActivity(`Updated quote #${id}`)
+    } catch {}
+  }, [trackActivity])
 
-  const deleteQuote = (id) => {
-    setQuotes(prev => prev.filter(q => q.id !== id))
-    trackActivity(`Deleted quote #${id}`)
-  }
+  const deleteQuote = useCallback(async (id) => {
+    try {
+      await api.quotes.remove(id)
+      setQuotes(prev => prev.filter(q => q.id !== id))
+      trackActivity(`Deleted quote #${id}`)
+    } catch {}
+  }, [trackActivity])
+
+  // ─── Derived permissions ─────────────────────────────────────────
+  const isAdmin = user?.role === 'admin'
+  const isTech  = user?.role === 'tech' || isAdmin
+  const canViewQuotes = isAdmin || (settings.quoteViewers || []).includes(user?.username)
 
   return (
     <AuthContext.Provider value={{
-      user, users, settings, activity, quotes, isAdmin, isTech, isLoggedIn, canViewQuotes,
-      login, signup, logout, addUser, removeUser, updateUserRole, updateSettings, trackActivity,
+      user, users, settings, activity, quotes,
+      isAdmin, isTech, isLoggedIn: !!user, canViewQuotes,
+      loading,
+      login, signup, logout,
+      addUser, removeUser, updateUserRole,
+      updateSettings, trackActivity,
       addQuote, updateQuote, deleteQuote,
     }}>
       {children}

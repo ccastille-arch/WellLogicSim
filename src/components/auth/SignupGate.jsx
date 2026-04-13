@@ -16,15 +16,19 @@ export default function SignupGate() {
   const [adminUser, setAdminUser] = useState('')
   const [adminPass, setAdminPass] = useState('')
 
-  const handleSignup = () => {
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSignup = async () => {
     if (!firstName.trim() || !lastName.trim()) { setError('Please enter your first and last name'); return }
-    const result = signup(firstName.trim(), lastName.trim())
-    if (!result.success) setError(result.error)
+    setSubmitting(true)
+    const result = await signup(firstName.trim(), lastName.trim())
+    if (!result.success) { setError(result.error); setSubmitting(false) }
   }
 
-  const handleAdminLogin = () => {
-    const result = login(adminUser, adminPass)
-    if (!result.success) { setError(result.error); setAdminPass('') }
+  const handleAdminLogin = async () => {
+    setSubmitting(true)
+    const result = await login(adminUser, adminPass)
+    if (!result.success) { setError(result.error); setAdminPass(''); setSubmitting(false) }
   }
 
   return (
@@ -60,10 +64,10 @@ export default function SignupGate() {
 
             {error && <p className="text-[#E8200C] text-[11px] mb-3">{error}</p>}
 
-            <button onClick={handleSignup}
-              className="w-full py-3 bg-[#E8200C] hover:bg-[#c01a0a] text-white font-bold rounded-lg text-sm transition-colors"
+            <button onClick={handleSignup} disabled={submitting}
+              className="w-full py-3 bg-[#E8200C] hover:bg-[#c01a0a] disabled:opacity-60 text-white font-bold rounded-lg text-sm transition-colors"
               style={{ fontFamily: "'Arial Black'" }}>
-              Continue →
+              {submitting ? 'Connecting...' : 'Continue →'}
             </button>
 
             <div className="text-center mt-4">
@@ -91,10 +95,10 @@ export default function SignupGate() {
 
             {error && <p className="text-[#E8200C] text-[11px] mb-3">{error}</p>}
 
-            <button onClick={handleAdminLogin}
-              className="w-full py-3 bg-[#E8200C] hover:bg-[#c01a0a] text-white font-bold rounded-lg text-sm transition-colors"
+            <button onClick={handleAdminLogin} disabled={submitting}
+              className="w-full py-3 bg-[#E8200C] hover:bg-[#c01a0a] disabled:opacity-60 text-white font-bold rounded-lg text-sm transition-colors"
               style={{ fontFamily: "'Arial Black'" }}>
-              Login
+              {submitting ? 'Connecting...' : 'Login'}
             </button>
 
             <div className="text-center mt-4">

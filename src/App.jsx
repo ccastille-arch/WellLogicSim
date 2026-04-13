@@ -42,8 +42,20 @@ import AutoPilot from './components/demos/AutoPilot'
 import { getSelectedLogo } from './components/BrandLogos'
 
 function AppContent() {
-  const { user, isAdmin, isTech, canViewQuotes, logout, trackActivity, settings } = useAuth()
+  const { user, isAdmin, isTech, canViewQuotes, logout, trackActivity, settings, loading } = useAuth()
   const activeLogo = getSelectedLogo(settings)
+
+  // Show spinner while restoring session from server
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#080810]">
+        <div className="text-center">
+          <div className="text-[#E8200C] text-3xl mb-3 animate-pulse" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic' }}>FieldTune™</div>
+          <div className="text-[#555] text-xs">Connecting...</div>
+        </div>
+      </div>
+    )
+  }
   const [page, setPage] = useState('home')
   const [config, setConfig] = useState(null)
   const [tutorialMode, setTutorialMode] = useState(false)
