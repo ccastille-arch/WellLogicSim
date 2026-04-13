@@ -2,6 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 
 const CLIPS = [
   {
+    id: 'well-pad-optimizer',
+    title: 'FieldTune™ Well Panel — Well Pad Optimizer',
+    duration: '2:30',
+    description: 'From reactive control to coordinated optimization. See why the FieldTune Well Panel is not just a choke controller — it is a Well Pad Optimizer.',
+    featured: true,
+  },
+  {
     id: 'what-is-welllogic',
     title: 'WellLogic™ — What It Does On Your Pad',
     duration: '45 sec',
@@ -24,13 +31,19 @@ export default function AnimatedClips() {
   }
 
   return (
-    <div className="p-6 max-w-[1200px] mx-auto">
+    <div className="p-4 sm:p-6 max-w-[1200px] mx-auto">
       <h2 className="text-lg text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>Product Videos</h2>
-      <p className="text-[12px] text-[#888] mb-6">Animated demonstrations showing WellLogic in action on a live pad diagram.</p>
+      <p className="text-[12px] text-[#888] mb-6">Animated demonstrations showing FieldTune™ WellLogic in action.</p>
 
       <div className="space-y-6">
         {CLIPS.map(clip => (
-          <div key={clip.id} className="bg-[#111118] rounded-xl border border-[#222] overflow-hidden">
+          <div key={clip.id} className={`bg-[#111118] rounded-xl overflow-hidden border-2 ${clip.featured ? 'border-[#E8200C]/50' : 'border-[#222]'}`}>
+            {clip.featured && (
+              <div className="bg-[#E8200C] px-4 py-1.5 flex items-center gap-2">
+                <span className="text-white text-[10px] font-bold tracking-widest uppercase">Featured — New Release</span>
+                <span className="text-white/60 text-[9px] ml-auto">{clip.duration}</span>
+              </div>
+            )}
             {/* Video area — 16:9 */}
             <div className="relative bg-[#060610] overflow-hidden" style={{ aspectRatio: '16/9' }}>
               {playing === clip.id ? (
@@ -42,18 +55,19 @@ export default function AnimatedClips() {
                   </button>
                 </div>
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="text-[13px] text-[#888] mb-3">{clip.title}</div>
+                <div className="absolute inset-0 flex flex-col items-center justify-center"
+                  style={{ background: clip.featured ? 'radial-gradient(ellipse at center, #1a0a0a 0%, #060610 70%)' : undefined }}>
+                  <div className="text-[12px] text-[#888] mb-4 px-8 text-center">{clip.title}</div>
                   <button onClick={() => setPlaying(clip.id)}
-                    className="w-20 h-20 rounded-full bg-[#E8200C]/20 border-2 border-[#E8200C] flex items-center justify-center hover:bg-[#E8200C] transition-colors group">
-                    <span className="text-[#E8200C] text-3xl group-hover:text-white ml-1">▶</span>
+                    className={`rounded-full border-2 flex items-center justify-center hover:bg-[#E8200C] transition-colors group ${clip.featured ? 'w-24 h-24 bg-[#E8200C]/30 border-[#E8200C]' : 'w-16 h-16 bg-[#E8200C]/20 border-[#E8200C]'}`}>
+                    <span className={`text-[#E8200C] group-hover:text-white ml-1 ${clip.featured ? 'text-4xl' : 'text-2xl'}`}>▶</span>
                   </button>
                   <span className="text-[10px] text-[#555] mt-3">{clip.duration}</span>
                 </div>
               )}
             </div>
             <div className="p-4">
-              <h3 className="text-[14px] text-white font-bold">{clip.title}</h3>
+              <h3 className={`text-white font-bold ${clip.featured ? 'text-[16px]' : 'text-[13px]'}`}>{clip.title}</h3>
               <p className="text-[11px] text-[#888] mt-1">{clip.description}</p>
             </div>
           </div>
@@ -124,9 +138,27 @@ function stopSpeaking() {
   window.speechSynthesis?.cancel()
 }
 
-// Narration scripts — written for production foremen, not boardroom suits
-// Fast-paced, oilfield terminology, no fluff
+// Narration scripts
 const NARRATION = {
+  'well-pad-optimizer': [
+    'For decades… oilfield control systems have been good enough.',
+    'But good enough comes at a cost.',
+    'Surging systems. Inefficient flow. Constant correction.',
+    'Most sites operate like a relay race — each component reacting, then handing off. Never truly working together.',
+    'What if the system didn\'t just react… but coordinated?',
+    'The FieldTune Well Panel is not a choke controller.',
+    'It is a Well Pad Optimizer.',
+    'It communicates across the entire pad.',
+    'Every component understands what\'s happening before… and after it.',
+    'Instead of reacting… each system adjusts in real time… as part of a unified strategy.',
+    'Traditional logic chases conditions.',
+    'The Well Panel maintains them.',
+    'No surging. No unnecessary recycle. No wasted energy.',
+    'Just controlled… continuous… optimized flow.',
+    'This is not incremental improvement.',
+    'This is the next generation of oilfield control.',
+    'FieldTune. Well Pad Optimizer. Engineered for Uptime.',
+  ],
   'what-is-welllogic': [
     'Here is your pad. Four wells on gas lift, two compressors, recirculated gas off the scrubber.',
     'Gas comes off the vertical scrubber, hits the suction header, feeds your compressors.',
@@ -201,6 +233,7 @@ function ClipPlayer({ id, onEnd }) {
 
   const displayFrame = Math.max(0, frame)
 
+  if (id === 'well-pad-optimizer') return <WellPadOptimizerVideo frame={displayFrame} tick={tick} />
   if (id === 'what-is-welllogic') return <WhatIsWellLogicVideo frame={displayFrame} tick={tick} />
   if (id === 'trip-sidebyside') return <TripSideBySideVideo frame={displayFrame} tick={tick} />
   return null
@@ -483,10 +516,469 @@ function MiniPad({ wells, c1Status, c2Status, showWellLogic }) {
         <g>
           <rect x={150} y={180} width={100} height={25} rx={4} fill="#0a0a16" stroke="#E8200C" strokeWidth={1.5} />
           <text x={200} y={195} textAnchor="middle" fill="#E8200C" fontSize="8" fontWeight="bold">WellLogic™</text>
-          {/* Control lines to chokes */}
           <line x1={200} y1={180} x2={200} y2={170} stroke="#E8200C" strokeWidth={0.5} strokeDasharray="2 2" />
         </g>
       )}
     </svg>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VIDEO 3: FieldTune™ Well Pad Optimizer — Cinematic
+// ═══════════════════════════════════════════════════════════════
+function WellPadOptimizerVideo({ frame, tick }) {
+
+  // Scene selector
+  const scene =
+    frame <= 1  ? 'open' :
+    frame <= 3  ? 'problem' :
+    frame === 4 ? 'shift' :
+    frame <= 6  ? 'solution' :
+    frame <= 9  ? 'core' :
+    frame <= 11 ? 'contrast' :
+    frame <= 13 ? 'impact' :
+    frame <= 15 ? 'close' :
+                  'endframe'
+
+  const caption = [
+    'For decades… oilfield control systems have been good enough.',
+    'But good enough comes at a cost.',
+    'Surging systems. Inefficient flow. Constant correction.',
+    'Most sites operate like a relay race — each component reacting, then handing off. Never truly working together.',
+    'What if the system didn\'t just react… but coordinated?',
+    'The FieldTune Well Panel is not a choke controller.',
+    'It is a Well Pad Optimizer.',
+    'It communicates across the entire pad.',
+    'Every component understands what\'s happening before… and after it.',
+    'Instead of reacting… each system adjusts in real time… as part of a unified strategy.',
+    'Traditional logic chases conditions.',
+    'The Well Panel maintains them.',
+    'No surging. No unnecessary recycle. No wasted energy.',
+    'Just controlled… continuous… optimized flow.',
+    'This is not incremental improvement.',
+    'This is the next generation of oilfield control.',
+    '',
+  ][Math.min(frame, 16)]
+
+  const blink = Math.floor(tick / 2) % 2 === 0
+
+  return (
+    <div className="w-full h-full flex flex-col bg-black relative">
+      {/* Cinematic letterbox top */}
+      <div className="h-[6%] bg-black shrink-0" />
+
+      {/* Main scene */}
+      <div className="flex-1 relative overflow-hidden">
+        <svg viewBox="0 0 800 320" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ fontFamily: 'Arial, sans-serif' }}>
+
+          {/* ── OPEN: West Texas establishing shot ── */}
+          {scene === 'open' && <>
+            {/* Sky gradient */}
+            <defs>
+              <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#b8822a" />
+                <stop offset="55%" stopColor="#d4a855" />
+                <stop offset="100%" stopColor="#c8b080" />
+              </linearGradient>
+              <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#b8a882" />
+                <stop offset="100%" stopColor="#9a9070" />
+              </linearGradient>
+            </defs>
+            <rect width="800" height="320" fill="url(#sky)" />
+            <rect y="195" width="800" height="125" fill="url(#ground)" />
+            {/* Caliche road */}
+            <polygon points="340,320 460,320 430,195 370,195" fill="#d4c8a0" opacity="0.6" />
+            {/* Dust haze */}
+            <rect width="800" height="320" fill="#d4a855" opacity="0.08" />
+            {/* Sun */}
+            <circle cx="680" cy="60" r="28" fill="#fff8e0" opacity="0.9" />
+            <circle cx="680" cy="60" r="38" fill="#ffe090" opacity="0.25" />
+            {/* Sun glare rays */}
+            {[0,45,90,135,180,225,270,315].map(a => (
+              <line key={a} x1={680+38*Math.cos(a*Math.PI/180)} y1={60+38*Math.sin(a*Math.PI/180)}
+                x2={680+55*Math.cos(a*Math.PI/180)} y2={60+55*Math.sin(a*Math.PI/180)}
+                stroke="#ffe090" strokeWidth="1.5" opacity="0.3" />
+            ))}
+            {/* Horizon pump jack silhouette (left) */}
+            <rect x="60" y="155" width="6" height="45" fill="#3a3020" />
+            <rect x="50" y="148" width="26" height="8" rx="2" fill="#3a3020" />
+            <rect x="56" y="138" width="4" height="12" fill="#3a3020" />
+            <ellipse cx="63" cy="137" rx="10" ry="6" fill="#3a3020" />
+            {/* Pump jack 2 */}
+            <rect x="120" y="165" width="5" height="35" fill="#3a3020" />
+            <ellipse cx="122" cy="164" rx="8" ry="5" fill="#3a3020" />
+            {/* Compressor package silhouette */}
+            <rect x="420" y="170" width="80" height="30" rx="3" fill="#2a2418" />
+            <rect x="430" y="162" width="60" height="12" rx="2" fill="#2a2418" />
+            <rect x="444" y="155" width="8" height="9" fill="#2a2418" />
+            <rect x="458" y="155" width="8" height="9" fill="#2a2418" />
+            {/* Wellhead silhouettes */}
+            {[200,260,320,380].map(x => (
+              <g key={x}>
+                <rect x={x} y="175" width="14" height="20" fill="#2a2418" />
+                <rect x={x-3} y="172" width="20" height="5" fill="#2a2418" />
+                <rect x={x+4} y="166" width="6" height="8" fill="#2a2418" />
+              </g>
+            ))}
+            {/* Separator vessel */}
+            <ellipse cx="570" cy="185" rx="8" ry="16" fill="#2a2418" />
+            <rect x="562" y="172" width="60" height="26" rx="4" fill="#2a2418" />
+            <ellipse cx="622" cy="185" rx="8" ry="16" fill="#2a2418" />
+            {/* Piping */}
+            <line x1="200" y1="185" x2="570" y2="185" stroke="#2a2418" strokeWidth="3" />
+            {/* Title overlay */}
+            <text x="400" y="100" textAnchor="middle" fill="white" fontSize="22" fontWeight="900"
+              fontFamily="'Arial Black', sans-serif" fontStyle="italic" opacity={frame === 0 ? 0.9 : 0.4}>
+              FieldTune™
+            </text>
+            <text x="400" y="124" textAnchor="middle" fill="white" fontSize="13" fontWeight="700"
+              fontFamily="'Arial Black', sans-serif" letterSpacing="4" opacity={frame === 0 ? 0.7 : 0.3}>
+              WEST TEXAS
+            </text>
+          </>}
+
+          {/* ── PROBLEM: Reactive / chaotic pad ── */}
+          {scene === 'problem' && <>
+            <rect width="800" height="320" fill="#080810" />
+            <text x="400" y="22" textAnchor="middle" fill="#555" fontSize="8" letterSpacing="3">PAD STATUS — UNMANAGED</text>
+            {/* 4 wells with erratic readings */}
+            {[0,1,2,3].map(i => {
+              const x = 80 + i * 170
+              const erratic = frame >= 2
+              const val = erratic ? [42,18,67,31][i] : [85,82,80,78][i]
+              const sp = [100,100,100,100][i]
+              const color = val > 70 ? '#eab308' : '#E8200C'
+              const pressure = erratic ? [310+i*20,180-i*15,420+i*10,260-i*8][i] : [350,350,350,350][i]
+              return (
+                <g key={i}>
+                  {/* Wellhead */}
+                  <rect x={x+5} y="45" width="20" height="28" fill="#1a1a2a" stroke="#444" strokeWidth="1" />
+                  <rect x={x+2} y="40" width="26" height="8" rx="1" fill="#1a1a2a" stroke="#444" strokeWidth="1" />
+                  <rect x={x+10} y="33" width="10" height="9" fill="#1a1a2a" stroke="#444" strokeWidth="1" />
+                  <rect x={x+12} y="73" width="6" height="18" fill="#444" />
+                  {/* Choke valve */}
+                  <polygon points={`${x+13},96 ${x+17},91 ${x+21},96 ${x+17},101`} fill={color} />
+                  {/* Flow meter circle */}
+                  <circle cx={x+17} cy="114" r="7" fill="#0a0a14" stroke={color} strokeWidth="1.5" />
+                  <text x={x+17} y="117" textAnchor="middle" fill={color} fontSize="5" fontWeight="bold">FM</text>
+                  {/* Inject line */}
+                  <line x1={x+17} y1="121" x2={x+17} y2="155" stroke={erratic ? '#E8200C' : '#22c55e'}
+                    strokeWidth="1.5" strokeDasharray="4 3" />
+                  {/* Reading */}
+                  <text x={x+17} y="85" textAnchor="middle" fill={color} fontSize="9" fontWeight="bold">{val}%</text>
+                  <text x={x+17} y="30" textAnchor="middle" fill="#888" fontSize="8">W{i+1}</text>
+                  {/* Pressure gauge */}
+                  <rect x={x} y="165" width="34" height="22" rx="2" fill="#0a0a14" stroke="#333" strokeWidth="1" />
+                  <text x={x+17} y="175" textAnchor="middle" fill={erratic ? '#E8200C' : '#eab308'} fontSize="8" fontWeight="bold">{pressure}</text>
+                  <text x={x+17} y="183" textAnchor="middle" fill="#666" fontSize="6">PSI</text>
+                  {erratic && blink && <rect x={x} y="165" width="34" height="22" rx="2" fill="#E8200C" opacity="0.15" />}
+                </g>
+              )
+            })}
+            {/* Discharge header — wavy/chaotic */}
+            <path d={`M 60 155 Q 160 ${frame>=2?148:155} 260 155 Q 360 ${frame>=2?162:155} 460 155 Q 560 ${frame>=2?149:155} 660 155`}
+              stroke={frame>=2 ? '#E8200C' : '#22c55e'} strokeWidth="3" fill="none" opacity="0.4" />
+            <text x="50" y="153" textAnchor="end" fill="#E8200C" fontSize="7" fontWeight="bold">DISCH</text>
+            {/* Compressors */}
+            {[0,1].map(i => {
+              const x = 190 + i * 280
+              return (
+                <g key={i}>
+                  <rect x={x} y="210" width="70" height="50" rx="3" fill="#0a0a14" stroke="#E8200C" strokeWidth="1.5" />
+                  {blink && frame>=2 && <rect x={x} y="210" width="70" height="50" rx="3" fill="#E8200C" opacity="0.1" />}
+                  <text x={x+35} y="230" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">C{i+1}</text>
+                  <text x={x+35} y="244" textAnchor="middle" fill="#E8200C" fontSize="7">{frame>=2 ? 'SURGING' : 'RUN'}</text>
+                  <text x={x+35} y="255" textAnchor="middle" fill="#888" fontSize="6">Load {frame>=2 ? (95-i*8)+'%' : '75%'}</text>
+                </g>
+              )
+            })}
+            {/* SCADA alarm strip */}
+            {frame >= 2 && (
+              <rect x="0" y="278" width="800" height="20" fill="#1a0808" />
+            )}
+            {frame >= 2 && blink && (
+              <text x="400" y="292" textAnchor="middle" fill="#E8200C" fontSize="9" fontWeight="bold" letterSpacing="2">
+                ⚠  SURGE DETECTED — W2 BELOW SETPOINT — DISCHARGE HIGH — MANUAL INTERVENTION REQUIRED  ⚠
+              </text>
+            )}
+          </>}
+
+          {/* ── SHIFT: Minimalist question ── */}
+          {scene === 'shift' && <>
+            <rect width="800" height="320" fill="#050508" />
+            <line x1="200" y1="160" x2="600" y2="160" stroke="#E8200C" strokeWidth="0.5" opacity="0.3" />
+            <text x="400" y="148" textAnchor="middle" fill="#888" fontSize="13" letterSpacing="2"
+              fontFamily="'Georgia', serif" fontStyle="italic">
+              What if the system didn't react…
+            </text>
+            <text x="400" y="178" textAnchor="middle" fill="white" fontSize="15" fontWeight="700"
+              fontFamily="'Arial Black', sans-serif" letterSpacing="2">
+              but coordinated?
+            </text>
+          </>}
+
+          {/* ── SOLUTION: FieldTune panel close-up ── */}
+          {scene === 'solution' && <>
+            <rect width="800" height="320" fill="#0a0a10" />
+            {/* Panel enclosure */}
+            <rect x="250" y="40" width="300" height="220" rx="6" fill="#141420" stroke="#333" strokeWidth="2" />
+            <rect x="258" y="48" width="284" height="204" rx="4" fill="#0c0c18" stroke="#222" strokeWidth="1" />
+            {/* Panel nameplate */}
+            <rect x="300" y="55" width="200" height="24" rx="2" fill="#1a1a28" stroke="#333" strokeWidth="1" />
+            <text x="400" y="71" textAnchor="middle" fill="#E8200C" fontSize="10" fontWeight="bold"
+              fontFamily="'Arial Black', sans-serif" fontStyle="italic">FieldTune™</text>
+            {/* Screen */}
+            <rect x="270" y="88" width="170" height="100" rx="3" fill="#060612" stroke="#444" strokeWidth="1" />
+            {/* SCADA display on screen */}
+            <text x="355" y="102" textAnchor="middle" fill="#22c55e" fontSize="7" letterSpacing="1">PAD STATUS — OPTIMIZED</text>
+            {[0,1,2,3].map(i => (
+              <g key={i}>
+                <text x="280" y={118+i*18} fill="#888" fontSize="7">W{i+1}</text>
+                <rect x="298" y={109+i*18} width="70" height="6" rx="1" fill="#111" />
+                <rect x="298" y={109+i*18} width={[68,62,65,60][i]} height="6" rx="1" fill="#22c55e" />
+                <text x="375" y={117+i*18} fill="#22c55e" fontSize="7">{[97,89,93,87][i]}%</text>
+              </g>
+            ))}
+            {/* Controls right side */}
+            <rect x="452" y="88" width="78" height="100" rx="3" fill="#060612" stroke="#444" strokeWidth="1" />
+            {[0,1,2].map(i => (
+              <g key={i}>
+                <circle cx="470" cy={105+i*28} r="8" fill="#111" stroke="#333" strokeWidth="1" />
+                <text x="470" cy={109+i*28} textAnchor="middle" fill="#888" fontSize="5">ADJ</text>
+                <rect x="485" y={98+i*28} width="35" height="10" rx="1" fill="#0a0a14" stroke="#333" strokeWidth="1" />
+                <text x="502" y={106+i*28} textAnchor="middle" fill="#22c55e" fontSize="6">
+                  {['AUTO','OPT','RUN'][i]}
+                </text>
+              </g>
+            ))}
+            {/* Status lights */}
+            {[0,1,2,3].map(i => (
+              <circle key={i} cx={280+i*20} cy="205" r="5" fill="#22c55e" opacity={blink && i===1 ? 0.4 : 0.9} />
+            ))}
+            <text x="400" y="220" textAnchor="middle" fill="#444" fontSize="6" letterSpacing="2">WELLLOGIC CONTROL SYSTEM</text>
+            {/* Label */}
+            <text x="400" y="275" textAnchor="middle" fill={frame===6 ? 'white' : '#888'} fontSize={frame===6 ? 16 : 11}
+              fontWeight="900" fontFamily="'Arial Black', sans-serif" letterSpacing="3">
+              {frame === 5 ? 'NOT A CHOKE CONTROLLER.' : 'A WELL PAD OPTIMIZER.'}
+            </text>
+          </>}
+
+          {/* ── CORE: Communication network across pad ── */}
+          {scene === 'core' && <>
+            <rect width="800" height="320" fill="#080810" />
+            <text x="400" y="20" textAnchor="middle" fill="#333" fontSize="8" letterSpacing="3">UNIFIED PAD COMMUNICATION</text>
+            {/* Central intelligence hub */}
+            <rect x="325" y="135" width="150" height="50" rx="8" fill="#0f0f1e" stroke="#E8200C" strokeWidth="2" />
+            <rect x="325" y="135" width="150" height="50" rx="8" fill="#E8200C" opacity="0.07" />
+            <text x="400" y="157" textAnchor="middle" fill="#E8200C" fontSize="11" fontWeight="bold"
+              fontFamily="'Arial Black', sans-serif" fontStyle="italic">FieldTune™</text>
+            <text x="400" y="173" textAnchor="middle" fill="#888" fontSize="7" letterSpacing="2">WELL PAD OPTIMIZER</text>
+            {/* Connected nodes — wells */}
+            {[0,1,2,3].map(i => {
+              const wx = 70 + i*60, wy = 40
+              const active = frame >= 7
+              return (
+                <g key={i}>
+                  <line x1={wx+15} y1={wy+35} x2="400" y2="160"
+                    stroke={active ? '#22c55e' : '#1a1a2a'} strokeWidth={active ? 1.5 : 0.5}
+                    strokeDasharray={active ? '5 3' : '3 5'} opacity={active ? 0.7 : 0.3} />
+                  <rect x={wx} y={wy} width="30" height="35" rx="3" fill="#0a0a14" stroke={active ? '#22c55e' : '#333'} strokeWidth="1.5" />
+                  <text x={wx+15} y={wy+14} textAnchor="middle" fill="#888" fontSize="7">W{i+1}</text>
+                  <text x={wx+15} y={wy+26} textAnchor="middle" fill={active ? '#22c55e' : '#555'} fontSize="6">INJECT</text>
+                  {active && <text x={wx+15} y={wy+35} textAnchor="middle" fill="#22c55e" fontSize="5">LIVE</text>}
+                </g>
+              )
+            })}
+            {/* Compressors */}
+            {[0,1].map(i => {
+              const cx2 = 140 + i*480, cy2 = 250
+              const active = frame >= 7
+              return (
+                <g key={i}>
+                  <line x1={cx2+35} y1={cy2} x2="400" y2="185"
+                    stroke={active ? '#f97316' : '#1a1a2a'} strokeWidth={active ? 1.5 : 0.5}
+                    strokeDasharray={active ? '5 3' : '3 5'} opacity={active ? 0.7 : 0.3} />
+                  <rect x={cx2} y={cy2} width="70" height="40" rx="4" fill="#0a0a14" stroke={active ? '#f97316' : '#333'} strokeWidth="1.5" />
+                  <text x={cx2+35} y={cy2+16} textAnchor="middle" fill="#888" fontSize="8">C{i+1}</text>
+                  <text x={cx2+35} y={cy2+28} textAnchor="middle" fill={active ? '#f97316' : '#555'} fontSize="6">
+                    {active ? 'COORDINATED' : 'STANDALONE'}
+                  </text>
+                </g>
+              )
+            })}
+            {/* Separator */}
+            <line x1="570" y1="175" x2="475" y2="160"
+              stroke={frame>=8 ? '#4fc3f7' : '#1a1a2a'} strokeWidth={frame>=8 ? 1.5 : 0.5}
+              strokeDasharray="5 3" opacity={frame>=8 ? 0.7 : 0.3} />
+            <rect x="560" y="155" width="70" height="35" rx="4" fill="#0a0a14" stroke={frame>=8 ? '#4fc3f7' : '#333'} strokeWidth="1.5" />
+            <text x="595" y="170" textAnchor="middle" fill="#888" fontSize="7">SEPARATOR</text>
+            <text x="595" y="182" textAnchor="middle" fill={frame>=8 ? '#4fc3f7' : '#555'} fontSize="6">
+              {frame>=8 ? 'AWARE' : 'ISOLATED'}
+            </text>
+            {/* Annotation */}
+            {frame >= 9 && (
+              <text x="400" y="310" textAnchor="middle" fill="#22c55e" fontSize="9" letterSpacing="1">
+                Unified Strategy — Every Component In Sync
+              </text>
+            )}
+          </>}
+
+          {/* ── CONTRAST: Chase vs. Maintain ── */}
+          {scene === 'contrast' && <>
+            <rect width="800" height="320" fill="#080810" />
+            {/* Divider */}
+            <line x1="400" y1="0" x2="400" y2="320" stroke="#333" strokeWidth="1" />
+            {/* LEFT: Traditional — chasing */}
+            <text x="200" y="25" textAnchor="middle" fill="#E8200C" fontSize="9" fontWeight="bold" letterSpacing="2">TRADITIONAL LOGIC</text>
+            {/* Jagged pressure trace */}
+            <polyline points={`40,80 80,${110+Math.sin(tick)*8} 120,65 160,${95+Math.cos(tick)*10} 200,75 240,${105+Math.sin(tick+1)*7} 280,62 320,${90+Math.cos(tick+2)*9} 360,80`}
+              stroke="#E8200C" strokeWidth="2" fill="none" opacity="0.8" />
+            <text x="200" y="130" textAnchor="middle" fill="#E8200C" fontSize="8">CHASING CONDITIONS</text>
+            {/* Setpoint line */}
+            <line x1="40" y1="80" x2="360" y2="80" stroke="#888" strokeWidth="1" strokeDasharray="4 3" opacity="0.4" />
+            <text x="45" y="77" fill="#666" fontSize="6">SETPOINT</text>
+            {/* Shows operator actions */}
+            <text x="200" y="155" textAnchor="middle" fill="#555" fontSize="7">Valve adjusted → Overshoots → Readjust → Repeats</text>
+            {/* Choke positions erratic */}
+            {[0,1,2,3].map(i => {
+              const h = [55,30,70,40][i]
+              return (
+                <g key={i}>
+                  <rect x={55+i*70} y={200} width="40" height="70" fill="#111" stroke="#333" strokeWidth="1" rx="2" />
+                  <rect x={55+i*70} y={200+(70-h)} width="40" height={h} fill="#E8200C" opacity="0.5" rx="2" />
+                  <text x={75+i*70} y={215+70-h} textAnchor="middle" fill="#E8200C" fontSize="6">{h}%</text>
+                  <text x={75+i*70} y="283" textAnchor="middle" fill="#666" fontSize="6">W{i+1}</text>
+                </g>
+              )
+            })}
+            <text x="200" y="300" textAnchor="middle" fill="#E8200C" fontSize="7">Uneven. Reactive. Wasteful.</text>
+
+            {/* RIGHT: FieldTune — maintaining */}
+            <text x="600" y="25" textAnchor="middle" fill="#22c55e" fontSize="9" fontWeight="bold" letterSpacing="2">FIELDTUNE WELL PANEL</text>
+            {/* Smooth flat trace */}
+            <polyline points="440,80 480,79 520,80 560,80 600,79 640,80 680,80 720,79 760,80"
+              stroke="#22c55e" strokeWidth="2.5" fill="none" opacity="0.9" />
+            <line x1="440" y1="80" x2="760" y2="80" stroke="#888" strokeWidth="1" strokeDasharray="4 3" opacity="0.4" />
+            <text x="445" y="77" fill="#666" fontSize="6">SETPOINT</text>
+            <text x="600" y="130" textAnchor="middle" fill="#22c55e" fontSize="8">MAINTAINING CONDITIONS</text>
+            {/* Even choke positions */}
+            {[0,1,2,3].map(i => {
+              const h = [82,78,80,76][i]
+              return (
+                <g key={i}>
+                  <rect x={455+i*70} y={200} width="40" height="70" fill="#111" stroke="#333" strokeWidth="1" rx="2" />
+                  <rect x={455+i*70} y={200+(70-h)} width="40" height={h} fill="#22c55e" opacity="0.5" rx="2" />
+                  <text x={475+i*70} y={215+70-h} textAnchor="middle" fill="#22c55e" fontSize="6">{h}%</text>
+                  <text x={475+i*70} y="283" textAnchor="middle" fill="#666" fontSize="6">W{i+1}</text>
+                </g>
+              )
+            })}
+            <text x="600" y="300" textAnchor="middle" fill="#22c55e" fontSize="7">Balanced. Proactive. Efficient.</text>
+          </>}
+
+          {/* ── IMPACT: Stable optimized pad ── */}
+          {scene === 'impact' && <>
+            <rect width="800" height="320" fill="#060610" />
+            <text x="400" y="20" textAnchor="middle" fill="#333" fontSize="8" letterSpacing="3">OPTIMIZED PAD — ALL SYSTEMS NOMINAL</text>
+            {/* 4 wells all green */}
+            {[0,1,2,3].map(i => {
+              const x = 80 + i*170
+              const val = [97,94,96,92][i]
+              return (
+                <g key={i}>
+                  {/* Wellhead */}
+                  <rect x={x+5} y="45" width="20" height="28" fill="#0a1a0a" stroke="#22c55e" strokeWidth="1.5" />
+                  <rect x={x+2} y="40" width="26" height="8" rx="1" fill="#0a1a0a" stroke="#22c55e" strokeWidth="1" />
+                  <rect x={x+10} y="33" width="10" height="9" fill="#0a1a0a" stroke="#22c55e" strokeWidth="1" />
+                  <rect x={x+12} y="73" width="6" height="18" fill="#22c55e" opacity="0.5" />
+                  {/* Choke — open, steady */}
+                  <polygon points={`${x+13},96 ${x+17},91 ${x+21},96 ${x+17},101`} fill="#22c55e" />
+                  <circle cx={x+17} cy="114" r="7" fill="#0a1a0a" stroke="#22c55e" strokeWidth="1.5" />
+                  <text x={x+17} y="117" textAnchor="middle" fill="#22c55e" fontSize="5" fontWeight="bold">FM</text>
+                  <line x1={x+17} y1="121" x2={x+17} y2="160" stroke="#22c55e" strokeWidth="2"
+                    strokeDasharray="4 3" className="flow-line-animated" style={{ '--flow-speed': '1.2s' }} />
+                  <text x={x+17} y="85" textAnchor="middle" fill="#22c55e" fontSize="11" fontWeight="bold">{val}%</text>
+                  <text x={x+17} y="30" textAnchor="middle" fill="#888" fontSize="8">W{i+1}</text>
+                </g>
+              )
+            })}
+            {/* Discharge header — smooth */}
+            <line x1="60" y1="160" x2="740" y2="160" stroke="#22c55e" strokeWidth="4" opacity="0.3" />
+            {/* Compressors — running steady */}
+            {[0,1].map(i => {
+              const x = 220 + i*280
+              return (
+                <g key={i}>
+                  <line x1={x+35} y1="160" x2={x+35} y2="195" stroke="#22c55e" strokeWidth="2"
+                    strokeDasharray="4 3" className="flow-line-animated" style={{ '--flow-speed': '1.2s' }} />
+                  <rect x={x} y="195" width="70" height="48" rx="4" fill="#0a1a0a" stroke="#22c55e" strokeWidth="2" />
+                  <circle cx={x+12} cy="210" r="4" fill="#22c55e" />
+                  <text x={x+22} y="213" fill="white" fontSize="9" fontWeight="bold">C{i+1}</text>
+                  <text x={x+65} y="213" textAnchor="end" fill="#22c55e" fontSize="6">RUN</text>
+                  <text x={x+7} y="226" fill="#888" fontSize="6">Load 76%  Stable</text>
+                  <text x={x+7} y="236" fill="#22c55e" fontSize="6">✓ On setpoint</text>
+                </g>
+              )
+            })}
+            {/* Impact callouts */}
+            {frame >= 13 && (
+              <g>
+                {[{x:120,t:'No Surging',c:'#22c55e'},{x:300,t:'No Recycle',c:'#22c55e'},{x:480,t:'No Waste',c:'#22c55e'},{x:650,t:'Max Flow',c:'#22c55e'}].map((item,i) => (
+                  <g key={i}>
+                    <text x={item.x} y="285" textAnchor="middle" fill={item.c} fontSize="9" fontWeight="bold">✓ {item.t}</text>
+                  </g>
+                ))}
+              </g>
+            )}
+          </>}
+
+          {/* ── CLOSE ── */}
+          {scene === 'close' && <>
+            <rect width="800" height="320" fill="#050508" />
+            <line x1="150" y1="160" x2="650" y2="160" stroke="#E8200C" strokeWidth="0.5" opacity="0.2" />
+            <text x="400" y="148" textAnchor="middle" fill="#888" fontSize="13"
+              fontFamily="'Georgia', serif" fontStyle="italic" letterSpacing="1">
+              {frame === 14 ? 'This is not incremental improvement.' : 'This is the next generation'}
+            </text>
+            {frame === 15 && (
+              <text x="400" y="178" textAnchor="middle" fill="white" fontSize="13"
+                fontFamily="'Georgia', serif" fontStyle="italic" letterSpacing="1">
+                of oilfield control.
+              </text>
+            )}
+          </>}
+
+          {/* ── END FRAME ── */}
+          {scene === 'endframe' && <>
+            <rect width="800" height="320" fill="#050508" />
+            {/* Red accent line */}
+            <line x1="250" y1="175" x2="550" y2="175" stroke="#E8200C" strokeWidth="2" />
+            <text x="400" y="138" textAnchor="middle" fill="#E8200C" fontSize="30" fontWeight="900"
+              fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="2">FieldTune™</text>
+            <text x="400" y="163" textAnchor="middle" fill="white" fontSize="14" fontWeight="700"
+              fontFamily="'Arial Black', sans-serif" letterSpacing="4">WELL PAD OPTIMIZER</text>
+            <line x1="280" y1="178" x2="520" y2="178" stroke="#E8200C" strokeWidth="1" opacity="0.4" />
+            <text x="400" y="200" textAnchor="middle" fill="#888" fontSize="10" letterSpacing="4"
+              fontFamily="'Georgia', serif" fontStyle="italic">Engineered for Uptime</text>
+            <text x="400" y="230" textAnchor="middle" fill="#444" fontSize="7" letterSpacing="3">SERVICE COMPRESSION</text>
+          </>}
+
+        </svg>
+      </div>
+
+      {/* Cinematic letterbox bottom */}
+      <div className="h-[6%] bg-black shrink-0" />
+
+      {/* Caption — cinematic subtitle style */}
+      {caption && (
+        <div className="absolute bottom-[6%] left-0 right-0 text-center px-12 pointer-events-none">
+          <span className="bg-black/70 text-white text-[13px] px-4 py-1.5 rounded font-medium"
+            style={{ fontFamily: "'Georgia', serif", fontStyle: 'italic', letterSpacing: '0.3px' }}>
+            {caption}
+          </span>
+        </div>
+      )}
+    </div>
   )
 }
