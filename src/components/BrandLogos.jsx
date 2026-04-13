@@ -668,6 +668,439 @@ function GenericCompact({ size = 36, accent = '#E8200C' }) {
   )
 }
 
+// ─── LOGO 11: "THE CROSSHAIR" ─────────────────────────────────
+// Targeting reticle design — circle with crosshair lines, SC in center
+export function CrosshairLogo({ size = 200 }) {
+  const s = size / 200
+  return (
+    <svg width={200 * s} height={230 * s} viewBox="0 0 200 230" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Background */}
+      <rect width="200" height="230" fill="#0a0a14" />
+
+      {/* Outer targeting ring */}
+      <circle cx="100" cy="105" r="72" stroke="#E8200C" strokeWidth="2" fill="none" />
+      {/* Inner ring */}
+      <circle cx="100" cy="105" r="52" stroke="#E8200C" strokeWidth="0.8" fill="none" opacity="0.5" />
+      {/* Innermost ring */}
+      <circle cx="100" cy="105" r="32" stroke="#E8200C" strokeWidth="0.5" fill="none" opacity="0.3" />
+
+      {/* Tick marks on outer ring */}
+      <line x1="100" y1="33" x2="100" y2="43" stroke="#E8200C" strokeWidth="2.5" />
+      <line x1="100" y1="167" x2="100" y2="177" stroke="#E8200C" strokeWidth="2.5" />
+      <line x1="28" y1="105" x2="38" y2="105" stroke="#E8200C" strokeWidth="2.5" />
+      <line x1="162" y1="105" x2="172" y2="105" stroke="#E8200C" strokeWidth="2.5" />
+
+      {/* Diagonal tick marks */}
+      <line x1="49" y1="54" x2="55" y2="60" stroke="#E8200C" strokeWidth="1.2" opacity="0.4" />
+      <line x1="151" y1="54" x2="145" y2="60" stroke="#E8200C" strokeWidth="1.2" opacity="0.4" />
+      <line x1="49" y1="156" x2="55" y2="150" stroke="#E8200C" strokeWidth="1.2" opacity="0.4" />
+      <line x1="151" y1="156" x2="145" y2="150" stroke="#E8200C" strokeWidth="1.2" opacity="0.4" />
+
+      {/* Crosshair lines — horizontal */}
+      <line x1="12" y1="105" x2="67" y2="105" stroke="#E8200C" strokeWidth="1.5" />
+      <line x1="133" y1="105" x2="188" y2="105" stroke="#E8200C" strokeWidth="1.5" />
+      {/* Crosshair lines — vertical */}
+      <line x1="100" y1="18" x2="100" y2="72" stroke="#E8200C" strokeWidth="1.5" />
+      <line x1="100" y1="138" x2="100" y2="192" stroke="#E8200C" strokeWidth="1.5" />
+
+      {/* Center dot */}
+      <circle cx="100" cy="105" r="3" fill="#E8200C" />
+
+      {/* SC text in center — bold red italic */}
+      <text x="100" y="102" textAnchor="middle" fill="#E8200C" fontSize="22" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="2">SC</text>
+
+      {/* Corner degree marks */}
+      <text x="24" y="42" fill="#E8200C" fontSize="5" fontFamily="'Georgia', serif" opacity="0.5">0°</text>
+      <text x="170" y="42" fill="#E8200C" fontSize="5" fontFamily="'Georgia', serif" opacity="0.5">90°</text>
+      <text x="20" y="172" fill="#E8200C" fontSize="5" fontFamily="'Georgia', serif" opacity="0.5">270°</text>
+      <text x="166" y="172" fill="#E8200C" fontSize="5" fontFamily="'Georgia', serif" opacity="0.5">180°</text>
+
+      {/* FIELDTUNE below circle */}
+      <text x="100" y="206" textAnchor="middle" fill="white" fontSize="16" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="2">FIELDTUNE™</text>
+
+      {/* WELLLOGIC below */}
+      <text x="100" y="222" textAnchor="middle" fill="#888" fontSize="8" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="3">WELLLOGIC™</text>
+    </svg>
+  )
+}
+
+// ─── LOGO 12: "THE CHEVRON" ────────────────────────────────────
+// Large bold downward-pointing chevron in red, FIELDTUNE across it, speed lines
+export function ChevronLogo({ size = 200 }) {
+  const s = size / 200
+  return (
+    <svg width={200 * s} height={230 * s} viewBox="0 0 200 230" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Background */}
+      <rect width="200" height="230" fill="#0a0a14" />
+
+      {/* Speed lines — left side */}
+      <line x1="0" y1="80" x2="30" y2="80" stroke="#E8200C" strokeWidth="2.5" opacity="0.7" />
+      <line x1="0" y1="88" x2="22" y2="88" stroke="#E8200C" strokeWidth="1.2" opacity="0.35" />
+      <line x1="0" y1="95" x2="16" y2="95" stroke="#E8200C" strokeWidth="0.7" opacity="0.2" />
+
+      {/* Speed lines — right side */}
+      <line x1="200" y1="80" x2="170" y2="80" stroke="#E8200C" strokeWidth="2.5" opacity="0.7" />
+      <line x1="200" y1="88" x2="178" y2="88" stroke="#E8200C" strokeWidth="1.2" opacity="0.35" />
+      <line x1="200" y1="95" x2="184" y2="95" stroke="#E8200C" strokeWidth="0.7" opacity="0.2" />
+
+      {/* Large downward-pointing chevron */}
+      <polygon points="10,50 100,145 190,50 175,50 100,128 25,50" fill="#E8200C" />
+      {/* Chevron inner highlight stripe */}
+      <polygon points="30,50 100,112 170,50 158,50 100,98 42,50" fill="#c0180a" opacity="0.4" />
+      {/* Speed line through chevron */}
+      <line x1="10" y1="62" x2="190" y2="62" stroke="white" strokeWidth="0.8" opacity="0.12" />
+      <line x1="10" y1="72" x2="190" y2="72" stroke="white" strokeWidth="0.5" opacity="0.08" />
+
+      {/* FIELDTUNE across the chevron — white italic bold */}
+      <text x="100" y="88" textAnchor="middle" fill="white" fontSize="20" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="2">FIELDTUNE™</text>
+
+      {/* SC mark top-center */}
+      <g transform="translate(64, 10) scale(1.25)">
+        <path d="M0 0 L28 0 L26 4 L8 4 L6 8 L24 8 L18 20 L-10 20 L-8 16 L10 16 L12 12 L-6 12 Z"
+          fill="#E8200C" transform="skewX(-12)" />
+        <line x1="2" y1="6" x2="14" y2="6" stroke="white" strokeWidth="0.8" opacity="0.5" transform="skewX(-12)" />
+        <path d="M30 0 L58 0 L56 4 L36 4 L30 20 L52 20 L50 24 L22 24 Z"
+          fill="#E8200C" transform="skewX(-12)" />
+      </g>
+
+      {/* WellLogic below chevron */}
+      <text x="100" y="174" textAnchor="middle" fill="white" fontSize="16" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="3">WellLogic™</text>
+
+      {/* Red underline */}
+      <line x1="35" y1="180" x2="165" y2="180" stroke="#E8200C" strokeWidth="1.5" />
+      <line x1="50" y1="184" x2="150" y2="184" stroke="#E8200C" strokeWidth="0.5" opacity="0.3" />
+
+      {/* SERVICE COMPRESSION tagline */}
+      <text x="100" y="200" textAnchor="middle" fill="#c8943e" fontSize="6" letterSpacing="3.5"
+        fontFamily="'Georgia', serif" opacity="0.6">SERVICE COMPRESSION</text>
+    </svg>
+  )
+}
+
+// ─── LOGO 13: "THE GLOW" ───────────────────────────────────────
+// FIELDTUNE with red glow effect, dark background, premium tech look
+export function GlowLogo({ size = 200 }) {
+  const s = size / 200
+  return (
+    <svg width={200 * s} height={230 * s} viewBox="0 0 200 230" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        {/* Red glow filter */}
+        <filter id="redGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+          <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        {/* Subtle glow for smaller elements */}
+        <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+          <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        {/* Horizontal scan-line gradient */}
+        <linearGradient id="scanGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#E8200C" stopOpacity="0.04" />
+          <stop offset="50%" stopColor="#E8200C" stopOpacity="0.01" />
+          <stop offset="100%" stopColor="#E8200C" stopOpacity="0.04" />
+        </linearGradient>
+      </defs>
+
+      {/* Dark background */}
+      <rect width="200" height="230" fill="#06060f" />
+      {/* Scan-line texture overlay */}
+      <rect width="200" height="230" fill="url(#scanGrad)" />
+
+      {/* Subtle horizontal grid lines */}
+      <line x1="0" y1="50" x2="200" y2="50" stroke="#E8200C" strokeWidth="0.3" opacity="0.08" />
+      <line x1="0" y1="100" x2="200" y2="100" stroke="#E8200C" strokeWidth="0.3" opacity="0.08" />
+      <line x1="0" y1="150" x2="200" y2="150" stroke="#E8200C" strokeWidth="0.3" opacity="0.08" />
+      <line x1="0" y1="200" x2="200" y2="200" stroke="#E8200C" strokeWidth="0.3" opacity="0.08" />
+
+      {/* SC corner mark — top left */}
+      <g transform="translate(10, 10) scale(0.8)">
+        <path d="M0 0 L28 0 L26 4 L8 4 L6 8 L24 8 L18 20 L-10 20 L-8 16 L10 16 L12 12 L-6 12 Z"
+          fill="#E8200C" transform="skewX(-12)" filter="url(#softGlow)" />
+        <path d="M30 0 L58 0 L56 4 L36 4 L30 20 L52 20 L50 24 L22 24 Z"
+          fill="#E8200C" transform="skewX(-12)" filter="url(#softGlow)" />
+      </g>
+
+      {/* SERVICE COMPRESSION — top right */}
+      <text x="190" y="20" textAnchor="end" fill="#c8943e" fontSize="5.5" letterSpacing="2"
+        fontFamily="'Georgia', serif" opacity="0.5">SERVICE COMPRESSION</text>
+
+      {/* Glow accent bar */}
+      <rect x="20" y="72" width="160" height="2" rx="1" fill="#E8200C" opacity="0.6" filter="url(#softGlow)" />
+
+      {/* FIELD — glowing red */}
+      <text x="100" y="112" textAnchor="middle" fill="#E8200C" fontSize="42" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="2"
+        filter="url(#redGlow)">FIELD</text>
+
+      {/* TUNE — white with subtle glow */}
+      <text x="100" y="150" textAnchor="middle" fill="white" fontSize="42" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="2"
+        filter="url(#softGlow)">TUNE</text>
+
+      {/* TM superscript */}
+      <text x="178" y="122" fill="#E8200C" fontSize="7" fontFamily="'Arial', sans-serif" opacity="0.7">™</text>
+
+      {/* Glow accent bar below */}
+      <rect x="20" y="158" width="160" height="2" rx="1" fill="#E8200C" opacity="0.6" filter="url(#softGlow)" />
+
+      {/* WELLLOGIC */}
+      <text x="100" y="182" textAnchor="middle" fill="#888" fontSize="11" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="5"
+        filter="url(#softGlow)">WELLLOGIC™</text>
+
+      {/* Bottom tagline */}
+      <text x="100" y="210" textAnchor="middle" fill="#333" fontSize="5.5" letterSpacing="3"
+        fontFamily="'Georgia', serif">INJECTION OPTIMIZATION</text>
+
+      {/* Corner dots */}
+      <circle cx="14" cy="220" r="1.5" fill="#E8200C" opacity="0.4" />
+      <circle cx="186" cy="220" r="1.5" fill="#E8200C" opacity="0.4" />
+    </svg>
+  )
+}
+
+// ─── LOGO 14: "THE MONOGRAM" ───────────────────────────────────
+// Large interlocked FT letters sharing a common vertical stroke
+export function MonogramLogo({ size = 200 }) {
+  const s = size / 200
+  return (
+    <svg width={200 * s} height={230 * s} viewBox="0 0 200 230" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Background */}
+      <rect width="200" height="230" fill="#0a0a14" />
+
+      {/* Subtle border */}
+      <rect x="6" y="6" width="188" height="218" rx="4" stroke="#222" strokeWidth="1" />
+
+      {/* Corner gold accents */}
+      <line x1="6" y1="24" x2="24" y2="6" stroke="#c8943e" strokeWidth="0.6" opacity="0.4" />
+      <line x1="176" y1="6" x2="194" y2="24" stroke="#c8943e" strokeWidth="0.6" opacity="0.4" />
+      <line x1="6" y1="206" x2="24" y2="224" stroke="#c8943e" strokeWidth="0.6" opacity="0.4" />
+      <line x1="176" y1="224" x2="194" y2="206" stroke="#c8943e" strokeWidth="0.6" opacity="0.4" />
+
+      {/* ── Interlocked FT Monogram ──
+           F and T share the same vertical stroke (the T's stem = F's left side)
+           F: top bar + mid bar on left of shared stem
+           T: top bar extending right from shared stem */}
+
+      {/* Shared vertical stroke — the backbone */}
+      <rect x="84" y="28" width="14" height="110" rx="2" fill="#E8200C" transform="skewX(-8)" />
+
+      {/* F — top horizontal bar */}
+      <rect x="84" y="28" width="44" height="14" rx="2" fill="#E8200C" transform="skewX(-8)" />
+      {/* F — mid horizontal bar */}
+      <rect x="84" y="68" width="34" height="12" rx="2" fill="#E8200C" transform="skewX(-8)" />
+
+      {/* T — top horizontal bar extending right */}
+      <rect x="52" y="28" width="80" height="14" rx="2" fill="#c0180a" opacity="0.85" transform="skewX(-8)" />
+
+      {/* Speed lines through monogram */}
+      <line x1="55" y1="58" x2="85" y2="58" stroke="white" strokeWidth="1" opacity="0.15" />
+      <line x1="55" y1="65" x2="82" y2="65" stroke="white" strokeWidth="0.6" opacity="0.1" />
+
+      {/* Inner highlight on shared stroke */}
+      <rect x="88" y="32" width="4" height="104" rx="1" fill="white" opacity="0.08" transform="skewX(-8)" />
+
+      {/* Red underline below monogram */}
+      <line x1="30" y1="148" x2="170" y2="148" stroke="#E8200C" strokeWidth="2.5" />
+      <line x1="45" y1="152" x2="155" y2="152" stroke="#E8200C" strokeWidth="0.8" opacity="0.3" />
+
+      {/* SERVICE COMPRESSION — tiny gold tracking */}
+      <text x="100" y="170" textAnchor="middle" fill="#c8943e" fontSize="6.5" letterSpacing="5"
+        fontFamily="'Georgia', serif" opacity="0.75">SERVICE COMPRESSION</text>
+
+      {/* WellLogic */}
+      <text x="100" y="196" textAnchor="middle" fill="white" fontSize="17" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="3">WellLogic™</text>
+
+      {/* Bottom tagline */}
+      <text x="100" y="214" textAnchor="middle" fill="#444" fontSize="5.5" letterSpacing="2.5"
+        fontFamily="'Georgia', serif">INJECTION OPTIMIZATION</text>
+    </svg>
+  )
+}
+
+// ─── LOGO 15: "THE PATCH" ──────────────────────────────────────
+// Rounded patch shape, thick red border, curved arc text top + bottom
+export function PatchLogo({ size = 200 }) {
+  const s = size / 200
+  return (
+    <svg width={200 * s} height={230 * s} viewBox="0 0 200 230" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Background */}
+      <rect width="200" height="230" fill="#0a0a14" />
+
+      {/* Outer patch shape — rounded rectangle with thick red border */}
+      <rect x="14" y="14" width="172" height="202" rx="28" fill="#0d0d1a" stroke="#E8200C" strokeWidth="7" />
+      {/* Inner gold accent border */}
+      <rect x="24" y="24" width="152" height="182" rx="22" fill="none" stroke="#c8943e" strokeWidth="1.2" opacity="0.5" />
+      {/* Second inner gold line */}
+      <rect x="29" y="29" width="142" height="172" rx="18" fill="none" stroke="#c8943e" strokeWidth="0.5" opacity="0.3" />
+
+      {/* Curved arc text — TOP: "SERVICE COMPRESSION" */}
+      <path id="patch-top-arc" d="M30 115 A72 72 0 0 1 170 115" fill="none" />
+      <text fill="#c8943e" fontSize="9" fontFamily="'Georgia', serif" letterSpacing="3.5" fontWeight="bold">
+        <textPath href="#patch-top-arc" startOffset="50%" textAnchor="middle">SERVICE COMPRESSION</textPath>
+      </text>
+
+      {/* Gold accent lines flanking top arc */}
+      <line x1="25" y1="84" x2="38" y2="84" stroke="#c8943e" strokeWidth="1" opacity="0.5" />
+      <line x1="162" y1="84" x2="175" y2="84" stroke="#c8943e" strokeWidth="1" opacity="0.5" />
+
+      {/* Large SC in center */}
+      <g transform="translate(36, 100) scale(2.2)">
+        <path d="M0 0 L28 0 L26 4 L8 4 L6 8 L24 8 L18 20 L-10 20 L-8 16 L10 16 L12 12 L-6 12 Z"
+          fill="#E8200C" transform="skewX(-12)" />
+        <line x1="2" y1="6" x2="14" y2="6" stroke="white" strokeWidth="0.8" opacity="0.5" transform="skewX(-12)" />
+        <line x1="1" y1="9" x2="13" y2="9" stroke="white" strokeWidth="0.6" opacity="0.3" transform="skewX(-12)" />
+        <path d="M30 0 L58 0 L56 4 L36 4 L30 20 L52 20 L50 24 L22 24 Z"
+          fill="#E8200C" transform="skewX(-12)" />
+      </g>
+
+      {/* Gold accent lines flanking bottom arc */}
+      <line x1="25" y1="160" x2="38" y2="160" stroke="#c8943e" strokeWidth="1" opacity="0.5" />
+      <line x1="162" y1="160" x2="175" y2="160" stroke="#c8943e" strokeWidth="1" opacity="0.5" />
+
+      {/* Curved arc text — BOTTOM: "FIELDTUNE™ · WELLLOGIC™" */}
+      <path id="patch-bottom-arc" d="M32 148 A72 72 0 0 0 168 148" fill="none" />
+      <text fill="white" fontSize="7.5" fontFamily="'Arial Black', sans-serif" fontWeight="900" letterSpacing="2">
+        <textPath href="#patch-bottom-arc" startOffset="50%" textAnchor="middle">FIELDTUNE™ · WELLLOGIC™</textPath>
+      </text>
+
+      {/* Bottom of patch — small star dots */}
+      <circle cx="100" cy="207" r="3" fill="#E8200C" />
+      <circle cx="86" cy="208" r="1.5" fill="#c8943e" opacity="0.5" />
+      <circle cx="114" cy="208" r="1.5" fill="#c8943e" opacity="0.5" />
+    </svg>
+  )
+}
+
+// ─── COMPACT VERSIONS FOR LOGOS 11-15 ──────────────────────────
+function CrosshairCompact({ size = 36 }) {
+  const s = size / 36
+  return (
+    <svg width={80 * s} height={36 * s} viewBox="0 0 80 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Mini crosshair circle */}
+      <circle cx="16" cy="18" r="12" stroke="#E8200C" strokeWidth="1.5" fill="none" />
+      <circle cx="16" cy="18" r="7" stroke="#E8200C" strokeWidth="0.5" fill="none" opacity="0.4" />
+      <line x1="4" y1="18" x2="10" y2="18" stroke="#E8200C" strokeWidth="1.2" />
+      <line x1="22" y1="18" x2="28" y2="18" stroke="#E8200C" strokeWidth="1.2" />
+      <line x1="16" y1="6" x2="16" y2="12" stroke="#E8200C" strokeWidth="1.2" />
+      <line x1="16" y1="24" x2="16" y2="30" stroke="#E8200C" strokeWidth="1.2" />
+      <circle cx="16" cy="18" r="1.5" fill="#E8200C" />
+      {/* Divider */}
+      <line x1="32" y1="6" x2="32" y2="30" stroke="#E8200C" strokeWidth="1" />
+      <text x="36" y="16" fill="#E8200C" fontSize="9" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="0.5">FIELDTUNE</text>
+      <text x="36" y="28" fill="white" fontSize="7" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="1">WELLLOGIC</text>
+    </svg>
+  )
+}
+
+function ChevronCompact({ size = 36 }) {
+  const s = size / 36
+  return (
+    <svg width={80 * s} height={36 * s} viewBox="0 0 80 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Mini chevron */}
+      <polygon points="2,8 16,22 30,8 27,8 16,18 5,8" fill="#E8200C" />
+      {/* Divider */}
+      <line x1="34" y1="6" x2="34" y2="30" stroke="#E8200C" strokeWidth="1" />
+      <text x="38" y="16" fill="#E8200C" fontSize="9" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="0.5">FIELDTUNE</text>
+      <text x="38" y="28" fill="white" fontSize="7" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="1">WELLLOGIC</text>
+    </svg>
+  )
+}
+
+function GlowCompact({ size = 36 }) {
+  const s = size / 36
+  return (
+    <svg width={80 * s} height={36 * s} viewBox="0 0 80 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="compactGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
+          <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      <g transform="translate(2, 6) scale(0.6)">
+        <path d="M0 0 L28 0 L26 4 L8 4 L6 8 L24 8 L18 20 L-10 20 L-8 16 L10 16 L12 12 L-6 12 Z"
+          fill="#E8200C" transform="skewX(-12)" filter="url(#compactGlow)" />
+        <path d="M30 0 L58 0 L56 4 L36 4 L30 20 L52 20 L50 24 L22 24 Z"
+          fill="#E8200C" transform="skewX(-12)" filter="url(#compactGlow)" />
+      </g>
+      <line x1="32" y1="6" x2="32" y2="30" stroke="#E8200C" strokeWidth="1" />
+      <text x="36" y="16" fill="#E8200C" fontSize="9" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="0.5"
+        filter="url(#compactGlow)">FIELDTUNE</text>
+      <text x="36" y="28" fill="white" fontSize="7" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="1">WELLLOGIC</text>
+    </svg>
+  )
+}
+
+function MonogramCompact({ size = 36 }) {
+  const s = size / 36
+  return (
+    <svg width={80 * s} height={36 * s} viewBox="0 0 80 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Mini FT monogram */}
+      {/* Shared vertical stroke */}
+      <rect x="16" y="5" width="4" height="22" rx="1" fill="#E8200C" transform="skewX(-6)" />
+      {/* F top bar */}
+      <rect x="16" y="5" width="10" height="4" rx="1" fill="#E8200C" transform="skewX(-6)" />
+      {/* F mid bar */}
+      <rect x="16" y="14" width="8" height="3" rx="1" fill="#E8200C" transform="skewX(-6)" />
+      {/* T top bar */}
+      <rect x="9" y="5" width="20" height="4" rx="1" fill="#c0180a" opacity="0.85" transform="skewX(-6)" />
+      {/* Divider */}
+      <line x1="34" y1="6" x2="34" y2="30" stroke="#E8200C" strokeWidth="1" />
+      <text x="38" y="16" fill="#E8200C" fontSize="9" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="0.5">FIELDTUNE</text>
+      <text x="38" y="28" fill="white" fontSize="7" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="1">WELLLOGIC</text>
+    </svg>
+  )
+}
+
+function PatchCompact({ size = 36 }) {
+  const s = size / 36
+  return (
+    <svg width={80 * s} height={36 * s} viewBox="0 0 80 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Mini patch badge */}
+      <rect x="2" y="3" width="26" height="30" rx="6" fill="#0d0d1a" stroke="#E8200C" strokeWidth="2" />
+      <rect x="5" y="6" width="20" height="24" rx="4" fill="none" stroke="#c8943e" strokeWidth="0.5" opacity="0.5" />
+      {/* Mini SC inside patch */}
+      <g transform="translate(3, 10) scale(0.45)">
+        <path d="M0 0 L28 0 L26 4 L8 4 L6 8 L24 8 L18 20 L-10 20 L-8 16 L10 16 L12 12 L-6 12 Z"
+          fill="#E8200C" transform="skewX(-12)" />
+        <path d="M30 0 L58 0 L56 4 L36 4 L30 20 L52 20 L50 24 L22 24 Z"
+          fill="#E8200C" transform="skewX(-12)" />
+      </g>
+      {/* Divider */}
+      <line x1="32" y1="6" x2="32" y2="30" stroke="#E8200C" strokeWidth="1" />
+      <text x="36" y="16" fill="#E8200C" fontSize="9" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="0.5">FIELDTUNE</text>
+      <text x="36" y="28" fill="white" fontSize="7" fontWeight="900"
+        fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="1">WELLLOGIC</text>
+    </svg>
+  )
+}
+
 // ─── LOGO MAP ──────────────────────────────────────────────────
 export const LOGO_OPTIONS = [
   {
@@ -739,6 +1172,41 @@ export const LOGO_OPTIONS = [
     desc: 'Derrick silhouettes flanking SC branding. Rugged oilfield identity.',
     Full: OilfieldLogo,
     Compact: (props) => <GenericCompact {...props} />,
+  },
+  {
+    id: 'crosshair',
+    name: 'The Crosshair',
+    desc: 'Targeting reticle with concentric rings and crosshair lines. SC in bold red center. Industrial precision.',
+    Full: CrosshairLogo,
+    Compact: CrosshairCompact,
+  },
+  {
+    id: 'chevron',
+    name: 'The Chevron',
+    desc: 'Large bold downward-pointing chevron in red with FIELDTUNE™ in white across it. Speed lines on sides.',
+    Full: ChevronLogo,
+    Compact: ChevronCompact,
+  },
+  {
+    id: 'glow',
+    name: 'The Glow',
+    desc: 'FIELDTUNE™ with red SVG glow filter. SC corner mark, dark background, premium tech aesthetic.',
+    Full: GlowLogo,
+    Compact: GlowCompact,
+  },
+  {
+    id: 'monogram',
+    name: 'The Monogram',
+    desc: 'Interlocked FT letters in red sharing a common vertical stroke. Gold SERVICE COMPRESSION tracking below.',
+    Full: MonogramLogo,
+    Compact: MonogramCompact,
+  },
+  {
+    id: 'patch',
+    name: 'The Patch',
+    desc: 'Rounded patch shape with thick red border, curved arc text, large SC center, and gold accent lines.',
+    Full: PatchLogo,
+    Compact: PatchCompact,
   },
 ]
 
