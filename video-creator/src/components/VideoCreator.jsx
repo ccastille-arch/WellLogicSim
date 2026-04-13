@@ -198,6 +198,12 @@ export default function VideoCreator({ user, onLogout }) {
   const [rendering,setRendering] = useState(false)
   const [renderProgress,setRenderProgress] = useState(0)
   const [toast,setToast] = useState(null)
+  const [showGenerate,setShowGenerate] = useState(false)
+  const [genTopic,setGenTopic] = useState('')
+  const [genSceneCount,setGenSceneCount] = useState(5)
+  const [genProduct,setGenProduct] = useState('FieldTune™')
+  const [genLoading,setGenLoading] = useState(false)
+  const [optimizeLoading,setOptimizeLoading] = useState(false)
   const rafRef = useRef(null)
   const audioRef = useRef(null)
   const token = localStorage.getItem('vc_token')
@@ -232,6 +238,54 @@ export default function VideoCreator({ user, onLogout }) {
       else showToast(data.error||'AI failed','err')
     }catch{showToast('Network error','err')}
     finally{setAiLoading(false)}
+  }
+
+  // Claude + GPT-4o in parallel — generate full video from topic
+  const handleGenerate=async()=>{
+    if(!genTopic.trim()){showToast('Enter a topic first','err');return}
+    setGenLoading(true)
+    showToast('Claude writing scripts + GPT-4o planning scenes in parallel…')
+    try{
+      const res=await fetch('/api/ai/generate',{method:'POST',headers:authHeaders,
+        body:JSON.stringify({topic:genTopic,sceneCount:genSceneCount,productName:genProduct})})
+      const data=await res.json()
+      if(!res.ok){showToast(data.error||'Generation failed','err');return}
+      const newScenes=data.scenes.map((sc,i)=>({...sc,id:`gen_${Date.now()}_${i}`}))
+      setProject(p=>({...p,title:genTopic.slice(0,40),scenes:newScenes}))
+      setActiveScene(0)
+      setShowGenerate(false)
+      const claudeStatus=data.meta?.claudeOk?'Claude ✓':'Claude ✗'
+      const gptStatus=data.meta?.gptOk?'GPT-4o ✓':'GPT-4o ✗'
+      showToast(`Generated ${newScenes.length} scenes — ${claudeStatus} · ${gptStatus}`)
+    }catch{showToast('Network error','err')}
+    finally{setGenLoading(false)}
+  }
+
+  // GPT-4o reviews pacing and suggests improvements
+  const handleOptimize=async()=>{
+    setOptimizeLoading(true)
+    showToast('GPT-4o analyzing scene pacing…')
+    try{
+      const res=await fetch('/api/ai/optimize',{method:'POST',headers:authHeaders,
+        body:JSON.stringify({scenes:project.scenes})})
+      const data=await res.json()
+      if(!res.ok){showToast(data.error||'Optimize failed','err');return}
+      const suggestions=data.suggestions||[]
+      if(!suggestions.length){showToast('GPT-4o: pacing looks good — no changes suggested');return}
+      setProject(p=>{
+        const scenes=[...p.scenes]
+        suggestions.forEach(s=>{
+          const idx=(s.scene||1)-1
+          if(scenes[idx]){
+            if(s.visual)scenes[idx]={...scenes[idx],visual:s.visual}
+            if(s.duration)scenes[idx]={...scenes[idx],duration:s.duration}
+          }
+        })
+        return{...p,scenes}
+      })
+      showToast(`GPT-4o applied ${suggestions.length} pacing improvement${suggestions.length!==1?'s':''}`)
+    }catch{showToast('Network error','err')}
+    finally{setOptimizeLoading(false)}
   }
 
   const handleTtsPreview=async()=>{
@@ -301,6 +355,12 @@ export default function VideoCreator({ user, onLogout }) {
         {/* Sidebar */}
         <aside className="w-52 shrink-0 flex flex-col border-r overflow-y-auto" style={{background:'#0a0a16',borderColor:'#1a1a2a'}}>
           <div className="px-3 pt-4">
+            <button onClick={()=>setShowGenerate(true)}
+              className="w-full mb-3 py-2.5 rounded-xl text-[11px] font-bold text-white flex items-center justify-center gap-2"
+              style={{background:'linear-gradient(135deg,#1a0535,#0a0a1e)',border:'1px solid #6d28d9'}}>
+              <span style={{color:'#a78bfa'}}>✦</span>
+              <span>Generate with AI</span>
+            </button>
             <p className="text-[10px] text-slate-600 font-bold tracking-widest uppercase mb-2">Templates</p>
             {TEMPLATES.map(tmpl=>(
               <button key={tmpl.id} onClick={()=>{setProject(structuredClone(tmpl));setActiveScene(0);setTab('editor')}}
@@ -325,7 +385,7 @@ export default function VideoCreator({ user, onLogout }) {
 
         {/* Main */}
         <main className="flex-1 flex flex-col min-w-0 overflow-auto p-4 gap-3">
-          <div className="flex gap-2 shrink-0">
+          <div className="flex gap-2 shrink-0 items-center">
             {[['editor','Script Editor'],['preview','Preview'],['export','Export']].map(([id,label])=>(
               <button key={id} onClick={()=>setTab(id)}
                 className={`px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all ${tab===id?'bg-[#E8200C] text-white':'text-slate-400 hover:text-white border'}`}
@@ -333,6 +393,12 @@ export default function VideoCreator({ user, onLogout }) {
                 {label}
               </button>
             ))}
+            <div className="flex-1"/>
+            <button onClick={handleOptimize} disabled={optimizeLoading}
+              className="px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50 border"
+              style={{borderColor:'#2a2a40',background:'#0c0c1e',color:'#818cf8'}}>
+              {optimizeLoading?'Analyzing…':'⚡ GPT-4o Optimize Pacing'}
+            </button>
           </div>
 
           {tab==='editor'&&(
@@ -469,6 +535,57 @@ export default function VideoCreator({ user, onLogout }) {
           )}
         </main>
       </div>
+
+      {/* Generate with AI Modal */}
+      {showGenerate&&(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.8)'}}>
+          <div className="w-full max-w-md rounded-2xl border p-6" style={{background:'#0e0e1a',borderColor:'#2a2a40'}}>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'linear-gradient(135deg,#1a0535,#0a0a1e)',border:'1px solid #6d28d9'}}>
+                <span style={{color:'#a78bfa',fontSize:14}}>✦</span>
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-white">Generate with AI</h2>
+                <p className="text-[10px] text-slate-500">Claude writes the scripts · GPT-4o plans the scenes — simultaneously</p>
+              </div>
+            </div>
+            <div className="space-y-3 mb-5">
+              <div>
+                <label className="block text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">Topic / Product</label>
+                <textarea value={genTopic} onChange={e=>setGenTopic(e.target.value)} rows={3}
+                  placeholder="e.g. FieldTune WellLogic automated gas lift optimization for Permian Basin operators"
+                  className="w-full resize-none rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-purple-600"
+                  style={{background:'#07070f',border:'1px solid #2a2a40'}}/>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">Scenes: {genSceneCount}</label>
+                  <input type="range" min={3} max={8} value={genSceneCount} onChange={e=>setGenSceneCount(+e.target.value)} className="w-full accent-purple-600"/>
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">Product Name</label>
+                  <input value={genProduct} onChange={e=>setGenProduct(e.target.value)}
+                    className="w-full rounded-lg px-3 py-1.5 text-sm text-slate-200 outline-none focus:ring-1 focus:ring-purple-600"
+                    style={{background:'#07070f',border:'1px solid #2a2a40'}}/>
+                </div>
+              </div>
+              <div className="rounded-lg p-3 text-[10px] space-y-1" style={{background:'#080812',border:'1px solid #1a1a30'}}>
+                <div className="flex items-center gap-2"><span style={{color:'#a78bfa'}}>✦ Claude Sonnet</span><span className="text-slate-600">writes narration for all {genSceneCount} scenes</span></div>
+                <div className="flex items-center gap-2"><span style={{color:'#60a5fa'}}>⚡ GPT-4o</span><span className="text-slate-600">selects visuals, durations, and scene order</span></div>
+                <div className="flex items-center gap-2"><span style={{color:'#f97316'}}>🔊 OpenAI TTS</span><span className="text-slate-600">available to preview any scene after generation</span></div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={()=>setShowGenerate(false)} className="flex-1 py-2.5 rounded-xl text-[11px] font-bold text-slate-400 border transition hover:text-white" style={{borderColor:'#2a2a3a',background:'#0a0a14'}}>Cancel</button>
+              <button onClick={handleGenerate} disabled={genLoading||!genTopic.trim()}
+                className="flex-1 py-2.5 rounded-xl text-[11px] font-bold text-white transition disabled:opacity-50"
+                style={{background:'linear-gradient(135deg,#4c1d95,#1e1b4b)'}}>
+                {genLoading?'Generating…':'✦ Generate Video'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast&&(
         <div className={`fixed bottom-5 right-5 px-4 py-2.5 rounded-xl text-[12px] font-bold shadow-xl z-50 ${toast.type==='err'?'bg-red-950 text-red-300 border border-red-800':'bg-[#111120] text-green-300 border border-green-900'}`}>
