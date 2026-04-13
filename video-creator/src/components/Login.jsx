@@ -44,7 +44,7 @@ export default function Login({ onLogin }) {
           </svg>
           <span className="text-2xl font-bold text-white tracking-tight">FieldTune™</span>
         </div>
-        <p className="text-slate-400 text-sm">Video Creator — Staff Access Only</p>
+        <p className="text-slate-400 text-sm">Marketing Creator — Staff Access Only</p>
       </div>
 
       {/* Card */}

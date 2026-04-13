@@ -28,7 +28,7 @@ router.post('/script', requireTechOrAdmin, async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system:
           'You are a professional oilfield marketing writer. Improve the pacing and naturalness of this video script while keeping all technical content accurate. Return only the improved script, no commentary.',

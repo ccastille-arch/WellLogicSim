@@ -5,8 +5,8 @@ import { useState, useRef, useEffect } from 'react'
 const TEMPLATES = [
   {
     id: 'well-pad-optimizer',
-    title: 'Well Pad Optimizer',
-    description: 'Full cinematic pitch for WellLogic automation',
+    title: 'WellLogic™ — Pad Optimizer',
+    description: 'Cinematic pitch for WellLogic gas lift automation',
     scenes: [
       { id:'s1', visual:'desert-sunrise', duration:8, script:'The Permian Basin. Three in the morning. A compressor trips, and gas injection across the entire pad drops to zero. Six wells begin dying. The operator on call is forty-five minutes away.' },
       { id:'s2', visual:'pad-overview', duration:7, script:'By the time a pumper arrives, diagnoses the trip, calls the mechanic, and readjusts every choke by hand — three to four hours have passed. At current oil prices, that is forty thousand dollars in lost production. From a single event.' },
@@ -18,8 +18,8 @@ const TEMPLATES = [
   },
   {
     id: 'compressor-trip',
-    title: 'Compressor Trip Response',
-    description: 'Focus on emergency response speed and value',
+    title: 'WellLogic™ — Compressor Trip Response',
+    description: 'Emergency response speed and production value',
     scenes: [
       { id:'s1', visual:'compressor', duration:7, script:'A compressor trip on a gas lift pad is not just a mechanical failure. It is a production emergency that spreads across every well on the pad within minutes.' },
       { id:'s2', visual:'data-chart', duration:7, script:'Manual response takes two to four hours. In that window, production on a four-well pad drops to zero. At seventy dollars per barrel, that is twelve thousand dollars gone before the pumper even turns the wrench.' },
@@ -29,8 +29,8 @@ const TEMPLATES = [
   },
   {
     id: 'roi-summary',
-    title: 'ROI Summary',
-    description: 'Financial case for WellLogic investment',
+    title: 'FieldTune™ — ROI Summary',
+    description: 'Financial case for FieldTune product investment',
     scenes: [
       { id:'s1', visual:'desert-sunrise', duration:6, script:'Every gas lift pad loses money to the same problems: slow trip response, poor gas allocation, manual choke adjustments, and overnight events no one catches in time.' },
       { id:'s2', visual:'data-chart', duration:8, script:'WellLogic addresses all four. Compressor trip recovery saves one hundred eighty to three hundred fifty thousand dollars annually. Gas constraint protection adds another one hundred twenty to two hundred eighty thousand. Avoided shutdowns and labor savings round out the picture.' },
@@ -288,7 +288,7 @@ export default function VideoCreator({ user, onLogout }) {
         <div className="flex items-center gap-3">
           <span className="text-lg font-bold italic" style={{fontFamily:"'Arial Black',Arial",color:'#E8200C'}}>FieldTune™</span>
           <div className="w-px h-5 bg-[#2a2a3a]"/>
-          <span className="text-sm text-slate-300 font-semibold">Video Creator</span>
+          <span className="text-sm text-slate-300 font-semibold">Marketing Creator</span>
           <span className="text-[10px] px-2 py-0.5 rounded-full font-bold text-[#E8200C] border border-[#E8200C]/40" style={{background:'#1a0505'}}>BETA</span>
         </div>
         <div className="flex items-center gap-4">
