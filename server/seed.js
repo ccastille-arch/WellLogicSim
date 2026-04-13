@@ -9,10 +9,10 @@ const DEFAULT_USERS = [
 ]
 
 export async function seedDefaults() {
-  const { rows } = await pool.query('SELECT COUNT(*) FROM users')
-  if (parseInt(rows[0].count) > 0) return // already seeded
-
+  // Always upsert default users so credentials are never lost after a failed seed
   for (const u of DEFAULT_USERS) {
+    const { rows } = await pool.query('SELECT username FROM users WHERE username = $1', [u.username])
+    if (rows.length) continue // already exists, don't overwrite
     const hash = await bcrypt.hash(u.password, 10)
     await pool.query(
       'INSERT INTO users (username, password, role, name) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
