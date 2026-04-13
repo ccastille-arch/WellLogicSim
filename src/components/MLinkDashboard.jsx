@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useKlondikeData } from '../engine/klondikeData'
+import { useAuth } from './auth/AuthProvider'
 
 // MLINK Live Dashboard — data fetched via server-side proxy (key never in browser)
 // ALL customer names, site names, and device IDs are stripped. Generic labels only.
@@ -504,33 +505,90 @@ function MiniSparkline({ data, color }) {
 
 function WellAchievementSection({ klondike }) {
   const { data } = klondike
+  const { isAdmin } = useAuth()
+  const [spOverrides, setSpOverrides] = useState(null) // null = not loaded yet
+  const [editing, setEditing] = useState(false)
+  const [editValues, setEditValues] = useState([])
+  const [saving, setSaving] = useState(false)
+
+  // Load admin setpoint overrides from DB settings
+  useEffect(() => {
+    fetch('/api/data/settings', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : {})
+      .then(s => {
+        setSpOverrides(s.well_setpoint_overrides || null)
+      })
+      .catch(() => setSpOverrides(null))
+  }, [])
+
   if (!data?.length) return null
 
-  // Calculate % of samples where each well flow >= setpoint
   const wellCount = data[0]?.wells?.length || 0
+
   const stats = Array.from({ length: wellCount }, (_, i) => {
     const samples = data.filter(r => r.wells?.[i] != null)
-    if (!samples.length) return { pct: null, avg: 0, sp: null }
-    // Use median of all non-zero setpoints across the window — avoids bad single-sample reads
-    const validSps = samples.map(r => r.wells[i]?.setpointMmscfd).filter(v => v > 0)
-    const sp = validSps.length
-      ? validSps.reduce((a, b) => a + b, 0) / validSps.length
-      : null
+    if (!samples.length) return { pct: null, avg: 0, sp: null, fromOverride: false }
+
     const avg = samples.reduce((s, r) => s + (r.wells[i]?.flowMmscfd ?? 0), 0) / samples.length
-    if (sp === null) return { pct: null, avg, sp: null }
+
+    // Admin override takes precedence over register data
+    const override = spOverrides?.[i]
+    let sp = null
+    let fromOverride = false
+    if (override && override > 0) {
+      sp = override
+      fromOverride = true
+    } else {
+      const validSps = samples.map(r => r.wells[i]?.setpointMmscfd).filter(v => v > 0)
+      sp = validSps.length ? validSps.reduce((a, b) => a + b, 0) / validSps.length : null
+    }
+
+    if (sp === null) return { pct: null, avg, sp: null, fromOverride: false }
+
     const atTarget = samples.filter(r => {
       const flow = r.wells[i]?.flowMmscfd ?? 0
-      return flow >= sp * 0.95 // within 5% of setpoint counts as hitting it
+      return flow >= sp * 0.95
     }).length
-    return { pct: (atTarget / samples.length) * 100, avg, sp }
+    return { pct: (atTarget / samples.length) * 100, avg, sp, fromOverride }
   })
+
+  const openEdit = () => {
+    setEditValues(stats.map((s, i) => spOverrides?.[i] ?? s.sp ?? ''))
+    setEditing(true)
+  }
+
+  const saveOverrides = async () => {
+    setSaving(true)
+    try {
+      const overrides = {}
+      editValues.forEach((v, i) => { if (v !== '' && !isNaN(+v) && +v > 0) overrides[i] = +v })
+      await fetch('/api/data/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ well_setpoint_overrides: overrides }),
+      })
+      setSpOverrides(overrides)
+      setEditing(false)
+    } catch {}
+    setSaving(false)
+  }
 
   return (
     <div className="bg-[#111118] rounded-xl border border-[#222] p-5">
-      <h3 className="text-[13px] text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>
-        Well Injection Rate Achievement
-      </h3>
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-[13px] text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>
+          Well Injection Rate Achievement
+        </h3>
+        {isAdmin && (
+          <button onClick={openEdit}
+            className="text-[9px] px-2.5 py-1 rounded border border-[#333] text-[#888] hover:text-white hover:border-[#555] transition">
+            ⚙ Set Setpoints
+          </button>
+        )}
+      </div>
       <p className="text-[9px] text-[#888] mb-4">% of time each well hit its desired injection rate (within 5%) — based on 30-day field data</p>
+
       <div className="grid grid-cols-4 gap-3">
         {stats.map((s, i) => (
           <div key={i} className="text-center">
@@ -557,12 +615,51 @@ function WellAchievementSection({ klondike }) {
                   }} />
                 </div>
                 <div className="text-[8px] text-[#666]">avg {s.avg.toFixed(3)}</div>
-                <div className="text-[8px] text-[#555]">sp {s.sp.toFixed(3)} MMscfd</div>
+                <div className="text-[8px] flex items-center justify-center gap-1" style={{ color: s.fromOverride ? '#f97316' : '#555' }}>
+                  {s.fromOverride && <span title="Admin override">✎</span>}
+                  sp {s.sp.toFixed(3)} MMscfd
+                </div>
               </>
             )}
           </div>
         ))}
       </div>
+
+      {/* Admin setpoint override modal */}
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)' }}>
+          <div className="w-full max-w-sm rounded-2xl border p-5" style={{ background: '#0e0e1a', borderColor: '#2a2a40' }}>
+            <h3 className="text-sm font-bold text-white mb-1">Override Well Setpoints</h3>
+            <p className="text-[10px] text-[#666] mb-4">
+              The MLINK register for some wells returns incorrect setpoint values. Enter the true setpoints here — they'll be saved and used for achievement calculations.
+            </p>
+            <div className="space-y-2.5 mb-4">
+              {editValues.map((v, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="text-[11px] text-[#888] w-12">Well {i + 1}</span>
+                  <input
+                    type="number" step="0.001" min="0" max="5"
+                    value={v}
+                    onChange={e => setEditValues(ev => { const n = [...ev]; n[i] = e.target.value; return n })}
+                    className="flex-1 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:ring-1 focus:ring-orange-500"
+                    style={{ background: '#07070f', border: '1px solid #2a2a40' }}
+                    placeholder="MMSCFD"
+                  />
+                  <span className="text-[10px] text-[#555]">MMSCFD</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setEditing(false)} className="flex-1 py-2 rounded-xl text-[11px] font-bold text-[#888] border border-[#333] hover:text-white transition">Cancel</button>
+              <button onClick={saveOverrides} disabled={saving}
+                className="flex-1 py-2 rounded-xl text-[11px] font-bold text-white transition disabled:opacity-50"
+                style={{ background: '#f97316' }}>
+                {saving ? 'Saving…' : 'Save Overrides'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
