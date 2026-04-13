@@ -36,6 +36,37 @@ app.use('/api/auth',  authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api',       dataRoutes)
 
+// ─── MLINK proxy — key never leaves the server ───────────────────
+const MLINK_BASE = 'https://api.fwmurphy-iot.com/api'
+
+app.get('/api/mlink/device', async (req, res) => {
+  const key = process.env.MLINK_API_KEY
+  if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
+  const { deviceId } = req.query
+  if (!deviceId) return res.status(400).json({ error: 'deviceId required' })
+  try {
+    const r = await fetch(`${MLINK_BASE}/LatestDeviceData?deviceId=${deviceId}&code=${key}`)
+    if (!r.ok) return res.status(r.status).json({ error: 'MLINK error' })
+    res.json(await r.json())
+  } catch (err) {
+    res.status(502).json({ error: 'MLINK unreachable' })
+  }
+})
+
+app.get('/api/mlink/runreport', async (req, res) => {
+  const key = process.env.MLINK_API_KEY
+  if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
+  const { deviceId, startTs, endTs } = req.query
+  if (!deviceId) return res.status(400).json({ error: 'deviceId required' })
+  try {
+    const r = await fetch(`${MLINK_BASE}/RunReport?deviceId=${deviceId}&startTs=${startTs}&endTs=${endTs}&code=${key}`)
+    if (!r.ok) return res.status(r.status).json({ error: 'MLINK error' })
+    res.json(await r.json())
+  } catch (err) {
+    res.status(502).json({ error: 'MLINK unreachable' })
+  }
+})
+
 // ─── Serve Vite build ─────────────────────────────────────────────
 const distPath = join(__dirname, '..', 'dist')
 app.use(express.static(distPath))
