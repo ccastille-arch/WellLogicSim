@@ -185,20 +185,38 @@ export default function AutoPilot({ sim, onExit }) {
     // Execute action
     if (s.action) s.action(sim)
 
-    // Narrate
-    if (window.speechSynthesis && s.say) {
-      window.speechSynthesis.cancel()
-      const utter = new SpeechSynthesisUtterance(s.say)
-      utter.rate = 1.1
-      utter.pitch = 0.85
-      const allVoices = window.speechSynthesis.getVoices()
-      const chosenVoice = selectedVoiceName
-        ? allVoices.find(v => v.name === selectedVoiceName)
-        : allVoices.find(v => v.name.includes('Google US English') || v.name.includes('Microsoft David') || v.name.includes('Microsoft Guy')) || allVoices.find(v => v.lang === 'en-US') || allVoices[0]
-      if (chosenVoice) utter.voice = chosenVoice
+    // Narrate — try OpenAI TTS proxy first, fall back to browser TTS
+    if (s.say) {
       speakingRef.current = true
-      utter.onend = () => { speakingRef.current = false }
-      window.speechSynthesis.speak(utter)
+      const voiceParam = selectedVoiceName ? `&browserVoice=${encodeURIComponent(selectedVoiceName)}` : ''
+      fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: s.say, voice: 'onyx' }),
+      }).then(async res => {
+        if (res.ok) {
+          const blob = await res.blob()
+          const url = URL.createObjectURL(blob)
+          const audio = new Audio(url)
+          audio.onended = () => { speakingRef.current = false; URL.revokeObjectURL(url) }
+          audio.onerror = () => { speakingRef.current = false; URL.revokeObjectURL(url) }
+          audio.play()
+        } else {
+          throw new Error('TTS unavailable')
+        }
+      }).catch(() => {
+        // Fallback to browser TTS
+        window.speechSynthesis?.cancel()
+        const utter = new SpeechSynthesisUtterance(s.say)
+        utter.rate = 0.95; utter.pitch = 0.85
+        const allVoices = window.speechSynthesis?.getVoices() || []
+        const chosenVoice = selectedVoiceName
+          ? allVoices.find(v => v.name === selectedVoiceName)
+          : allVoices.find(v => v.name.includes('Google US English') || v.name.includes('Microsoft David')) || allVoices.find(v => v.lang === 'en-US') || allVoices[0]
+        if (chosenVoice) utter.voice = chosenVoice
+        utter.onend = () => { speakingRef.current = false }
+        window.speechSynthesis?.speak(utter)
+      })
     }
 
     // Auto advance after duration (if not last step)

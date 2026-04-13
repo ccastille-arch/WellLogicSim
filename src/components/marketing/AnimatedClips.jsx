@@ -64,41 +64,55 @@ export default function AnimatedClips() {
 }
 
 // ═══════════════════════════════════════
-// NARRATION ENGINE — browser text-to-speech
-// Picks the best available English voice (deep male preferred for industrial product)
-// Can be swapped to ElevenLabs/OpenAI TTS later by replacing speak()
+// NARRATION ENGINE — OpenAI TTS via server proxy
+// Falls back to browser TTS if server returns error (e.g. key not set)
 // ═══════════════════════════════════════
-function getVoice() {
-  const voices = window.speechSynthesis?.getVoices() || []
-  // US English male — NO British/Australian. Prefer deep American voices.
-  const preferred = [
-    'Google US English',           // Chrome default US
-    'Microsoft Guy Online',        // Edge US male
-    'Microsoft David',             // Windows US male
-    'Microsoft Mark',              // Windows US male
-    'Microsoft Eric Online',       // Edge US male
-    'Aaron',                       // macOS US male
-    'Fred',                        // macOS US male
-    'Alex',                        // macOS US male
-  ]
-  for (const name of preferred) {
-    const found = voices.find(v => v.name.includes(name))
-    if (found) return found
-  }
-  // Fallback: any en-US voice, avoid en-GB and en-AU
-  const usVoice = voices.find(v => v.lang === 'en-US' && !v.name.includes('Female') && !v.name.includes('Zira'))
-  if (usVoice) return usVoice
-  return voices.find(v => v.lang.startsWith('en-US')) || voices.find(v => v.lang.startsWith('en')) || voices[0] || null
+
+// In-memory audio cache so each line is only fetched once per session
+const audioCache = new Map()
+let currentAudio = null
+
+async function speak(text, onDone) {
+  stopSpeaking()
+
+  // Try OpenAI TTS first
+  try {
+    let url = audioCache.get(text)
+    if (!url) {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice: 'onyx' }),
+      })
+      if (res.ok) {
+        const blob = await res.blob()
+        url = URL.createObjectURL(blob)
+        audioCache.set(text, url)
+      }
+    }
+    if (url) {
+      const audio = new Audio(url)
+      currentAudio = audio
+      audio.onended = () => { currentAudio = null; onDone?.() }
+      audio.onerror = () => { currentAudio = null; fallbackSpeak(text, onDone) }
+      audio.play()
+      return
+    }
+  } catch {}
+
+  // Fallback to browser TTS
+  fallbackSpeak(text, onDone)
 }
 
-function speak(text, onDone) {
+function fallbackSpeak(text, onDone) {
   if (!window.speechSynthesis) { onDone?.(); return }
   window.speechSynthesis.cancel()
   const utter = new SpeechSynthesisUtterance(text)
-  utter.rate = 1.15  // fast paced — oilfield guys don't have time for slow talk
-  utter.pitch = 0.85 // deeper — sounds like a foreman not a news anchor
-  utter.volume = 1
-  const voice = getVoice()
+  utter.rate = 0.95
+  utter.pitch = 0.85
+  const voices = window.speechSynthesis.getVoices()
+  const voice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Microsoft David') || v.name.includes('Aaron'))
+    || voices.find(v => v.lang === 'en-US') || voices[0]
   if (voice) utter.voice = voice
   utter.onend = () => onDone?.()
   utter.onerror = () => onDone?.()
@@ -106,13 +120,8 @@ function speak(text, onDone) {
 }
 
 function stopSpeaking() {
+  if (currentAudio) { currentAudio.pause(); currentAudio = null }
   window.speechSynthesis?.cancel()
-}
-
-// Preload voices (Chrome loads them async)
-if (typeof window !== 'undefined' && window.speechSynthesis) {
-  window.speechSynthesis.getVoices()
-  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices()
 }
 
 // Narration scripts — written for production foremen, not boardroom suits

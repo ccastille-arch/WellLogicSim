@@ -36,6 +36,31 @@ app.use('/api/auth',  authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api',       dataRoutes)
 
+// ─── OpenAI TTS proxy — key never leaves the server ─────────────
+app.post('/api/tts', async (req, res) => {
+  const key = process.env.OPENAI_API_KEY
+  if (!key) return res.status(503).json({ error: 'TTS not configured' })
+  const { text, voice = 'onyx' } = req.body
+  if (!text) return res.status(400).json({ error: 'text required' })
+  try {
+    const r = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'tts-1', voice, input: text, response_format: 'mp3', speed: 0.95 }),
+    })
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}))
+      return res.status(r.status).json({ error: err.error?.message || 'TTS error' })
+    }
+    res.setHeader('Content-Type', 'audio/mpeg')
+    res.setHeader('Cache-Control', 'public, max-age=86400')
+    const buf = await r.arrayBuffer()
+    res.send(Buffer.from(buf))
+  } catch (err) {
+    res.status(502).json({ error: 'TTS unreachable' })
+  }
+})
+
 // ─── MLINK proxy — key never leaves the server ───────────────────
 const MLINK_BASE = 'https://api.fwmurphy-iot.com/api'
 
