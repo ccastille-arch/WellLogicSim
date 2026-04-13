@@ -39,6 +39,7 @@ import AdminDashboard from './components/auth/AdminDashboard'
 import { ForumButton, ForumPanel } from './components/Forum'
 import MLinkDashboard from './components/MLinkDashboard'
 import AutoPilot from './components/demos/AutoPilot'
+import LogoVote from './components/LogoVote'
 import { getSelectedLogo } from './components/BrandLogos'
 
 function AppContent() {
@@ -134,6 +135,9 @@ function AppContent() {
       case 'livedata':
         return <MLinkDashboard onBack={() => setPage('home')} />
 
+      case 'vote':
+        return <LogoVote />
+
       case 'simulator':
         return (
           <>
@@ -159,7 +163,7 @@ function AppContent() {
   return (
     <div className="flex flex-col h-screen bg-[#080810]">
       {/* Header for pages that need it */}
-      {(page === 'home' || page === 'technical' || page === 'quote' || page === 'admin' || page === 'pipeline' || page === 'livedata') && (
+      {(page === 'home' || page === 'technical' || page === 'quote' || page === 'admin' || page === 'pipeline' || page === 'livedata' || page === 'vote') && (
         <header className="flex items-center justify-between px-3 sm:px-5 py-2 sm:py-2.5 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0 gap-2" style={{ minHeight: 44 }}>
           <div className="flex items-center gap-2 sm:gap-4 cursor-pointer shrink-0" onClick={() => { setPage('home'); setConfig(null) }}>
             {activeLogo ? (
@@ -174,6 +178,7 @@ function AppContent() {
           </div>
           <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap justify-end">
             <span className="text-[9px] sm:text-[11px] text-[#888] hidden sm:inline">👤 {user.name}</span>
+            <button onClick={() => navigate('vote')} className="text-[9px] sm:text-[10px] text-[#a78bfa] hover:text-white font-bold">🗳 Vote Logo</button>
             {isTech && <button onClick={() => navigate('simulator')} className="text-[9px] sm:text-[10px] text-[#4fc3f7] hover:text-white font-bold">🔧 Simulator</button>}
             {isAdmin && <button onClick={() => navigate('admin')} className="text-[9px] sm:text-[10px] text-[#f97316] hover:text-white font-bold">⚙️ Admin</button>}
             <button onClick={logout} className="px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-[#888] border border-[#333] rounded hover:text-white hover:border-[#E8200C]">Logout</button>

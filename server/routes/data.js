@@ -114,4 +114,44 @@ router.post('/activity', requireAuth, async (req, res) => {
   res.json({ ok: true })
 })
 
+// ─── Logo Voting ─────────────────────────────────────────────
+
+// GET /api/votes/logo — returns vote tallies + current user's vote
+router.get('/votes/logo', requireAuth, async (req, res) => {
+  const { rows } = await pool.query("SELECT value FROM settings WHERE key = 'logoVotes'")
+  const votes = rows.length ? JSON.parse(rows[0].value) : {}
+  const myVote = Object.keys(votes).find(k => votes[k].includes(req.user.username)) || null
+  // Return counts, not usernames
+  const counts = {}
+  for (const [k, v] of Object.entries(votes)) counts[k] = v.length
+  res.json({ counts, myVote })
+})
+
+// POST /api/votes/logo — any authenticated user can cast or change their vote
+router.post('/votes/logo', requireAuth, async (req, res) => {
+  const { logoId } = req.body
+  if (!logoId) return res.status(400).json({ error: 'logoId required' })
+
+  const { rows } = await pool.query("SELECT value FROM settings WHERE key = 'logoVotes'")
+  const votes = rows.length ? JSON.parse(rows[0].value) : {}
+
+  // Remove user from any existing vote
+  for (const key of Object.keys(votes)) {
+    votes[key] = votes[key].filter(u => u !== req.user.username)
+  }
+
+  // Add to selected logo
+  if (!votes[logoId]) votes[logoId] = []
+  votes[logoId].push(req.user.username)
+
+  await pool.query(
+    "INSERT INTO settings (key, value) VALUES ('logoVotes', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+    [JSON.stringify(votes)]
+  )
+
+  const counts = {}
+  for (const [k, v] of Object.entries(votes)) counts[k] = v.length
+  res.json({ ok: true, counts, myVote: logoId })
+})
+
 export default router

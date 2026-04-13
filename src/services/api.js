@@ -63,5 +63,9 @@ export const api = {
     list: ()       => get('/activity'),
     log:  (action) => post('/activity', { action }),
   },
+  votes: {
+    getLogo: ()         => get('/votes/logo'),
+    castLogo: (logoId)  => post('/votes/logo', { logoId }),
+  },
   token: { get: getToken, set: setToken },
 }
