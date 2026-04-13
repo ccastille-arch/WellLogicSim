@@ -12,41 +12,65 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const PORT = process.env.PORT || 3000
 const app = express()
 
+// ─── DB readiness state ────────────────────────────────────────────
+let dbReady = false
+
 // ─── Middleware ────────────────────────────────────────────────────
-app.use(cors({
-  origin: process.env.FRONTEND_URL || true,
-  credentials: true,
-}))
+app.use(cors({ origin: true, credentials: true }))
 app.use(express.json())
 
+// ─── Health check — responds immediately, reports DB status ────────
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, db: dbReady, ts: new Date().toISOString() })
+})
+
 // ─── API Routes ───────────────────────────────────────────────────
-app.get('/api/health', (req, res) => res.json({ ok: true, ts: new Date().toISOString() }))
-app.use('/api/auth', authRoutes)
+// Return 503 on all data endpoints until DB is ready
+app.use('/api', (req, res, next) => {
+  if (req.path === '/health') return next()
+  if (!dbReady) return res.status(503).json({ error: 'Database initializing — please retry in a moment' })
+  next()
+})
+
+app.use('/api/auth',  authRoutes)
 app.use('/api/users', userRoutes)
-app.use('/api', dataRoutes)
+app.use('/api',       dataRoutes)
 
 // ─── Serve Vite build ─────────────────────────────────────────────
-// In production, Express serves the built frontend
 const distPath = join(__dirname, '..', 'dist')
 app.use(express.static(distPath))
-
-// SPA fallback — all non-API routes return index.html
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' })
   res.sendFile(join(distPath, 'index.html'))
 })
 
-// ─── Start ────────────────────────────────────────────────────────
-async function start() {
+// ─── Start HTTP server first, then connect to DB ──────────────────
+app.listen(PORT, () => {
+  console.log(`WellLogic server listening on port ${PORT}`)
+  connectWithRetry()
+})
+
+async function connectWithRetry(attempt = 1) {
+  const MAX = 10
   try {
+    if (!process.env.DATABASE_URL) {
+      console.warn('DATABASE_URL not set — add a PostgreSQL service in Railway and link it to this service')
+      // Retry in 15 s in case it gets set via env var propagation
+      if (attempt <= MAX) setTimeout(() => connectWithRetry(attempt + 1), 15_000)
+      return
+    }
     await initSchema()
-    console.log('Database schema ready')
     await seedDefaults()
-    app.listen(PORT, () => console.log(`WellLogic server running on port ${PORT}`))
+    dbReady = true
+    console.log('Database ready')
   } catch (err) {
-    console.error('Failed to start server:', err)
-    process.exit(1)
+    console.error(`DB init attempt ${attempt} failed: ${err.message}`)
+    if (attempt <= MAX) {
+      const delay = Math.min(attempt * 3_000, 30_000)
+      console.log(`Retrying in ${delay / 1000}s...`)
+      setTimeout(() => connectWithRetry(attempt + 1), delay)
+    } else {
+      console.error('Giving up on DB init after 10 attempts — API endpoints will return 503')
+    }
   }
 }
-
-start()
