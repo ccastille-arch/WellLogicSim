@@ -510,13 +510,18 @@ function WellAchievementSection({ klondike }) {
   const wellCount = data[0]?.wells?.length || 0
   const stats = Array.from({ length: wellCount }, (_, i) => {
     const samples = data.filter(r => r.wells?.[i] != null)
-    if (!samples.length) return { pct: 0, avg: 0, sp: 0 }
-    const sp = samples[0].wells[i].setpointMmscfd || 1
+    if (!samples.length) return { pct: null, avg: 0, sp: null }
+    // Use median of all non-zero setpoints across the window — avoids bad single-sample reads
+    const validSps = samples.map(r => r.wells[i]?.setpointMmscfd).filter(v => v > 0)
+    const sp = validSps.length
+      ? validSps.reduce((a, b) => a + b, 0) / validSps.length
+      : null
+    const avg = samples.reduce((s, r) => s + (r.wells[i]?.flowMmscfd ?? 0), 0) / samples.length
+    if (sp === null) return { pct: null, avg, sp: null }
     const atTarget = samples.filter(r => {
       const flow = r.wells[i]?.flowMmscfd ?? 0
       return flow >= sp * 0.95 // within 5% of setpoint counts as hitting it
     }).length
-    const avg = samples.reduce((s, r) => s + (r.wells[i]?.flowMmscfd ?? 0), 0) / samples.length
     return { pct: (atTarget / samples.length) * 100, avg, sp }
   })
 
@@ -530,20 +535,31 @@ function WellAchievementSection({ klondike }) {
         {stats.map((s, i) => (
           <div key={i} className="text-center">
             <div className="text-[9px] text-[#888] mb-1">Well {i + 1}</div>
-            <div className="text-2xl font-bold mb-1" style={{
-              fontFamily: "'Arial Black'",
-              color: s.pct >= 90 ? '#22c55e' : s.pct >= 70 ? '#eab308' : '#E8200C'
-            }}>
-              {s.pct.toFixed(0)}%
-            </div>
-            <div className="w-full bg-[#1a1a2a] rounded h-2 overflow-hidden mb-1">
-              <div className="h-full rounded transition-all" style={{
-                width: `${s.pct}%`,
-                background: s.pct >= 90 ? '#22c55e' : s.pct >= 70 ? '#eab308' : '#E8200C'
-              }} />
-            </div>
-            <div className="text-[8px] text-[#666]">avg {s.avg.toFixed(3)}</div>
-            <div className="text-[8px] text-[#555]">sp {s.sp.toFixed(3)} MMscfd</div>
+            {s.pct === null ? (
+              <>
+                <div className="text-2xl font-bold mb-1 text-[#555]" style={{ fontFamily: "'Arial Black'" }}>N/A</div>
+                <div className="w-full bg-[#1a1a2a] rounded h-2 overflow-hidden mb-1" />
+                <div className="text-[8px] text-[#666]">avg {s.avg.toFixed(3)}</div>
+                <div className="text-[8px] text-[#555]">no setpoint data</div>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold mb-1" style={{
+                  fontFamily: "'Arial Black'",
+                  color: s.pct >= 90 ? '#22c55e' : s.pct >= 70 ? '#eab308' : '#E8200C'
+                }}>
+                  {s.pct.toFixed(0)}%
+                </div>
+                <div className="w-full bg-[#1a1a2a] rounded h-2 overflow-hidden mb-1">
+                  <div className="h-full rounded transition-all" style={{
+                    width: `${s.pct}%`,
+                    background: s.pct >= 90 ? '#22c55e' : s.pct >= 70 ? '#eab308' : '#E8200C'
+                  }} />
+                </div>
+                <div className="text-[8px] text-[#666]">avg {s.avg.toFixed(3)}</div>
+                <div className="text-[8px] text-[#555]">sp {s.sp.toFixed(3)} MMscfd</div>
+              </>
+            )}
           </div>
         ))}
       </div>
