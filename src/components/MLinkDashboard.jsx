@@ -1,18 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useKlondikeData } from '../engine/klondikeData'
+import { useAuth } from './auth/AuthProvider'
 
 // MLINK Live Dashboard — pulls real data from a WellLogic panel running in the field
 // ALL customer names, site names, and device IDs are stripped. Generic labels only.
 
 const API_BASE = 'https://api.fwmurphy-iot.com/api'
-
-// API key stored in localStorage — entered once by admin, never in source code
-function getApiKey() {
-  return localStorage.getItem('welllogic_mlink_key') || ''
-}
-function setApiKey(key) {
-  localStorage.setItem('welllogic_mlink_key', key)
-}
 
 // Device IDs — not shown to user
 const DEVICES = {
@@ -21,17 +14,17 @@ const DEVICES = {
   compB: '2504-505472',
 }
 
-async function fetchDevice(deviceId) {
+async function fetchDevice(deviceId, key) {
   try {
-    const res = await fetch(`${API_BASE}/LatestDeviceData?deviceId=${deviceId}&code=${getApiKey()}`)
+    const res = await fetch(`${API_BASE}/LatestDeviceData?deviceId=${deviceId}&code=${key}`)
     if (!res.ok) return null
     return await res.json()
   } catch { return null }
 }
 
-async function fetchRunReport(deviceId, startTs, endTs) {
+async function fetchRunReport(deviceId, startTs, endTs, key) {
   try {
-    const res = await fetch(`${API_BASE}/RunReport?deviceId=${deviceId}&startTs=${startTs}&endTs=${endTs}&code=${getApiKey()}`)
+    const res = await fetch(`${API_BASE}/RunReport?deviceId=${deviceId}&startTs=${startTs}&endTs=${endTs}&code=${key}`)
     if (!res.ok) return null
     return await res.json()
   } catch { return null }
@@ -53,7 +46,8 @@ function getTimestamp(data, idx = 0) {
 }
 
 export default function MLinkDashboard({ onBack }) {
-  const [apiKey, setApiKeyState] = useState(getApiKey())
+  const { settings, isAdmin, updateSettings } = useAuth()
+  const apiKey = settings?.mlinkApiKey || ''
   const [keyInput, setKeyInput] = useState('')
   const [panelData, setPanelData] = useState(null)
   const [compAData, setCompAData] = useState(null)
@@ -67,9 +61,9 @@ export default function MLinkDashboard({ onBack }) {
   const refresh = useCallback(async () => {
     setLoading(true)
     const [p, a, b] = await Promise.all([
-      fetchDevice(DEVICES.panel),
-      fetchDevice(DEVICES.compA),
-      fetchDevice(DEVICES.compB),
+      fetchDevice(DEVICES.panel, apiKey),
+      fetchDevice(DEVICES.compA, apiKey),
+      fetchDevice(DEVICES.compB, apiKey),
     ])
     setPanelData(p)
     setCompAData(a)
@@ -86,8 +80,8 @@ export default function MLinkDashboard({ onBack }) {
     const startTs = endTs - 86399
 
     const [rA, rB] = await Promise.all([
-      fetchRunReport(DEVICES.compA, startTs, endTs),
-      fetchRunReport(DEVICES.compB, startTs, endTs),
+      fetchRunReport(DEVICES.compA, startTs, endTs, apiKey),
+      fetchRunReport(DEVICES.compB, startTs, endTs, apiKey),
     ])
     setRunReports({ compA: rA, compB: rB })
   }, [])
@@ -106,22 +100,31 @@ export default function MLinkDashboard({ onBack }) {
   const panelTime = getTimestamp(panelData)
   const compATime = getTimestamp(compAData)
 
-  // Require API key
+  // No key configured yet
   if (!apiKey) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#080810]">
         <div className="w-[440px] bg-[#111118] rounded-xl border border-[#222] p-6">
-          <h2 className="text-lg text-white font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>📡 Connect to Field Data</h2>
-          <p className="text-[11px] text-[#888] mb-4">Enter the MLINK API key to connect to live field equipment.</p>
-          <input type="password" value={keyInput} onChange={e => setKeyInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && keyInput) { setApiKey(keyInput); setApiKeyState(keyInput) } }}
-            placeholder="MLINK API Key" autoFocus
-            className="w-full bg-[#0a0a14] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#E8200C] mb-3" />
-          <div className="flex gap-2">
-            <button onClick={onBack} className="flex-1 py-2 text-[11px] font-bold text-[#888] border border-[#333] rounded hover:text-white">Cancel</button>
-            <button onClick={() => { if (keyInput) { setApiKey(keyInput); setApiKeyState(keyInput) } }}
-              className="flex-1 py-2 text-[11px] font-bold bg-[#E8200C] text-white rounded hover:bg-[#c01a0a]">Connect</button>
-          </div>
+          <h2 className="text-lg text-white font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>📡 Live Field Data</h2>
+          {isAdmin ? (
+            <>
+              <p className="text-[11px] text-[#888] mb-4">Enter the MLINK API key once to connect for all users.</p>
+              <input type="password" value={keyInput} onChange={e => setKeyInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && keyInput) updateSettings('mlinkApiKey', keyInput) }}
+                placeholder="MLINK API Key" autoFocus
+                className="w-full bg-[#0a0a14] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#E8200C] mb-3" />
+              <div className="flex gap-2">
+                <button onClick={onBack} className="flex-1 py-2 text-[11px] font-bold text-[#888] border border-[#333] rounded hover:text-white">Cancel</button>
+                <button onClick={() => { if (keyInput) updateSettings('mlinkApiKey', keyInput) }}
+                  className="flex-1 py-2 text-[11px] font-bold bg-[#E8200C] text-white rounded hover:bg-[#c01a0a]">Save & Connect</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-[11px] text-[#888] mb-4">Live data connection has not been configured yet. Contact your admin to enable this feature.</p>
+              <button onClick={onBack} className="w-full py-2 text-[11px] font-bold text-[#888] border border-[#333] rounded hover:text-white">← Back</button>
+            </>
+          )}
         </div>
       </div>
     )
