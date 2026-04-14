@@ -32,3 +32,15 @@ export async function requireTechOrAdmin(req, res, next) {
   req.user = user
   next()
 }
+
+// Require admin role only
+export async function requireAdmin(req, res, next) {
+  const token = extractToken(req)
+  const user = await getUserFromToken(token)
+  if (!user) return res.status(401).json({ error: 'Unauthorized' })
+  if (user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' })
+  }
+  req.user = user
+  next()
+}

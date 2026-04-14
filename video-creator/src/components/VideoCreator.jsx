@@ -187,7 +187,7 @@ function SceneCanvas({ scene, tick, showCaption }) {
 
 // ─── Main ──────────────────────────────────────────────────────────────────
 
-export default function VideoCreator({ user, onLogout }) {
+export default function VideoCreator({ user, onLogout, onAdmin }) {
   const [project,setProject] = useState(()=>structuredClone(TEMPLATES[0]))
   const [activeScene,setActiveScene] = useState(0)
   const [tab,setTab] = useState('editor')
@@ -347,6 +347,7 @@ export default function VideoCreator({ user, onLogout }) {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-xs text-slate-500">{user.name||user.username}</span>
+          {onAdmin && <button onClick={onAdmin} className="text-[11px] px-3 py-1.5 rounded border text-slate-400 hover:text-white transition" style={{borderColor:'#2a2a3a'}}>Users</button>}
           <button onClick={onLogout} className="text-[11px] px-3 py-1.5 rounded border text-slate-400 hover:text-white transition" style={{borderColor:'#2a2a3a'}}>Sign out</button>
         </div>
       </header>

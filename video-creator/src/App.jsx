@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import Login from './components/Login.jsx'
 import VideoCreator from './components/VideoCreator.jsx'
+import AdminPanel from './components/AdminPanel.jsx'
 
 export default function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [view, setView] = useState('creator') // 'creator' | 'admin'
 
   useEffect(() => {
     // Check for existing session
@@ -39,6 +41,7 @@ export default function App() {
     }
     localStorage.removeItem('vc_token')
     setUser(null)
+    setView('creator')
   }
 
   if (loading) {
@@ -53,5 +56,9 @@ export default function App() {
     return <Login onLogin={handleLogin} />
   }
 
-  return <VideoCreator user={user} onLogout={handleLogout} />
+  if (view === 'admin' && user.role === 'admin') {
+    return <AdminPanel user={user} onBack={() => setView('creator')} />
+  }
+
+  return <VideoCreator user={user} onLogout={handleLogout} onAdmin={user.role === 'admin' ? () => setView('admin') : null} />
 }
