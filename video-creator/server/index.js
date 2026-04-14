@@ -114,7 +114,7 @@ app.post('/api/auth/login', async (req, res) => {
     res.json({ token, username: user.username, name: user.name, role: user.role })
   } catch (err) {
     console.error('Login error:', err)
-    res.status(500).json({ error: 'Internal server error' })
+    res.status(500).json({ error: 'Internal server error', detail: err.message })
   }
 })
 
@@ -203,12 +203,11 @@ app.get(/(.*)/,  (_req, res) => {
 })
 
 bootstrapDB()
-  .then(() => {
+  .catch((err) => {
+    console.error('[bootstrap] DB setup error (non-fatal):', err.message)
+  })
+  .finally(() => {
     app.listen(PORT, () => {
       console.log(`[video-creator] Server running on port ${PORT}`)
     })
-  })
-  .catch((err) => {
-    console.error('[bootstrap] FATAL — DB setup failed:', err)
-    process.exit(1)
   })
