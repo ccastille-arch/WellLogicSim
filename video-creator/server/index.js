@@ -53,6 +53,8 @@ app.get('/api/health', (_req, res) => {
 
 // ─── DB diagnostic (temporary) ────────────────────────────────────────────
 app.get('/api/db-check', async (_req, res) => {
+  const dbUrl = process.env.DATABASE_URL
+  const envKeys = Object.keys(process.env).filter(k => /database|postgres|pg|db_|_db/i.test(k))
   try {
     const tables = await pool.query(
       `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`
@@ -63,10 +65,16 @@ app.get('/api/db-check', async (_req, res) => {
       tables: tables.rows.map(r => r.table_name),
       userCount: userCount.rows[0].count,
       users: users.rows,
-      dbUrl: process.env.DATABASE_URL ? 'SET' : 'MISSING',
+      dbUrl: dbUrl ? dbUrl.replace(/\/\/[^@]+@/, '//***@') : 'MISSING',
+      dbEnvKeys: envKeys,
     })
   } catch (err) {
-    res.status(500).json({ error: err.message, stack: err.stack })
+    res.status(500).json({
+      error: err.message,
+      stack: err.stack,
+      dbUrl: dbUrl ? dbUrl.replace(/\/\/[^@]+@/, '//***@') : 'MISSING',
+      dbEnvKeys: envKeys,
+    })
   }
 })
 
