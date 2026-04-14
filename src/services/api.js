@@ -44,10 +44,18 @@ export const api = {
     me:     () => get('/auth/me'),
   },
   users: {
-    list:       ()                        => get('/users'),
-    create:     (user)                    => post('/users', user),
-    updateRole: (username, role)          => patch(`/users/${username}/role`, { role }),
-    remove:     (username)                => del(`/users/${username}`),
+    list:          ()                           => get('/users'),
+    create:        (user)                       => post('/users', user),
+    updateRole:    (username, role_id)           => patch(`/users/${username}/role`, { role_id }),
+    updateName:    (username, name)             => patch(`/users/${username}/name`, { name }),
+    resetPassword: (username, password)         => post(`/users/${username}/reset-password`, { password }),
+    remove:        (username)                   => del(`/users/${username}`),
+  },
+  roles: {
+    list:   ()           => get('/roles'),
+    create: (role)       => post('/roles', role),
+    update: (id, data)   => patch(`/roles/${id}`, data),
+    remove: (id)         => del(`/roles/${id}`),
   },
   settings: {
     get:    ()       => get('/settings'),
@@ -60,8 +68,13 @@ export const api = {
     remove: (id)        => del(`/quotes/${id}`),
   },
   activity: {
-    list: ()       => get('/activity'),
-    log:  (action) => post('/activity', { action }),
+    list: ()                   => get('/activity'),
+    log:  (action, tile_id)    => post('/activity', { action, tile_id }),
+  },
+  analytics: {
+    summary:      ()       => get('/analytics/summary'),
+    tileUsage:    (days)   => get(`/analytics/tile-usage?days=${days || 30}`),
+    userActivity: ()       => get('/analytics/user-activity'),
   },
   votes: {
     getLogo: ()         => get('/votes/logo'),

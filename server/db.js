@@ -10,13 +10,30 @@ export const pool = new Pool({
     : false,
 })
 
+// Canonical list of all permissions in the system
+export const ALL_PERMISSIONS = [
+  'tile:admin', 'tile:livedata', 'tile:autopilot', 'tile:marketing',
+  'tile:sales', 'tile:technical', 'tile:quote', 'tile:detechtion_launchpad',
+  'tile:mlink_connect', 'tile:vote', 'tile:simulator', 'tile:pipeline',
+  'manage:users', 'manage:roles', 'manage:settings', 'view:analytics', 'manage:quotes',
+]
+
 // Initialize schema — runs once on startup
 export async function initSchema() {
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS roles (
+      id          VARCHAR(50) PRIMARY KEY,
+      name        VARCHAR(100) NOT NULL,
+      permissions JSONB NOT NULL DEFAULT '[]',
+      is_system   BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+
     CREATE TABLE IF NOT EXISTS users (
       username    VARCHAR(50) PRIMARY KEY,
       password    VARCHAR(100) NOT NULL,
       role        VARCHAR(20) NOT NULL DEFAULT 'viewer',
+      role_id     VARCHAR(50) REFERENCES roles(id),
       name        VARCHAR(100),
       created_at  TIMESTAMPTZ DEFAULT NOW()
     );
@@ -46,6 +63,7 @@ export async function initSchema() {
       username    VARCHAR(100),
       user_name   VARCHAR(100),
       action      TEXT NOT NULL,
+      tile_id     VARCHAR(50),
       created_at  TIMESTAMPTZ DEFAULT NOW()
     );
 
@@ -53,5 +71,11 @@ export async function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_sessions_username ON sessions(username);
     -- Index for activity feed
     CREATE INDEX IF NOT EXISTS idx_activity_created ON activity(created_at DESC);
+    -- Index for tile analytics
+    CREATE INDEX IF NOT EXISTS idx_activity_tile ON activity(tile_id) WHERE tile_id IS NOT NULL;
   `)
+
+  // Add columns if tables already existed (idempotent migrations)
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role_id VARCHAR(50) REFERENCES roles(id)`).catch(() => {})
+  await pool.query(`ALTER TABLE activity ADD COLUMN IF NOT EXISTS tile_id VARCHAR(50)`).catch(() => {})
 }

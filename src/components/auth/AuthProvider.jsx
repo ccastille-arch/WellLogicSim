@@ -1,15 +1,37 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { api } from '../../services/api'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null)
-  const [users, setUsers]     = useState([])
+  const [user, setUser]         = useState(null)
+  const [users, setUsers]       = useState([])
+  const [roles, setRoles]       = useState([])
+  const [allPermissions, setAllPermissions] = useState([])
   const [settings, setSettings] = useState({ forumPublic: true, quoteViewers: [] })
   const [activity, setActivity] = useState([])
-  const [quotes, setQuotes]   = useState([])
-  const [loading, setLoading] = useState(true) // true while restoring session
+  const [quotes, setQuotes]     = useState([])
+  const [loading, setLoading]   = useState(true)
+
+  // ─── Permission helpers ──────────────────────────────────────────
+  const permissions = useMemo(() => user?.permissions || [], [user])
+
+  const hasPermission = useCallback((perm) => {
+    if (!user) return false
+    if (permissions.includes('*')) return true // admin wildcard
+    return permissions.includes(perm)
+  }, [user, permissions])
+
+  const canAccess = useCallback((tileId) => {
+    if (!user) return false
+    if (permissions.includes('*')) return true
+    return permissions.includes(`tile:${tileId}`)
+  }, [user, permissions])
+
+  // Backward compat aliases
+  const isAdmin = hasPermission('tile:admin')
+  const isTech = canAccess('simulator')
+  const canViewQuotes = canAccess('pipeline')
 
   // ─── Restore session on mount ───────────────────────────────────
   useEffect(() => {
@@ -17,45 +39,40 @@ export function AuthProvider({ children }) {
     if (!token) { setLoading(false); return }
 
     api.auth.me()
-      .then(({ user }) => {
-        setUser(user)
-        // Prefetch shared data now that we're logged in
-        return Promise.all([
-          api.settings.get().then(setSettings).catch(() => {}),
-        ])
+      .then(({ user: u }) => {
+        setUser(u)
+        return api.settings.get().then(setSettings).catch(() => {})
       })
-      .catch(() => {
-        // Token expired / invalid — clear it
-        api.token.set(null)
-      })
+      .catch(() => { api.token.set(null) })
       .finally(() => setLoading(false))
   }, [])
 
-  // ─── Load admin data when user becomes admin/tech ───────────────
+  // ─── Load admin/role data when user has permissions ─────────────
   useEffect(() => {
     if (!user) return
-    if (user.role === 'admin') {
+    // Load roles for everyone (needed for UI)
+    api.roles.list().then(({ roles: r, allPermissions: ap }) => {
+      setRoles(r)
+      setAllPermissions(ap)
+    }).catch(() => {})
+
+    if (hasPermission('manage:users') || hasPermission('view:analytics')) {
       api.users.list().then(setUsers).catch(() => {})
       api.activity.list().then(setActivity).catch(() => {})
-      api.quotes.list().then(setQuotes).catch(() => {})
-    } else if (user.role === 'tech') {
+    }
+    if (hasPermission('tile:pipeline') || hasPermission('manage:quotes')) {
       api.quotes.list().then(setQuotes).catch(() => {})
     }
-  }, [user?.role])
+  }, [user?.username, user?.permissions?.length])
 
   // ─── Auth actions ────────────────────────────────────────────────
   const login = useCallback(async (username, password) => {
     try {
-      const { token, user } = await api.auth.login(username, password)
+      const { token, user: u } = await api.auth.login(username, password)
       api.token.set(token)
-      setUser(user)
-      if (user.role === 'admin') {
-        api.settings.get().then(setSettings).catch(() => {})
-        api.users.list().then(setUsers).catch(() => {})
-        api.activity.list().then(setActivity).catch(() => {})
-        api.quotes.list().then(setQuotes).catch(() => {})
-      }
-      return { success: true, user }
+      setUser(u)
+      api.settings.get().then(setSettings).catch(() => {})
+      return { success: true, user: u }
     } catch (err) {
       return { success: false, error: err.message }
     }
@@ -63,11 +80,11 @@ export function AuthProvider({ children }) {
 
   const signup = useCallback(async (firstName, lastName) => {
     try {
-      const { token, user } = await api.auth.signup(firstName, lastName)
+      const { token, user: u } = await api.auth.signup(firstName, lastName)
       api.token.set(token)
-      setUser(user)
+      setUser(u)
       api.settings.get().then(setSettings).catch(() => {})
-      return { success: true, user }
+      return { success: true, user: u }
     } catch (err) {
       return { success: false, error: err.message }
     }
@@ -78,46 +95,72 @@ export function AuthProvider({ children }) {
     api.token.set(null)
     setUser(null)
     setUsers([])
+    setRoles([])
     setActivity([])
     setQuotes([])
   }, [])
 
-  // ─── Track activity ──────────────────────────────────────────────
-  const trackActivity = useCallback((action) => {
+  // ─── Track activity (with tile_id) ──────────────────────────────
+  const trackActivity = useCallback((action, tileId) => {
     if (!user) return
-    api.activity.log(action).catch(() => {})
-    // Optimistically update local list (admin sees it immediately)
-    if (user.role === 'admin') {
-      const entry = { user: user.name, action, timestamp: new Date().toISOString() }
+    api.activity.log(action, tileId || null).catch(() => {})
+    if (hasPermission('view:analytics')) {
+      const entry = { user: user.name, action, tile_id: tileId, timestamp: new Date().toISOString() }
       setActivity(prev => [entry, ...prev].slice(0, 500))
     }
-  }, [user])
+  }, [user, hasPermission])
 
-  // ─── User management (admin) ─────────────────────────────────────
+  // ─── User management ─────────────────────────────────────────────
   const addUser = useCallback(async (newUser) => {
     try {
       await api.users.create(newUser)
       const updated = await api.users.list()
       setUsers(updated)
       return true
-    } catch { return false }
+    } catch (err) { throw err }
   }, [])
 
   const removeUser = useCallback(async (username) => {
     if (username === 'cody') return false
-    try {
-      await api.users.remove(username)
-      setUsers(prev => prev.filter(u => u.username !== username))
-      return true
-    } catch { return false }
+    await api.users.remove(username)
+    setUsers(prev => prev.filter(u => u.username !== username))
+    return true
   }, [])
 
-  const updateUserRole = useCallback(async (username, role) => {
+  const updateUserRole = useCallback(async (username, role_id) => {
     if (username === 'cody') return
-    try {
-      await api.users.updateRole(username, role)
-      setUsers(prev => prev.map(u => u.username === username ? { ...u, role } : u))
-    } catch {}
+    await api.users.updateRole(username, role_id)
+    setUsers(prev => prev.map(u => u.username === username ? { ...u, role_id, role: role_id } : u))
+  }, [])
+
+  const updateUserName = useCallback(async (username, name) => {
+    await api.users.updateName(username, name)
+    setUsers(prev => prev.map(u => u.username === username ? { ...u, name } : u))
+  }, [])
+
+  const resetUserPassword = useCallback(async (username, password) => {
+    await api.users.resetPassword(username, password)
+  }, [])
+
+  // ─── Role management ─────────────────────────────────────────────
+  const createRole = useCallback(async (role) => {
+    await api.roles.create(role)
+    const { roles: r } = await api.roles.list()
+    setRoles(r)
+  }, [])
+
+  const updateRole = useCallback(async (id, data) => {
+    await api.roles.update(id, data)
+    const { roles: r } = await api.roles.list()
+    setRoles(r)
+  }, [])
+
+  const deleteRole = useCallback(async (id) => {
+    await api.roles.remove(id)
+    const { roles: r } = await api.roles.list()
+    setRoles(r)
+    // Reload users since affected users got reassigned
+    api.users.list().then(setUsers).catch(() => {})
   }, [])
 
   // ─── Settings ────────────────────────────────────────────────────
@@ -153,18 +196,15 @@ export function AuthProvider({ children }) {
     } catch {}
   }, [trackActivity])
 
-  // ─── Derived permissions ─────────────────────────────────────────
-  const isAdmin = user?.role === 'admin'
-  const isTech  = user?.role === 'tech' || isAdmin
-  const canViewQuotes = isAdmin || (settings.quoteViewers || []).includes(user?.username)
-
   return (
     <AuthContext.Provider value={{
-      user, users, settings, activity, quotes,
+      user, users, roles, allPermissions, settings, activity, quotes,
+      permissions, hasPermission, canAccess,
       isAdmin, isTech, isLoggedIn: !!user, canViewQuotes,
       loading,
       login, signup, logout,
-      addUser, removeUser, updateUserRole,
+      addUser, removeUser, updateUserRole, updateUserName, resetUserPassword,
+      createRole, updateRole, deleteRole,
       updateSettings, trackActivity,
       addQuote, updateQuote, deleteQuote,
     }}>

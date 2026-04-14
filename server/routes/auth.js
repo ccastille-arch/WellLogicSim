@@ -10,6 +10,17 @@ function makeToken() {
   return randomBytes(32).toString('hex')
 }
 
+// Helper: build user response with permissions
+function userResponse(user) {
+  return {
+    username: user.username,
+    role: user.role,
+    role_id: user.role_id || user.role,
+    name: user.name,
+    permissions: user.permissions || [],
+  }
+}
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { username, password } = req.body
@@ -32,7 +43,9 @@ router.post('/login', async (req, res) => {
     [user.username, user.name]
   )
 
-  res.json({ token, user: { username: user.username, role: user.role, name: user.name } })
+  // Fetch full user with permissions via token
+  const fullUser = await getUserFromToken(token)
+  res.json({ token, user: userResponse(fullUser || user) })
 })
 
 // POST /api/auth/signup  (first name + last name as password)
@@ -45,24 +58,23 @@ router.post('/signup', async (req, res) => {
   const username = fn.toLowerCase()
   const name = `${fn} ${ln}`
 
-  // Check if user already exists — try to log them in with the same credentials
   const { rows } = await pool.query('SELECT * FROM users WHERE LOWER(username) = $1', [username])
   const existing = rows[0]
 
   if (existing) {
     const match = await bcrypt.compare(ln.toLowerCase(), existing.password)
     if (!match) return res.status(409).json({ error: 'Username taken. Try logging in instead.' })
-    // Re-login existing user
     const token = makeToken()
     await pool.query('INSERT INTO sessions (token, username) VALUES ($1, $2)', [token, existing.username])
-    return res.json({ token, user: { username: existing.username, role: existing.role, name: existing.name } })
+    const fullUser = await getUserFromToken(token)
+    return res.json({ token, user: userResponse(fullUser || existing) })
   }
 
   // Create new viewer account
   const hash = await bcrypt.hash(ln.toLowerCase(), 10)
   await pool.query(
-    'INSERT INTO users (username, password, role, name) VALUES ($1, $2, $3, $4)',
-    [username, hash, 'viewer', name]
+    'INSERT INTO users (username, password, role, role_id, name) VALUES ($1, $2, $3, $4, $5)',
+    [username, hash, 'viewer', 'viewer', name]
   )
   const token = makeToken()
   await pool.query('INSERT INTO sessions (token, username) VALUES ($1, $2)', [token, username])
@@ -71,7 +83,8 @@ router.post('/signup', async (req, res) => {
     [username, name]
   )
 
-  res.status(201).json({ token, user: { username, role: 'viewer', name } })
+  const fullUser = await getUserFromToken(token)
+  res.status(201).json({ token, user: userResponse(fullUser || { username, role: 'viewer', role_id: 'viewer', name, permissions: [] }) })
 })
 
 // POST /api/auth/logout
@@ -95,7 +108,7 @@ router.get('/me', async (req, res) => {
   const token = extractToken(req)
   const user = await getUserFromToken(token)
   if (!user) return res.status(401).json({ error: 'Unauthorized' })
-  res.json({ user })
+  res.json({ user: userResponse(user) })
 })
 
 export default router

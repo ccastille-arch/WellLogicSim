@@ -18,7 +18,7 @@ export default function Login({ onLogin }) {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || 'Login failed')
+        setError(data.detail ? `${data.error}: ${data.detail}` : data.error || 'Login failed')
         return
       }
       onLogin(data)

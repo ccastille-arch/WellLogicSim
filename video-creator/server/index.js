@@ -18,37 +18,60 @@ app.use(cors())
 app.use(express.json({ limit: '10mb' }))
 
 // ─── DB bootstrap — ensure tables + default admin exist on startup ─────────
-async function bootstrapDB() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      username TEXT PRIMARY KEY,
-      password TEXT NOT NULL,
-      role     TEXT NOT NULL DEFAULT 'tech',
-      name     TEXT
-    )
-  `)
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS sessions (
-      token      TEXT PRIMARY KEY,
-      username   TEXT NOT NULL,
-      expires_at TIMESTAMPTZ NOT NULL
-    )
-  `)
+let dbReady = false
 
-  const bcrypt = await import('bcryptjs')
-  const hash = await bcrypt.default.hash('Brayden25!', 10)
-  await pool.query(`
-    INSERT INTO users (username, password, role, name)
-    VALUES ('cody', $1, 'admin', 'Cody')
-    ON CONFLICT (username) DO UPDATE SET password = $1, role = 'admin'
-  `, [hash])
+async function bootstrapDB(attempt = 1) {
+  const MAX_RETRIES = 5
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        username TEXT PRIMARY KEY,
+        password TEXT NOT NULL,
+        role     TEXT NOT NULL DEFAULT 'tech',
+        name     TEXT
+      )
+    `)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        token      TEXT PRIMARY KEY,
+        username   TEXT NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL
+      )
+    `)
 
-  console.log('[bootstrap] DB tables ready, admin user ensured')
+    const bcrypt = await import('bcryptjs')
+    const hash = await bcrypt.default.hash('Brayden25!', 10)
+    await pool.query(`
+      INSERT INTO users (username, password, role, name)
+      VALUES ('cody', $1, 'admin', 'Cody')
+      ON CONFLICT (username) DO UPDATE SET password = $1, role = 'admin'
+    `, [hash])
+
+    dbReady = true
+    console.log('[bootstrap] DB tables ready, admin user ensured')
+  } catch (err) {
+    console.error(`[bootstrap] attempt ${attempt}/${MAX_RETRIES} failed:`, err.message)
+    if (attempt < MAX_RETRIES) {
+      const delay = Math.min(1000 * 2 ** (attempt - 1), 10000)
+      console.log(`[bootstrap] retrying in ${delay}ms...`)
+      await new Promise((r) => setTimeout(r, delay))
+      return bootstrapDB(attempt + 1)
+    }
+    throw err
+  }
 }
 
 // ─── Health ────────────────────────────────────────────────────────────────
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'video-creator', ts: new Date().toISOString() })
+app.get('/api/health', async (_req, res) => {
+  if (!dbReady) {
+    return res.status(503).json({ ok: false, error: 'Database not ready' })
+  }
+  try {
+    await pool.query('SELECT 1')
+    res.json({ ok: true, service: 'video-creator', ts: new Date().toISOString() })
+  } catch {
+    res.status(503).json({ ok: false, error: 'Database connection failed' })
+  }
 })
 
 // ─── DB diagnostic (temporary) ────────────────────────────────────────────
@@ -80,6 +103,9 @@ app.get('/api/db-check', async (_req, res) => {
 
 // ─── Auth endpoints (no role check) ───────────────────────────────────────
 app.post('/api/auth/login', async (req, res) => {
+  if (!dbReady) {
+    return res.status(503).json({ error: 'Server starting up', detail: 'Database not ready yet — try again in a few seconds' })
+  }
   const { username, password } = req.body
   if (!username || !password) {
     return res.status(400).json({ error: 'username and password required' })
@@ -210,12 +236,13 @@ app.get(/(.*)/,  (_req, res) => {
   res.sendFile(join(distPath, 'index.html'))
 })
 
-bootstrapDB()
-  .catch((err) => {
-    console.error('[bootstrap] DB setup error (non-fatal):', err.message)
-  })
-  .finally(() => {
-    app.listen(PORT, () => {
-      console.log(`[video-creator] Server running on port ${PORT}`)
-    })
-  })
+// Start server immediately so Railway healthcheck can reach it,
+// but bootstrap DB with retries in the background
+app.listen(PORT, () => {
+  console.log(`[video-creator] Server running on port ${PORT}`)
+})
+
+bootstrapDB().catch((err) => {
+  console.error('[bootstrap] DB setup failed after retries:', err.message)
+  console.error('[bootstrap] Login will be unavailable until DB is reachable')
+})

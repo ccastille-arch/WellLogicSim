@@ -6,6 +6,7 @@ import { initSchema } from './db.js'
 import { seedDefaults } from './seed.js'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
+import roleRoutes from './routes/roles.js'
 import dataRoutes from './routes/data.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -34,6 +35,7 @@ app.use('/api', (req, res, next) => {
 
 app.use('/api/auth',  authRoutes)
 app.use('/api/users', userRoutes)
+app.use('/api/roles', roleRoutes)
 app.use('/api',       dataRoutes)
 
 // ─── OpenAI TTS proxy — key never leaves the server ─────────────

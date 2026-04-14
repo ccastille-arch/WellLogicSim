@@ -43,7 +43,7 @@ import LogoVote from './components/LogoVote'
 import { getSelectedLogo } from './components/BrandLogos'
 
 function AppContent() {
-  const { user, isAdmin, isTech, canViewQuotes, logout, trackActivity, settings, loading } = useAuth()
+  const { user, isAdmin, isTech, canViewQuotes, canAccess, logout, trackActivity, settings, loading } = useAuth()
   const activeLogo = getSelectedLogo(settings)
 
   // Show spinner while restoring session from server
@@ -64,20 +64,15 @@ function AppContent() {
   const [showForum, setShowForum] = useState(false)
 
   const navigate = useCallback((target) => {
-    trackActivity?.(`Navigated to ${target}`)
-    if (target === 'simulator') {
-      if (!isTech) { setShowLogin({ target: 'simulator' }); return }
-      setPage('simulator')
-    } else if (target === 'admin') {
-      if (!isAdmin) { setShowLogin({ target: 'admin' }); return }
-      setPage('admin')
-    } else if (target === 'pipeline') {
-      if (!canViewQuotes) { setShowLogin({ target: 'pipeline' }); return }
-      setPage('pipeline')
-    } else {
-      setPage(target)
+    trackActivity?.(`Navigated to ${target}`, target)
+    // Permission-gated tiles
+    const gatedTiles = ['simulator', 'admin', 'pipeline']
+    if (gatedTiles.includes(target) && !canAccess(target)) {
+      setShowLogin({ target })
+      return
     }
-  }, [isTech, isAdmin, canViewQuotes, trackActivity])
+    setPage(target)
+  }, [canAccess, trackActivity])
 
   // Require signup/login before accessing anything
   if (!user) return <SignupGate />
@@ -85,8 +80,12 @@ function AppContent() {
   const handleLoginComplete = (loggedInUser) => {
     setShowLogin(null)
     if (!loggedInUser) return
-    if (showLogin?.target === 'simulator' && (loggedInUser.role === 'tech' || loggedInUser.role === 'admin')) setPage('simulator')
-    else if (showLogin?.target === 'admin' && loggedInUser.role === 'admin') setPage('admin')
+    // After login, check if user has permissions for the target tile
+    const perms = loggedInUser.permissions || []
+    const target = showLogin?.target
+    if (target && (perms.includes('*') || perms.includes(`tile:${target}`))) {
+      setPage(target)
+    }
   }
 
   const renderPage = () => {
