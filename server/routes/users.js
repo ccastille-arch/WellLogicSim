@@ -5,12 +5,25 @@ import { requirePermission } from '../auth.js'
 
 const router = Router()
 
+function platformRoleFor(roleId) {
+  if (roleId === 'admin') return 'admin'
+  if (roleId === 'tech') return 'tech'
+  return 'viewer'
+}
+
 // GET /api/users — returns all users (no passwords)
 router.get('/', requirePermission('manage:users'), async (_req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT u.username, u.role, u.role_id, u.name, u.created_at, r.name as role_name
-       FROM users u LEFT JOIN roles r ON u.role_id = r.id
+      `SELECT
+         u.username,
+         COALESCE(u.role, u.role_id, 'viewer') AS role,
+         COALESCE(u.role_id, u.role, 'viewer') AS role_id,
+         u.name,
+         u.created_at,
+         r.name as role_name
+       FROM users u
+       LEFT JOIN roles r ON COALESCE(u.role_id, u.role, 'viewer') = r.id
        ORDER BY u.created_at`
     )
     res.json(rows)
@@ -29,13 +42,28 @@ router.post('/', requirePermission('manage:users'), async (req, res) => {
   if (existing.rows.length) return res.status(409).json({ error: 'Username already exists' })
 
   const roleId = role_id || 'viewer'
+  const normalizedUsername = username.toLowerCase()
   const hash = await bcrypt.hash(password, 10)
   try {
     const { rows } = await pool.query(
-      `INSERT INTO users (username, password, role, role_id, name)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO users (
+         username, password, password_hash, role, role_id, name, email,
+         sso_sub, sso_role, platform_role, is_active, first_name, last_name, updated_at
+       )
+       VALUES ($1, $2, $2, $3, $3, $4, $5, $6, $7, $8, TRUE, $9, $10, NOW())
        RETURNING username, role, role_id, name, created_at`,
-      [username.toLowerCase(), hash, roleId, roleId, name || username]
+      [
+        normalizedUsername,
+        hash,
+        roleId,
+        name || normalizedUsername,
+        `${normalizedUsername}@localhost`,
+        `local:${normalizedUsername}`,
+        roleId === 'admin' ? 'admin' : 'user',
+        platformRoleFor(roleId),
+        name || normalizedUsername,
+        null,
+      ]
     )
     res.status(201).json(rows[0])
   } catch (err) {
@@ -52,7 +80,12 @@ router.patch('/:username/role', requirePermission('manage:users'), async (req, r
   if (!role_id) return res.status(400).json({ error: 'role_id required' })
 
   try {
-    await pool.query('UPDATE users SET role_id = $1, role = $2 WHERE username = $3', [role_id, role_id, username])
+    await pool.query(
+      `UPDATE users
+       SET role_id = $1, role = $2, platform_role = $3, sso_role = $4, updated_at = NOW()
+       WHERE username = $5`,
+      [role_id, role_id, platformRoleFor(role_id), role_id === 'admin' ? 'admin' : 'user', username]
+    )
     res.json({ ok: true })
   } catch (err) {
     console.error('Update role error:', err)
@@ -67,7 +100,10 @@ router.patch('/:username/name', requirePermission('manage:users'), async (req, r
   if (!name) return res.status(400).json({ error: 'name required' })
 
   try {
-    const { rowCount } = await pool.query('UPDATE users SET name = $1 WHERE username = $2', [name, username])
+    const { rowCount } = await pool.query(
+      'UPDATE users SET name = $1, first_name = $2, last_name = $3, updated_at = NOW() WHERE username = $4',
+      [name, name.trim().split(/\s+/)[0] || name, name.trim().split(/\s+/).slice(1).join(' ') || null, username]
+    )
     if (!rowCount) return res.status(404).json({ error: 'User not found' })
     res.json({ ok: true })
   } catch (err) {
@@ -89,7 +125,10 @@ router.post('/:username/reset-password', requirePermission('manage:users'), asyn
 
   try {
     const hash = await bcrypt.hash(password, 10)
-    const { rowCount } = await pool.query('UPDATE users SET password = $1 WHERE username = $2', [hash, username])
+    const { rowCount } = await pool.query(
+      'UPDATE users SET password = $1, password_hash = $1, updated_at = NOW() WHERE username = $2',
+      [hash, username]
+    )
     if (!rowCount) return res.status(404).json({ error: 'User not found' })
 
     // Invalidate all sessions for that user

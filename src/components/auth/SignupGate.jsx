@@ -1,10 +1,8 @@
 import { useState } from 'react'
 import { useAuth } from './AuthProvider'
 
-// Simple signup gate — first visit requires first + last name
-// First name = username, Last name = password (simple, easy)
-// Returning users: same first + last logs them back in
-
+// First name becomes username, last name becomes password.
+// Entering the same name again signs the user back in.
 export default function SignupGate() {
   const { signup, login } = useAuth()
   const [firstName, setFirstName] = useState('')
@@ -12,35 +10,46 @@ export default function SignupGate() {
   const [error, setError] = useState('')
   const [mode, setMode] = useState('signup') // signup | admin
 
-  // Admin login fields
   const [adminUser, setAdminUser] = useState('')
   const [adminPass, setAdminPass] = useState('')
-
   const [submitting, setSubmitting] = useState(false)
 
   const handleSignup = async () => {
-    if (!firstName.trim() || !lastName.trim()) { setError('Please enter your first and last name'); return }
+    if (!firstName.trim() || !lastName.trim()) {
+      setError('Please enter your first and last name')
+      return
+    }
     setSubmitting(true)
     const result = await signup(firstName.trim(), lastName.trim())
-    if (!result.success) { setError(result.error); setSubmitting(false) }
+    if (!result.success) {
+      setError(result.error)
+      setSubmitting(false)
+    }
   }
 
   const handleAdminLogin = async () => {
+    if (!adminUser.trim() || !adminPass) {
+      setError('Username and password are required')
+      return
+    }
     setSubmitting(true)
-    const result = await login(adminUser, adminPass)
-    if (!result.success) { setError(result.error); setAdminPass(''); setSubmitting(false) }
+    const result = await login(adminUser.trim(), adminPass)
+    if (!result.success) {
+      setError(result.error)
+      setAdminPass('')
+      setSubmitting(false)
+    }
   }
 
   return (
     <div className="flex-1 flex flex-col bg-[#080810] overflow-auto py-10">
       <div className="w-[440px] max-w-full px-4 mx-auto my-auto">
-        {/* Branding */}
         <div className="text-center mb-8">
           <div className="text-3xl tracking-tight mb-1" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>
-            FieldTune™
+            FieldTune
           </div>
           <div className="text-xl text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>
-            WellLogic™
+            WellLogic
           </div>
           <div className="text-[11px] text-[#888]">Automated Gas Lift Injection Optimization</div>
           <div className="w-16 h-0.5 bg-[#E8200C] mx-auto mt-3" />
@@ -49,7 +58,8 @@ export default function SignupGate() {
         {mode === 'signup' ? (
           <div className="bg-[#111118] rounded-xl border border-[#222] p-6">
             <h2 className="text-sm text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>Welcome</h2>
-            <p className="text-[11px] text-[#888] mb-5">Enter your name to get started.</p>
+            <p className="text-[11px] text-[#888] mb-2">Anyone can log in with their name.</p>
+            <p className="text-[11px] text-[#666] mb-5">First name becomes your username. Last name becomes your password. Enter the same name later to sign back in.</p>
 
             <input type="text" value={firstName} onChange={e => { setFirstName(e.target.value); setError('') }}
               onKeyDown={e => e.key === 'Enter' && document.getElementById('lastname-input')?.focus()}
@@ -67,20 +77,20 @@ export default function SignupGate() {
             <button onClick={handleSignup} disabled={submitting}
               className="w-full py-3 bg-[#E8200C] hover:bg-[#c01a0a] disabled:opacity-60 text-white font-bold rounded-lg text-sm transition-colors"
               style={{ fontFamily: "'Arial Black'" }}>
-              {submitting ? 'Connecting...' : 'Continue →'}
+              {submitting ? 'Connecting...' : 'Continue'}
             </button>
 
             <div className="text-center mt-4">
-              <button onClick={() => { setMode('admin'); setError('') }}
+              <button onClick={() => { setMode('admin'); setError(''); setSubmitting(false) }}
                 className="text-[10px] text-[#555] hover:text-[#888]">
-                Admin / Tech Team Login →
+                Admin / Tech Team Login
               </button>
             </div>
           </div>
         ) : (
           <div className="bg-[#111118] rounded-xl border border-[#222] p-6">
-            <h2 className="text-sm text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>🔐 Team Login</h2>
-            <p className="text-[11px] text-[#888] mb-5">Admin or Tech Team credentials.</p>
+            <h2 className="text-sm text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>Team Login</h2>
+            <p className="text-[11px] text-[#888] mb-5">Use this only for dedicated admin or tech credentials like cody / Brayden25!.</p>
 
             <input type="text" value={adminUser} onChange={e => { setAdminUser(e.target.value); setError('') }}
               onKeyDown={e => e.key === 'Enter' && document.getElementById('admin-pass')?.focus()}
@@ -102,9 +112,9 @@ export default function SignupGate() {
             </button>
 
             <div className="text-center mt-4">
-              <button onClick={() => { setMode('signup'); setError('') }}
+              <button onClick={() => { setMode('signup'); setError(''); setSubmitting(false) }}
                 className="text-[10px] text-[#555] hover:text-[#888]">
-                ← Back to signup
+                Back to name login
               </button>
             </div>
           </div>

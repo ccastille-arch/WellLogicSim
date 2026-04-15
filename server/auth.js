@@ -6,10 +6,15 @@ export async function getUserFromToken(token) {
   try {
     // Try JOIN with roles table first (new schema)
     const { rows } = await pool.query(
-      `SELECT u.username, u.role, u.role_id, u.name, r.permissions
+      `SELECT
+         u.username,
+         COALESCE(u.role, u.role_id, 'viewer') AS role,
+         COALESCE(u.role_id, u.role, 'viewer') AS role_id,
+         u.name,
+         r.permissions
        FROM sessions s
        JOIN users u ON s.username = u.username
-       LEFT JOIN roles r ON u.role_id = r.id
+       LEFT JOIN roles r ON COALESCE(u.role_id, u.role, 'viewer') = r.id
        WHERE s.token = $1 AND s.expires_at > NOW()`,
       [token]
     )
@@ -24,14 +29,17 @@ export async function getUserFromToken(token) {
   } catch {
     // Fallback if roles table doesn't exist yet
     const { rows } = await pool.query(
-      `SELECT u.username, u.role, u.name
+      `SELECT
+         u.username,
+         COALESCE(u.role, u.role_id, 'viewer') AS role,
+         COALESCE(u.role_id, u.role, 'viewer') AS role_id,
+         u.name
        FROM sessions s JOIN users u ON s.username = u.username
        WHERE s.token = $1 AND s.expires_at > NOW()`,
       [token]
     )
     if (!rows[0]) return null
     rows[0].permissions = rows[0].role === 'admin' ? ['*'] : []
-    rows[0].role_id = rows[0].role
     return rows[0]
   }
 }

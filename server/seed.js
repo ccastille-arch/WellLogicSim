@@ -32,6 +32,24 @@ const DEFAULT_USERS = [
   { username: 'don',      password: '12345678',    role: 'viewer', name: 'Don' },
 ]
 
+function platformRoleFor(roleId) {
+  if (roleId === 'admin') return 'admin'
+  if (roleId === 'tech') return 'tech'
+  return 'viewer'
+}
+
+function buildIdentityFields(username, name, roleId) {
+  const [firstName = '', ...rest] = String(name || '').trim().split(/\s+/)
+  return {
+    email: `${username}@localhost`,
+    ssoSub: `local:${username}`,
+    ssoRole: roleId === 'admin' ? 'admin' : 'user',
+    platformRole: platformRoleFor(roleId),
+    firstName: firstName || username,
+    lastName: rest.join(' ') || null,
+  }
+}
+
 export async function seedDefaults() {
   // 1. Seed system roles (upsert permissions for system roles)
   for (const r of SYSTEM_ROLES) {
@@ -46,18 +64,38 @@ export async function seedDefaults() {
 
   // 2. Seed default users
   for (const u of DEFAULT_USERS) {
-    const { rows } = await pool.query('SELECT username FROM users WHERE username = $1', [u.username])
+    const { rows } = await pool.query('SELECT username FROM users WHERE LOWER(username) = LOWER($1)', [u.username])
     if (rows.length) continue
     const hash = await bcrypt.hash(u.password, 10)
+    const identity = buildIdentityFields(u.username, u.name, u.role)
     await pool.query(
-      'INSERT INTO users (username, password, role, role_id, name) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING',
-      [u.username, hash, u.role, u.role, u.name]
+      `INSERT INTO users (
+         username, password, password_hash, role, role_id, name, email,
+         sso_sub, sso_role, platform_role, is_active, first_name, last_name, updated_at
+       ) VALUES ($1, $2, $2, $3, $3, $4, $5, $6, $7, $8, TRUE, $9, $10, NOW())
+       ON CONFLICT DO NOTHING`,
+      [
+        u.username,
+        hash,
+        u.role,
+        u.name,
+        identity.email,
+        identity.ssoSub,
+        identity.ssoRole,
+        identity.platformRole,
+        identity.firstName,
+        identity.lastName,
+      ]
     )
   }
   console.log('Seeded default users')
 
   // 3. Backfill role_id for any existing users missing it
-  await pool.query(`UPDATE users SET role_id = role WHERE role_id IS NULL AND role IN ('admin', 'tech', 'viewer')`)
+  await pool.query(`
+    UPDATE users
+    SET role_id = COALESCE(NULLIF(role_id, ''), role, 'viewer')
+    WHERE role_id IS NULL OR role_id = ''
+  `)
 
   // 4. Default settings
   await pool.query(
