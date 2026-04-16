@@ -240,7 +240,7 @@ export default function GreenfieldDiagram({ state }) {
 
       {/* Labels */}
       <text x={margin} y={svgH - 10} fill="#333" fontSize={9} fontFamily="Arial">
-        GREENFIELD â€” Standard Pad Logic Deployment
+        GREENFIELD - Standard Pad Logic Deployment
       </text>
     </svg>
   )

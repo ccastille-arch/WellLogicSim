@@ -63,7 +63,7 @@ export default function AdminPanel({ state, onFieldChange, onClose }) {
         pressureResponse: 0.08, salesValveOpenRate: 0.10, salesValveCloseRate: 0.03,
         tickInterval: 500,
       },
-      demo: { // Good for demos â€” visible but not too slow
+      demo: { // Good for demos - visible but not too slow
         chokeMoveRate: 0.08, flowResponseRate: 0.10, productionLag: 0.05,
         rebalanceRate: 0.04, compressorRamp: 0.12, compressorSpindownRate: 0.08,
         pressureResponse: 0.15, salesValveOpenRate: 0.20, salesValveCloseRate: 0.08,
@@ -90,7 +90,7 @@ export default function AdminPanel({ state, onFieldChange, onClose }) {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={onClose}>
         <div className="bg-[#111118] border border-[#333] rounded-xl p-8 w-[380px] shadow-2xl" onClick={e => e.stopPropagation()}>
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-[#E8200C] text-xl">ðŸ”</span>
+            <span className="text-[#E8200C] text-xl">LOCK</span>
             <h2 className="text-lg text-white font-bold" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>Admin Access</h2>
           </div>
           <p className="text-[12px] text-[#888] mb-4">
@@ -127,12 +127,12 @@ export default function AdminPanel({ state, onFieldChange, onClose }) {
         <div className="sticky top-0 z-10 bg-[#0e0e18] border-b border-[#2a2a3a] px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-[#E8200C]">ðŸ”§</span>
+              <span className="text-[#E8200C]">TUNE</span>
               <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
-                Admin â€” Simulation Tuning
+                Admin - Simulation Tuning
               </h2>
             </div>
-            <button onClick={onClose} className="text-[#888] hover:text-white text-lg">âœ•</button>
+            <button onClick={onClose} className="text-[#888] hover:text-white text-lg">X</button>
           </div>
           <p className="text-[10px] text-[#666] mt-1">Adjust response rates and timing for all control logic.</p>
         </div>
@@ -199,7 +199,7 @@ function TuningSlider({ param, value, defaultValue, onChange }) {
           <span className="text-[11px] text-white font-bold tabular-nums">{value.toFixed(step < 0.1 ? 3 : step < 1 ? 2 : 0)}</span>
           {unit && <span className="text-[9px] text-[#666]">{unit}</span>}
           {!isDefault && (
-            <button onClick={() => onChange(defaultValue)} className="text-[8px] text-[#E8200C] hover:text-white ml-1">â†©</button>
+            <button onClick={() => onChange(defaultValue)} className="text-[8px] text-[#E8200C] hover:text-white ml-1">Reset</button>
           )}
         </div>
       </div>

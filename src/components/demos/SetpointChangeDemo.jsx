@@ -19,7 +19,7 @@ export default function SetpointChangeDemo() {
   const [transitioning, setTransitioning] = useState(false)
   const [suctionPsi, setSuctionPsi] = useState(SUCTION_TARGET)
   const [logLines, setLogLines] = useState([
-    { t: '00:00', msg: 'System nominal â€” all wells on setpoint', type: 'ok' },
+    { t: '00:00', msg: 'System nominal - all wells on setpoint', type: 'ok' },
   ])
   const [selectedWell, setSelectedWell] = useState(1)
   const [newSp, setNewSp] = useState(750)
@@ -94,7 +94,7 @@ export default function SetpointChangeDemo() {
       } else {
         setTransitioning(false)
         setPendingSp(null)
-        addLog(`W${target.wellId} settled at ${target.value} MCFD â€” system re-balanced`, 'ok')
+        addLog(`W${target.wellId} settled at ${target.value} MCFD - system re-balanced`, 'ok')
       }
     }
 
@@ -104,10 +104,10 @@ export default function SetpointChangeDemo() {
 
   const handleApplySetpoint = () => {
     const well = wells.find(w => w.id === selectedWell)
-    if (newSp === well.sp) { addLog('Setpoint unchanged â€” no action taken', 'info'); return }
-    const dir = newSp > well.sp ? 'â†‘' : 'â†“'
-    addLog(`Operator changed W${selectedWell} setpoint ${well.sp}â†’${newSp} MCFD ${dir}`, 'change')
-    setTimeout(() => addLog(`Pad Logic adjusting W${selectedWell} choke valveâ€¦`, 'info'), 400)
+    if (newSp === well.sp) { addLog('Setpoint unchanged - no action taken', 'info'); return }
+    const dir = newSp > well.sp ? 'UP' : 'DOWN'
+    addLog(`Operator changed W${selectedWell} setpoint ${well.sp} -> ${newSp} MCFD ${dir}`, 'change')
+    setTimeout(() => addLog(`Pad Logic adjusting W${selectedWell} choke valve...`, 'info'), 400)
     setTimeout(() => addLog(`Suction header rebalancing across all wells`, 'info'), 900)
     setPendingSp({ wellId: selectedWell, value: newSp })
   }
@@ -118,7 +118,7 @@ export default function SetpointChangeDemo() {
     setPendingSp(null)
     setTransitioning(false)
     setSuctionPsi(SUCTION_TARGET)
-    setLogLines([{ t: '00:00', msg: 'System reset â€” all wells on original setpoints', type: 'ok' }])
+    setLogLines([{ t: '00:00', msg: 'System reset - all wells on original setpoints', type: 'ok' }])
     setNewSp(wells.find(w => w.id === selectedWell)?.sp || 750)
   }
 
@@ -221,11 +221,11 @@ export default function SetpointChangeDemo() {
         <div className="rounded-xl border border-[#1e1e2e] p-3" style={{ background: '#0e0e1a' }}>
           <div className="text-[9px] text-[#555] uppercase tracking-wider mb-1">Controller</div>
           <div className={`text-sm font-bold mb-1 ${transitioning ? 'text-yellow-400' : 'text-green-400'}`}>
-            {transitioning ? 'â— ADJUSTING' : 'â— STABLE'}
+            {transitioning ? 'ADJUSTING' : 'STABLE'}
           </div>
           <div className="text-[9px] text-[#666]">
             {transitioning
-              ? `W${pendingSp?.wellId} tracking new setpointâ€¦`
+              ? `W${pendingSp?.wellId} tracking new setpoint...`
               : 'All wells within 2% of setpoint'}
           </div>
         </div>
@@ -285,7 +285,7 @@ export default function SetpointChangeDemo() {
               <button onClick={handleApplySetpoint} disabled={transitioning}
                 className="w-full py-2.5 rounded-xl text-[11px] font-bold text-white transition-all disabled:opacity-40"
                 style={{ background: transitioning ? '#1a1a2a' : '#E8200C' }}>
-                {transitioning ? 'System adjustingâ€¦' : `Apply Setpoint â†’ ${newSp} MCFD`}
+                {transitioning ? 'System adjusting...' : `Apply Setpoint -> ${newSp} MCFD`}
               </button>
             </>
           )}

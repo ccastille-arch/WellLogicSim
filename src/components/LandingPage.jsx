@@ -25,7 +25,7 @@ export default function LandingPage({ onNavigate }) {
           >
             ADMIN DASHBOARD
             <div className="text-[10px] font-normal mt-0.5 opacity-80">
-              User management Â· Sales pipeline Â· Activity logs
+              User management | Sales pipeline | Activity logs
             </div>
           </button>
         )}
@@ -52,9 +52,9 @@ export default function LandingPage({ onNavigate }) {
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <div className="text-3xl sm:text-4xl mb-1">ðŸ“¡</div>
+              <div className="text-[11px] font-bold text-[#22c55e] uppercase tracking-[0.22em] mb-1">Live</div>
               <div className="text-[11px] font-bold text-[#22c55e] group-hover:text-white transition-colors whitespace-nowrap">
-                View Live Data â†’
+                View Live Data {'->'}
               </div>
             </div>
           </div>
@@ -82,7 +82,7 @@ export default function LandingPage({ onNavigate }) {
           {[
             {
               id: 'marketing',
-              icon: 'ðŸŽ¬',
+              icon: 'MM',
               title: 'Marketing Material',
               desc: 'Videos, sales sheets, presentation decks, and ROI templates.',
               color: '#E8200C',
@@ -90,7 +90,7 @@ export default function LandingPage({ onNavigate }) {
             },
             {
               id: 'sales',
-              icon: 'ðŸ“Š',
+              icon: 'SD',
               title: 'Sales Demo',
               desc: 'Interactive simulator - run scenarios live during a client call.',
               color: '#22c55e',
@@ -98,7 +98,7 @@ export default function LandingPage({ onNavigate }) {
             },
             {
               id: 'technical',
-              icon: 'ðŸ“',
+              icon: 'TD',
               title: 'Technical Docs',
               desc: 'SCADA registers, electrical drawings, and wiring diagrams.',
               color: '#4fc3f7',
@@ -106,7 +106,7 @@ export default function LandingPage({ onNavigate }) {
             },
             {
               id: 'quote',
-              icon: 'ðŸ’°',
+              icon: 'QT',
               title: 'Request a Quote',
               desc: 'Get pricing for your pad configuration and deployment.',
               color: '#f97316',
@@ -124,7 +124,9 @@ export default function LandingPage({ onNavigate }) {
                 event.currentTarget.style.borderColor = '#1a1a2a'
               }}
             >
-              <div className="text-2xl sm:text-3xl mb-2 sm:mb-3">{section.icon}</div>
+              <div className="text-[18px] sm:text-[22px] mb-2 sm:mb-3 font-black tracking-[0.14em]" style={{ color: section.color }}>
+                {section.icon}
+              </div>
               <h2 className="text-[12px] sm:text-[15px] text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>
                 {section.title}
               </h2>
@@ -132,7 +134,7 @@ export default function LandingPage({ onNavigate }) {
                 {section.desc}
               </p>
               <span className="text-[9px] sm:text-[10px] font-bold" style={{ color: section.color }}>
-                {section.cta} â†’
+                {section.cta} {'->'}
               </span>
             </button>
           ))}
@@ -145,7 +147,7 @@ export default function LandingPage({ onNavigate }) {
                 onClick={() => onNavigate('simulator')}
                 className="px-4 py-2 text-[10px] font-bold text-[#4fc3f7] border border-[#4fc3f7]/30 rounded-lg hover:bg-[#4fc3f7]/10 transition-colors"
               >
-                ðŸ”§ Tech Simulator
+                Tech Simulator
               </button>
             )}
             {canAccess('pipeline') && (
@@ -153,7 +155,7 @@ export default function LandingPage({ onNavigate }) {
                 onClick={() => onNavigate('pipeline')}
                 className="px-4 py-2 text-[10px] font-bold text-[#f97316] border border-[#f97316]/30 rounded-lg hover:bg-[#f97316]/10 transition-colors"
               >
-                ðŸ“‹ Sales Pipeline
+                Sales Pipeline
               </button>
             )}
           </div>

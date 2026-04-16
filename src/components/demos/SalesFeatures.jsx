@@ -41,6 +41,7 @@ export function calculateEconomics(customerData, brentPrice) {
   const fixMin = 30
   const returnDriveMin = blendedDriveMin // operator drives BACK to readjust chokes
   const chokeAdjustMin = 20
+  const blendedResponseMin = blendedDriveMin
   const totalManualMin = blendedDriveMin + diagnoseMin + mechWaitMin + fixMin + returnDriveMin + chokeAdjustMin
   const totalManualHrs = totalManualMin / 60
 
@@ -134,7 +135,7 @@ export function RevenueTicker({ sim, customerData, brentPrice }) {
   return (
     <div className="bg-[#0a1a0a] border border-[#22c55e]/30 rounded-lg p-2.5">
       <div className="flex items-center gap-1 mb-1.5">
-        <span className="text-[8px] text-[#22c55e] uppercase tracking-wider font-bold">ðŸ’° Revenue Impact</span>
+        <span className="text-[8px] text-[#22c55e] uppercase tracking-wider font-bold">Revenue Impact</span>
         <span className="text-[7px] text-[#555] ml-auto">Brent ${brentPrice.toFixed(0)}/bbl</span>
       </div>
       <div className="grid grid-cols-4 gap-2">
@@ -221,24 +222,24 @@ export function BeforeAfterOverlay({ sim, customerData }) {
   const manualProdPct = phase === 'restored' ? 95 : phase === 'readjusting_chokes' ? 60 : phase === 'mechanic_fixing' ? 25 : Math.max(10, 100 - elapsed * 3)
 
   const phaseLabels = {
-    alarm: `ðŸš¨ SCADA alarm fired â€” dispatching operator (${driveTime1} min drive)`,
-    diagnose: `ðŸ” Operator on-site â€” diagnosing issue (~${diagTime} min)`,
-    waiting_mechanic: `ðŸ“ž Called mechanic â€” waiting for arrival (~${mechWait} min)`,
-    mechanic_fixing: `ðŸ”§ Mechanic repairing compressor (~${fixTime} min)`,
-    operator_returning: `ðŸš— Comp fixed â€” dispatching operator BACK to readjust chokes (${driveTime2} min drive)`,
-    readjusting_chokes: `âš™ï¸ Operator manually readjusting chokes on ${sim.state.wells.length} wells (~${chokeAdjust} min)`,
-    restored: `âœ… Production finally restored â€” total time: ${totalManualMin} min (${(totalManualMin / 60).toFixed(1)} hrs)`,
+    alarm: `SCADA alarm fired - dispatching operator (${driveTime1} min drive)`,
+    diagnose: `Operator on-site - diagnosing issue (~${diagTime} min)`,
+    waiting_mechanic: `Called mechanic - waiting for arrival (~${mechWait} min)`,
+    mechanic_fixing: `Mechanic repairing compressor (~${fixTime} min)`,
+    operator_returning: `Comp fixed - dispatching operator BACK to readjust chokes (${driveTime2} min drive)`,
+    readjusting_chokes: `Operator manually readjusting chokes on ${sim.state.wells.length} wells (~${chokeAdjust} min)`,
+    restored: `Production finally restored - total time: ${totalManualMin} min (${(totalManualMin / 60).toFixed(1)} hrs)`,
   }
 
   return (
     <div className="bg-[#111] border border-[#333] rounded-lg p-2.5">
       <div className="text-[8px] text-[#f97316] uppercase tracking-wider font-bold mb-1">
-        Production Recovery Comparison â€” What Happens When a Compressor Goes Down?
+        Production Recovery Comparison - What Happens When a Compressor Goes Down?
       </div>
       <div className="grid grid-cols-2 gap-2">
         {/* MANUAL SIDE */}
         <div className="bg-[#1a0808] rounded p-2 border border-[#E8200C]/20">
-          <div className="text-[9px] text-[#E8200C] font-bold mb-1">âŒ TODAY â€” Manual Response</div>
+          <div className="text-[9px] text-[#E8200C] font-bold mb-1">TODAY - Manual Response</div>
           <div className="w-full bg-[#200] rounded h-3 overflow-hidden">
             <div className="h-full bg-[#E8200C] transition-all duration-1000" style={{ width: `${manualProdPct}%` }} />
           </div>
@@ -261,7 +262,7 @@ export function BeforeAfterOverlay({ sim, customerData }) {
               const active = current === stepIdx
               return (
                 <div key={i} className={`text-[7px] flex items-center gap-1 ${done ? 'text-[#E8200C]' : active ? 'text-white' : 'text-[#444]'}`}>
-                  <span>{done ? 'âœ“' : active ? 'â–º' : 'â—‹'}</span>
+                  <span>{done ? 'DONE' : active ? 'NOW' : 'WAIT'}</span>
                   <span>{step.t}</span>
                 </div>
               )
@@ -271,28 +272,28 @@ export function BeforeAfterOverlay({ sim, customerData }) {
 
         {/* WELLLOGIC SIDE */}
         <div className="bg-[#081a08] rounded p-2 border border-[#22c55e]/20">
-          <div className="text-[9px] text-[#22c55e] font-bold mb-1">âœ… WITH Pad Logic â€” Automatic</div>
+          <div className="text-[9px] text-[#22c55e] font-bold mb-1">WITH PAD LOGIC - Automatic</div>
           <div className="w-full bg-[#020] rounded h-3 overflow-hidden">
             <div className="h-full bg-[#22c55e] transition-all duration-1000" style={{ width: `${accuracy}%` }} />
           </div>
           <div className="text-[10px] text-[#22c55e] font-bold mt-1">{accuracy.toFixed(0)}% production</div>
           <div className="text-[8px] text-[#ccc] mt-1 leading-relaxed">
             {accuracy >= 95
-              ? 'âœ… Priority wells at full injection. Low-priority wells curtailed to protect top producers.'
+              ? 'Priority wells at full injection. Low-priority wells curtailed to protect top producers.'
               : accuracy >= 70
-              ? 'âš¡ Rebalancing in progress â€” closing chokes on low-priority wells, protecting top producers.'
-              : 'ðŸ”„ Disturbance detected â€” reallocating gas by well priority...'}
+              ? 'Rebalancing in progress - closing chokes on low-priority wells, protecting top producers.'
+              : 'Disturbance detected - reallocating gas by well priority...'}
           </div>
           <div className="mt-1.5 space-y-0.5">
-            <div className="text-[7px] text-[#22c55e] flex items-center gap-1"><span>âœ“</span><span>Detects shortfall (instant)</span></div>
+            <div className="text-[7px] text-[#22c55e] flex items-center gap-1"><span>OK</span><span>Detects shortfall (instant)</span></div>
             <div className={`text-[7px] flex items-center gap-1 ${accuracy >= 50 ? 'text-[#22c55e]' : 'text-white'}`}>
-              <span>{accuracy >= 50 ? 'âœ“' : 'â–º'}</span><span>Rebalances chokes (30-60 sec)</span>
+              <span>{accuracy >= 50 ? 'OK' : 'NOW'}</span><span>Rebalances chokes (30-60 sec)</span>
             </div>
             <div className={`text-[7px] flex items-center gap-1 ${accuracy >= 90 ? 'text-[#22c55e]' : 'text-[#444]'}`}>
-              <span>{accuracy >= 90 ? 'âœ“' : 'â—‹'}</span><span>Priority wells at target</span>
+              <span>{accuracy >= 90 ? 'OK' : 'WAIT'}</span><span>Priority wells at target</span>
             </div>
             <div className={`text-[7px] flex items-center gap-1 ${accuracy >= 95 ? 'text-[#22c55e]' : 'text-[#444]'}`}>
-              <span>{accuracy >= 95 ? 'âœ“' : 'â—‹'}</span><span>Stable â€” no operator needed</span>
+              <span>{accuracy >= 95 ? 'OK' : 'WAIT'}</span><span>Stable - no operator needed</span>
             </div>
           </div>
         </div>
@@ -330,9 +331,9 @@ export function BadDayButton({ sim }) {
     <div className="space-y-1.5">
       <button onClick={trigger} disabled={chaosActive}
         className={`w-full py-2.5 rounded-lg font-bold text-[11px] transition-all ${chaosActive ? 'bg-[#E8200C] text-white animate-pulse' : 'bg-[#E8200C]/20 border-2 border-[#E8200C] text-[#E8200C] hover:bg-[#E8200C] hover:text-white'}`}>
-        {chaosActive ? 'ðŸ’¥ CHAOS IN PROGRESS...' : 'ðŸ’€ THE BAD DAY'}
+        {chaosActive ? 'CHAOS IN PROGRESS...' : 'THE BAD DAY'}
       </button>
-      <button onClick={reset} className="w-full py-1.5 rounded text-[10px] text-[#888] border border-[#333] hover:text-white">â†©ï¸ Reset</button>
+      <button onClick={reset} className="w-full py-1.5 rounded text-[10px] text-[#888] border border-[#333] hover:text-white">Reset</button>
     </div>
   )
 }
@@ -346,11 +347,11 @@ export function ROICalculator({ customerData, brentPrice }) {
   return (
     <div className="bg-[#0a0a1a] border border-[#4fc3f7]/30 rounded-lg p-3">
       <div className="flex items-center gap-1 mb-2">
-        <span className="text-[8px] text-[#4fc3f7] uppercase tracking-wider font-bold">ðŸ“Š Estimated Annual ROI</span>
+        <span className="text-[8px] text-[#4fc3f7] uppercase tracking-wider font-bold">Estimated Annual ROI</span>
         <span className="text-[7px] text-[#555] ml-auto">Brent ${brentPrice.toFixed(0)}/bbl</span>
       </div>
       {customerData.customerName && (
-        <div className="text-[10px] text-white font-bold mb-2">{customerData.customerName} {customerData.padName && `â€” ${customerData.padName}`}</div>
+        <div className="text-[10px] text-white font-bold mb-2">{customerData.customerName} {customerData.padName && `- ${customerData.padName}`}</div>
       )}
       <div className="space-y-1.5 text-[10px]">
         <ROILine label={`Comp Trip Recovery (${econ.tripsMonth}/mo)`} value={econ.tripAnnualRevenueSaved} />
@@ -429,12 +430,12 @@ export function ResponseTimer({ sim, customerData }) {
   return (
     <div className="bg-[#111] border border-[#333] rounded-lg p-2.5">
       <div className="text-[8px] text-[#f97316] uppercase tracking-wider font-bold mb-1">
-        â± Time to Full Production Recovery
+        Time to Full Production Recovery
       </div>
       <div className="grid grid-cols-2 gap-3">
         {/* MANUAL */}
         <div className="text-center bg-[#1a0808] rounded p-2 border border-[#E8200C]/20">
-          <div className="text-[8px] text-[#E8200C] font-bold mb-0.5">Manual â€” Operator + Mechanic</div>
+          <div className="text-[8px] text-[#E8200C] font-bold mb-0.5">Manual - Operator + Mechanic</div>
           <div className="text-[20px] text-[#E8200C] font-bold" style={{ fontFamily: "'Arial Black'" }}>
             {totalManualMin} min
           </div>
@@ -446,17 +447,17 @@ export function ResponseTimer({ sim, customerData }) {
 
         {/* WELLLOGIC */}
         <div className="text-center bg-[#081a08] rounded p-2 border border-[#22c55e]/20">
-          <div className="text-[8px] text-[#22c55e] font-bold mb-0.5">Pad Logic â€” Fully Automatic</div>
+          <div className="text-[8px] text-[#22c55e] font-bold mb-0.5">Pad Logic - Fully Automatic</div>
           <div className="text-[20px] font-bold" style={{ fontFamily: "'Arial Black'", color: recovered ? '#22c55e' : '#eab308' }}>
             {recovered ? fmt(Math.min(elapsed, 60)) : fmt(elapsed)}
           </div>
           <div className="text-[7px] text-[#888] leading-relaxed mt-1">
             {recovered
-              ? 'Priority wells at target. No operator dispatch needed. Mechanic dispatched only for compressor â€” chokes already handled.'
+              ? 'Priority wells at target. No operator dispatch needed. Mechanic dispatched only for compressor - chokes already handled.'
               : 'Detecting shortfall and rebalancing injection across wells by priority...'}
           </div>
           <div className="text-[8px] text-[#22c55e] font-bold mt-1">
-            {recovered ? 'âœ… Production protected â€” zero operator trips for choke adjustment' : 'âš¡ Rebalancing...'}
+            {recovered ? 'Production protected - zero operator trips for choke adjustment' : 'Rebalancing...'}
           </div>
         </div>
       </div>
@@ -474,12 +475,12 @@ export function SaturdayNightButton({ sim, customerData }) {
 
   const trigger = () => {
     setActive(true)
-    setStage(`ðŸŒ™ 2:00 AM Saturday â€” Pad unmanned. Nearest pumper is ${nightMin} minutes away.`)
-    setTimeout(() => { setStage('âš¡ 2:03 AM â€” C1 trips on high discharge temp.'); sim.setCompressorStatus(0, 'tripped') }, 3000)
-    setTimeout(() => { setStage('ðŸ“‰ 2:05 AM â€” Suction pressure dropping. All wells losing injection.'); sim.setTotalAvailableGas(sim.state.maxGasCapacity * 0.5) }, 8000)
-    setTimeout(() => { setStage('ðŸ’¥ 2:08 AM â€” Well unloads. Scrubber pressure spikes.'); sim.setStateField('scrubberPressure', sim.state.suctionTarget + 30); sim.setStateField('wellUnloadActive', true) }, 14000)
-    setTimeout(() => { setStage('ðŸŸ¢ Pad Logic rebalanced. Priority wells protected. Sales valve managing pressure.'); sim.setStateField('wellUnloadActive', false) }, 22000)
-    setTimeout(() => setStage(`ðŸ“± 2:${nightMin > 60 ? Math.floor(nightMin / 60) + ':' + (nightMin % 60).toString().padStart(2, '0') : nightMin} AM â€” Pumper finally arrives. Pad Logic handled it ${nightMin} minutes ago.`), 30000)
+    setStage(`2:00 AM Saturday - Pad unmanned. Nearest pumper is ${nightMin} minutes away.`)
+    setTimeout(() => { setStage('2:03 AM - C1 trips on high discharge temp.'); sim.setCompressorStatus(0, 'tripped') }, 3000)
+    setTimeout(() => { setStage('2:05 AM - Suction pressure dropping. All wells losing injection.'); sim.setTotalAvailableGas(sim.state.maxGasCapacity * 0.5) }, 8000)
+    setTimeout(() => { setStage('2:08 AM - Well unloads. Scrubber pressure spikes.'); sim.setStateField('scrubberPressure', sim.state.suctionTarget + 30); sim.setStateField('wellUnloadActive', true) }, 14000)
+    setTimeout(() => { setStage('Pad Logic rebalanced. Priority wells protected. Sales valve managing pressure.'); sim.setStateField('wellUnloadActive', false) }, 22000)
+    setTimeout(() => setStage(`2:${nightMin > 60 ? Math.floor(nightMin / 60) + ':' + (nightMin % 60).toString().padStart(2, '0') : nightMin} AM - Pumper finally arrives. Pad Logic handled it ${nightMin} minutes ago.`), 30000)
     setTimeout(() => setActive(false), 40000)
   }
 
@@ -487,7 +488,7 @@ export function SaturdayNightButton({ sim, customerData }) {
     <div className="space-y-1.5">
       <button onClick={trigger} disabled={active}
         className={`w-full py-2.5 rounded-lg font-bold text-[11px] transition-all ${active ? 'bg-[#1a1a40] border border-[#4a4aff] text-[#8888ff]' : 'bg-[#1a1a30] border-2 border-[#4a4aff] text-[#8888ff] hover:bg-[#2a2a50] hover:text-white'}`}>
-        {active ? 'ðŸŒ™ Running...' : 'ðŸŒ™ 2AM Saturday â€” Nobody On-Site'}
+        {active ? 'Running...' : '2AM Saturday - Nobody On-Site'}
       </button>
       {active && stage && <div className="bg-[#1a1a30] rounded p-2 border border-[#333]"><div className="text-[10px] text-[#ccc] leading-relaxed">{stage}</div></div>}
     </div>
@@ -499,12 +500,12 @@ export function SaturdayNightButton({ sim, customerData }) {
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export function FeatureToggles({ features, onToggle }) {
   const items = [
-    { key: 'revenueTicker', label: 'Revenue Ticker', icon: 'ðŸ’°' },
-    { key: 'beforeAfter', label: 'Before / After', icon: 'âš¡' },
-    { key: 'responseTimer', label: 'Response Timer', icon: 'â±' },
-    { key: 'badDay', label: 'Bad Day Button', icon: 'ðŸ’€' },
-    { key: 'saturdayNight', label: '2AM Saturday', icon: 'ðŸŒ™' },
-    { key: 'roiCalc', label: 'ROI Calculator', icon: 'ðŸ“Š' },
+    { key: 'revenueTicker', label: 'Revenue Ticker', icon: 'REV' },
+    { key: 'beforeAfter', label: 'Before / After', icon: 'CMP' },
+    { key: 'responseTimer', label: 'Response Timer', icon: 'TIME' },
+    { key: 'badDay', label: 'Bad Day Button', icon: 'BAD' },
+    { key: 'saturdayNight', label: '2AM Saturday', icon: 'NITE' },
+    { key: 'roiCalc', label: 'ROI Calculator', icon: 'ROI' },
   ]
   return (
     <div className="bg-[#111120] border border-[#2a2a3a] rounded-lg p-3 mb-3">

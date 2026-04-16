@@ -297,7 +297,7 @@ export default function BrownfieldDiagram({ state }) {
 
       {/* Label */}
       <text x={margin} y={svgH - 10} fill="#333" fontSize={9} fontFamily="Arial">
-        BROWNFIELD â€” Recycled Gas with Suction Controller Prioritization
+        BROWNFIELD - Recycled Gas with Suction Controller Prioritization
       </text>
     </svg>
   )

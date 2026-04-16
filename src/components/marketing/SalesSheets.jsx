@@ -1,7 +1,7 @@
 ﻿import { useState } from 'react'
 
 const SHEETS = [
-  { id: 'overview', title: 'Pad Logicâ„¢ Product Overview', desc: 'One-page overview of Pad Logic capabilities for gas lift optimization.' },
+  { id: 'overview', title: 'Pad Logic TM Product Overview', desc: 'One-page overview of Pad Logic capabilities for gas lift optimization.' },
   { id: 'roi', title: 'ROI Analysis Template', desc: 'Customizable ROI breakdown based on pad configuration and operational data.' },
   { id: 'comparison', title: 'Manual vs Pad Logic Comparison', desc: 'Side-by-side comparison of manual operations vs Pad Logic automation.' },
   { id: 'specs', title: 'Technical Specifications', desc: 'Panel specifications, I/O counts, communication protocols, and certifications.' },
@@ -14,10 +14,10 @@ export default function SalesSheets() {
     return (
       <div className="p-6 max-w-[900px] mx-auto">
         <div className="flex items-center justify-between mb-4">
-          <button onClick={() => setViewing(null)} className="text-[11px] text-[#888] hover:text-white flex items-center gap-1">â† Back to all sheets</button>
+          <button onClick={() => setViewing(null)} className="text-[11px] text-[#888] hover:text-white flex items-center gap-1">Back to all sheets</button>
           <button onClick={() => window.print()}
             className="px-4 py-1.5 text-[11px] font-bold text-white bg-[#E8200C] hover:bg-[#c01a0a] rounded-lg flex items-center gap-2">
-            â†“ Download / Print
+            Download / Print
           </button>
         </div>
         {viewing === 'overview' && <OverviewSheet />}
@@ -36,10 +36,10 @@ export default function SalesSheets() {
         {SHEETS.map(s => (
           <button key={s.id} onClick={() => setViewing(s.id)}
             className="bg-[#111118] rounded-xl border border-[#222] p-5 text-left hover:border-[#E8200C]/50 transition-colors">
-            <div className="text-3xl mb-3">ðŸ“„</div>
+            <div className="text-3xl mb-3">DOC</div>
             <h3 className="text-[13px] text-white font-bold">{s.title}</h3>
             <p className="text-[11px] text-[#888] mt-1">{s.desc}</p>
-            <div className="mt-3 text-[10px] text-[#E8200C] font-bold">View â†’</div>
+            <div className="mt-3 text-[10px] text-[#E8200C] font-bold">View</div>
           </button>
         ))}
       </div>
@@ -57,14 +57,14 @@ function SheetPage({ children }) {
           <div className="text-[10px] text-gray-500 tracking-wider">SERVICE COMPRESSION</div>
         </div>
         <div className="text-right">
-          <div className="text-sm font-bold" style={{ fontFamily: "'Arial Black'" }}>Pad Logicâ„¢</div>
+          <div className="text-sm font-bold" style={{ fontFamily: "'Arial Black'" }}>Pad Logic TM</div>
           <div className="text-[10px] text-gray-500">Gas Lift Optimization</div>
         </div>
       </div>
       {children}
       {/* Footer */}
       <div className="mt-8 pt-4 border-t border-gray-200 text-[9px] text-gray-400 flex justify-between">
-        <span>Service Compression â€” Confidential</span>
+        <span>Service Compression - Confidential</span>
         <span>servicecompression.com</span>
       </div>
     </div>
@@ -74,39 +74,39 @@ function SheetPage({ children }) {
 function OverviewSheet() {
   return (
     <SheetPage>
-      <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>Pad Logicâ„¢ Pad Optimization</h1>
+      <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>Pad Logic TM Pad Optimization</h1>
       <p className="text-sm text-gray-600 mb-6">Automated gas lift injection control for maximum production uptime.</p>
 
       <div className="grid grid-cols-2 gap-6 mb-6">
         <div>
           <h3 className="text-sm font-bold text-[#E8200C] mb-2">What It Does</h3>
           <ul className="text-[11px] text-gray-700 space-y-1.5">
-            <li>â€¢ Automatically controls well injection choke valves</li>
-            <li>â€¢ Prioritizes gas to your highest-value wells</li>
-            <li>â€¢ Detects and responds to compressor trips in seconds</li>
-            <li>â€¢ Manages suction header pressure for stable compression</li>
-            <li>â€¢ Detects well unloads and prevents pad shutdowns</li>
-            <li>â€¢ Stages compressors automatically based on demand</li>
+            <li>Automatically controls well injection choke valves</li>
+            <li>Prioritizes gas to your highest-value wells</li>
+            <li>Detects and responds to compressor trips in seconds</li>
+            <li>Manages suction header pressure for stable compression</li>
+            <li>Detects well unloads and prevents pad shutdowns</li>
+            <li>Stages compressors automatically based on demand</li>
           </ul>
         </div>
         <div>
           <h3 className="text-sm font-bold text-[#E8200C] mb-2">Why It Matters</h3>
           <ul className="text-[11px] text-gray-700 space-y-1.5">
-            <li>â€¢ Eliminates 2-4 hour manual response gaps</li>
-            <li>â€¢ Protects production during nighttime/weekend events</li>
-            <li>â€¢ Reduces unnecessary operator site visits by 30%+</li>
-            <li>â€¢ Prevents cascading failures from single events</li>
-            <li>â€¢ Typical ROI: $400K-$900K/year per pad</li>
-            <li>â€¢ Pays for itself in 30-90 days</li>
+            <li>Eliminates 2-4 hour manual response gaps</li>
+            <li>Protects production during nighttime/weekend events</li>
+            <li>Reduces unnecessary operator site visits by 30%+</li>
+            <li>Prevents cascading failures from single events</li>
+            <li>Typical ROI: $400K-$900K/year per pad</li>
+            <li>Pays for itself in 30-90 days</li>
           </ul>
         </div>
       </div>
 
       <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="text-sm font-bold mb-2">How It Works â€” The Loop</h3>
+        <h3 className="text-sm font-bold mb-2">How It Works - The Loop</h3>
         <div className="text-[11px] text-gray-600 leading-relaxed">
-          Wells produce â†’ Production header â†’ HP Scrubber/Separator â†’ Gas recirculates â†’ Suction header â†’
-          Compressors â†’ Discharge header â†’ Injection chokes (Pad Logic controlled) â†’ Flow meters â†’ Back to wells.
+          Wells produce to Production header to HP Scrubber/Separator to Gas recirculates to Suction header to
+          Compressors to Discharge header to Injection chokes (Pad Logic controlled) to Flow meters to Back to wells.
           Pad Logic sits at the center, controlling the choke valves and monitoring every pressure, flow, and compressor in real-time.
         </div>
       </div>
@@ -127,10 +127,10 @@ function ROISheet() {
           <th className="text-right py-2 font-bold">Annual Savings</th>
         </tr></thead>
         <tbody className="text-gray-700">
-          <tr className="border-b border-gray-100"><td className="py-2">Compressor Trip Recovery</td><td className="text-right">4 trips/mo Ã— 3hr avg response</td><td className="text-right font-bold text-[#E8200C]">$180K - $350K</td></tr>
-          <tr className="border-b border-gray-100"><td className="py-2">Gas Constraint Protection</td><td className="text-right">2 events/wk Ã— 25% production affected</td><td className="text-right font-bold text-[#E8200C]">$120K - $280K</td></tr>
+          <tr className="border-b border-gray-100"><td className="py-2">Compressor Trip Recovery</td><td className="text-right">4 trips/mo x 3hr avg response</td><td className="text-right font-bold text-[#E8200C]">$180K - $350K</td></tr>
+          <tr className="border-b border-gray-100"><td className="py-2">Gas Constraint Protection</td><td className="text-right">2 events/wk x 25% production affected</td><td className="text-right font-bold text-[#E8200C]">$120K - $280K</td></tr>
           <tr className="border-b border-gray-100"><td className="py-2">Avoided Shutdowns</td><td className="text-right">~24 prevented/yr</td><td className="text-right font-bold text-[#E8200C]">$80K - $180K</td></tr>
-          <tr className="border-b border-gray-100"><td className="py-2">Labor Savings</td><td className="text-right">30% fewer site visits Ã— $85/hr burden</td><td className="text-right font-bold text-[#E8200C]">$40K - $90K</td></tr>
+          <tr className="border-b border-gray-100"><td className="py-2">Labor Savings</td><td className="text-right">30% fewer site visits x $85/hr burden</td><td className="text-right font-bold text-[#E8200C]">$40K - $90K</td></tr>
           <tr className="border-t-2 border-[#E8200C]"><td className="py-2 font-bold text-black">Total Estimated Savings</td><td></td><td className="text-right font-bold text-[#E8200C] text-lg">$420K - $900K</td></tr>
         </tbody>
       </table>
@@ -160,7 +160,7 @@ function ComparisonSheet() {
             ['Well unloads / slugs', 'Risk of full pad shutdown. Pumper may not notice until next visit.', 'Detected instantly. Sales valve opens to relieve pressure.'],
             ['Multiple compressors down', 'Cascading failure. Hours of chaos.', 'Automatic staging and priority enforcement across remaining capacity.'],
             ['Night / weekend coverage', 'Unmanned. On-call pumper 45-90 min away.', '24/7 automatic. Same response at 2AM as 2PM.'],
-            ['Choke adjustments', 'Manual â€” pumper drives to pad, adjusts each well.', 'Automatic â€” continuous optimization, zero trips needed.'],
+            ['Choke adjustments', 'Manual - pumper drives to pad, adjusts each well.', 'Automatic - continuous optimization, zero trips needed.'],
           ].map(([scenario, manual, wl], i) => (
             <tr key={i} className="border-b border-gray-100">
               <td className="py-2 font-bold text-black">{scenario}</td>
@@ -187,7 +187,7 @@ function SpecsSheet() {
               ['Controller', 'SC DE-4000'],
               ['Enclosure', 'NEMA 4X Stainless Steel'],
               ['Power', '24VDC / 120VAC'],
-              ['Operating Temp', '-40Â°F to 140Â°F'],
+              ['Operating Temp', '-40 deg F to 140 deg F'],
               ['Hazardous Area', 'Class I, Div 2 rated'],
             ].map(([k, v], i) => <tr key={i} className="border-b border-gray-100"><td className="py-1 text-gray-500">{k}</td><td className="py-1 font-bold text-right">{v}</td></tr>)}</tbody>
           </table>

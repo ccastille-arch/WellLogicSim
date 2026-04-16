@@ -11,7 +11,7 @@ const TUTORIAL_STEPS = [
   {
     selector: '[data-tutorial="choke-manual-0"]',
     title: 'Manual Setpoint (SP)',
-    description: 'This is the operator\'s manual setpoint for the choke valve position (0â€“100%). Use the â†“ and â†‘ arrows to adjust. In Auto mode, the Pad Logic optimizer will override this value. In Manual mode, this value directly controls the valve.',
+    description: 'This is the operator\'s manual setpoint for the choke valve position (0-100%). Use the down and up arrows to adjust. In Auto mode, the Pad Logic optimizer will override this value. In Manual mode, this value directly controls the valve.',
     position: 'bottom',
   },
   {
@@ -23,7 +23,7 @@ const TUTORIAL_STEPS = [
   {
     selector: '[data-tutorial="choke-ao-0"]',
     title: 'Analog Output (AO)',
-    description: 'This is the actual output signal being sent to the choke valve right now (0â€“100%). It reflects what the valve is actually doing â€” the real-time control output. Compare this to the Manual SP to see if the optimizer is overriding.',
+    description: 'This is the actual output signal being sent to the choke valve right now (0-100%). It reflects what the valve is actually doing - the real-time control output. Compare this to the Manual SP to see if the optimizer is overriding.',
     position: 'bottom',
   },
   {
@@ -35,7 +35,7 @@ const TUTORIAL_STEPS = [
   {
     selector: '[data-tutorial="estop-indicators"]',
     title: 'Emergency Stop (E-Stop) Indicators',
-    description: 'Customer Remote E-Stop and Local E-Stop indicators. Green means the E-Stop is NOT active (system is clear to operate). If either turns red, all compressors are immediately shut down for safety â€” the optimizer cannot override an E-Stop.',
+    description: 'Customer Remote E-Stop and Local E-Stop indicators. Green means the E-Stop is NOT active (system is clear to operate). If either turns red, all compressors are immediately shut down for safety - the optimizer cannot override an E-Stop.',
     position: 'top',
   },
   {
@@ -111,7 +111,7 @@ export default function TutorialOverlay({ active, onEnd }) {
 
   const padding = 8
 
-  // Calculate bubble position â€” clamped to stay within viewport
+  // Calculate bubble position - clamped to stay within viewport
   let bubbleStyle = {}
   if (targetRect) {
     const bw = 340 // bubble width
@@ -200,7 +200,7 @@ export default function TutorialOverlay({ active, onEnd }) {
               <button
                 onClick={onEnd}
                 className="text-[#888] hover:text-white text-sm leading-none"
-              >âœ•</button>
+              >X</button>
             </div>
             {/* Title */}
             <h4 className="text-sm font-bold text-white mb-2" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
@@ -217,7 +217,7 @@ export default function TutorialOverlay({ active, onEnd }) {
                 disabled={step === 0}
                 className="px-3 py-1 text-[11px] font-bold text-[#888] hover:text-white disabled:opacity-30 disabled:cursor-default"
               >
-                â† Back
+                Back
               </button>
               {/* Progress dots */}
               <div className="flex gap-1">
@@ -235,7 +235,7 @@ export default function TutorialOverlay({ active, onEnd }) {
                 }}
                 className="px-3 py-1 text-[11px] font-bold bg-[#4fc3f7] text-black rounded hover:bg-[#29b6f6]"
               >
-                {step < TUTORIAL_STEPS.length - 1 ? 'Next â†’' : 'Finish'}
+                {step < TUTORIAL_STEPS.length - 1 ? 'Next' : 'Finish'}
               </button>
             </div>
             <div className="text-[9px] text-[#666] mt-2 text-center">

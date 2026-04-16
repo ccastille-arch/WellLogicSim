@@ -43,6 +43,21 @@ import { WellLogicCompact } from './components/WellLogicBrand'
 
 function AppContent() {
   const { user, isAdmin, isTech, canViewQuotes, canAccess, logout, trackActivity, settings, loading } = useAuth()
+  const [page, setPage] = useState('home')
+  const [config, setConfig] = useState(null)
+  const [tutorialMode, setTutorialMode] = useState(false)
+  const [showLogin, setShowLogin] = useState(null)
+  const [showForum, setShowForum] = useState(false)
+  const navigate = useCallback((target) => {
+    trackActivity?.(`Navigated to ${target}`, target)
+    // Permission-gated tiles
+    const gatedTiles = ['simulator', 'admin', 'pipeline']
+    if (gatedTiles.includes(target) && !canAccess(target)) {
+      setShowLogin({ target })
+      return
+    }
+    setPage(target)
+  }, [canAccess, trackActivity])
 
   // Show spinner while restoring session from server
   if (loading) {
@@ -57,22 +72,6 @@ function AppContent() {
       </div>
     )
   }
-  const [page, setPage] = useState('home')
-  const [config, setConfig] = useState(null)
-  const [tutorialMode, setTutorialMode] = useState(false)
-  const [showLogin, setShowLogin] = useState(null)
-  const [showForum, setShowForum] = useState(false)
-
-  const navigate = useCallback((target) => {
-    trackActivity?.(`Navigated to ${target}`, target)
-    // Permission-gated tiles
-    const gatedTiles = ['simulator', 'admin', 'pipeline']
-    if (gatedTiles.includes(target) && !canAccess(target)) {
-      setShowLogin({ target })
-      return
-    }
-    setPage(target)
-  }, [canAccess, trackActivity])
 
   // Require signup/login before accessing anything
   if (!user) return <SignupGate />
