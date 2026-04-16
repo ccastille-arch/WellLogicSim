@@ -64,6 +64,11 @@ const LIVE_WELL_YESTERDAY_KEYS = [
   ['Wellhead #4 Yesterdays Total Flow', 'Well 4 Yesterdays Total Flow'],
 ]
 
+const COMPRESSOR_DESIRED_FLOW_KEYS = [
+  ['Compressor #1 Desire Flow SP For PID Murphy', 'Compressor #1 Desired Flow SP For PID Murphy'],
+  ['Compressor #2 Desire Flow SP For PID Murphy', 'Compressor #2 Desired Flow SP For PID Murphy'],
+]
+
 function getFirstDatapoint(dataMap, keys) {
   for (const key of keys) {
     if (dataMap[key] != null) return dataMap[key]
@@ -155,7 +160,8 @@ export default function MLinkDashboard({ onBack }) {
   const visibleRegisters = getVisibleLiveRegisters(panel, registerCatalog, settings?.liveDataRegisterVisibility || {})
   const visibleCompressorARegisters = getVisibleCompressorRegisters(compA, settings?.liveDataCompressorVisibility || {})
   const visibleCompressorBRegisters = getVisibleCompressorRegisters(compB, settings?.liveDataCompressorVisibility || {})
-  const padRegisters = visibleRegisters.filter(meta => meta.groupId === 'pad')
+  const hourMeterRegister = visibleRegisters.find(meta => meta.label === 'Hour Meter')
+  const padRegisters = visibleRegisters.filter(meta => meta.groupId === 'pad' && meta.label !== 'Hour Meter')
   const additionalWellRegisters = LIVE_WELL_FLOW_KEYS.map((_, index) =>
     visibleRegisters.filter(meta => (
       meta.groupId === `well-${index + 1}`
@@ -163,6 +169,39 @@ export default function MLinkDashboard({ onBack }) {
       && !meta.label.endsWith('Yesterdays Flow')
     )),
   )
+  const liveWellPerformance = LIVE_WELL_FLOW_KEYS.map((keys, index) => {
+    const wellNumber = index + 1
+    const actual = parseLiveNumeric(getFirstDatapoint(panel, keys)?.value)
+    const desired = parseLiveNumeric(getFirstDatapoint(panel, [
+      `Wellhead #${wellNumber} Calculated Desired Flow`,
+      `Wellhead #${wellNumber} Setpoint From Customer PLC`,
+    ])?.value)
+    const gap = actual != null && desired != null ? actual - desired : null
+    return {
+      wellNumber,
+      actual,
+      desired,
+      gap,
+      matchPct: computeMatchPct(actual, desired),
+      atTarget: isWithinTarget(actual, desired),
+    }
+  })
+  const liveCompressorPerformance = [compA, compB].map((compressorData, index) => ({
+    desired: parseLiveNumeric(getFirstDatapoint(panel, COMPRESSOR_DESIRED_FLOW_KEYS[index])?.value),
+    actual: parseLiveNumeric(compressorData['Flow Rate PID PV']?.value),
+  }))
+  const validWells = liveWellPerformance.filter(well => well.actual != null && well.desired != null)
+  const historicalStats = buildHistoricalWellStats(klondike.data)
+  const historicalAtTarget = average(historicalStats.map(stat => stat.atTargetPct))
+  const wowMetrics = {
+    totalActual: validWells.reduce((sum, well) => sum + well.actual, 0),
+    totalDesired: validWells.reduce((sum, well) => sum + well.desired, 0),
+    currentMatch: average(validWells.map(well => well.matchPct)),
+    wellsAtTarget: validWells.filter(well => well.atTarget).length,
+    historicalAtTarget,
+    historicalUnderTarget: historicalAtTarget != null ? Math.max(0, 100 - historicalAtTarget) : null,
+    compressorMatch: average(liveCompressorPerformance.map(comp => computeMatchPct(comp.actual, comp.desired))),
+  }
 
   return (
     <div className="flex-1 flex flex-col bg-[#080810] overflow-hidden">
@@ -201,7 +240,7 @@ export default function MLinkDashboard({ onBack }) {
 
       <div className="flex-1 overflow-auto p-6">
         {tab === 'live' ? (
-          <div className="max-w-[1000px] mx-auto">
+          <div className="max-w-[1280px] mx-auto">
             {loading && !panelData ? (
               <div className="text-center py-20 text-[#888]">Connecting to field unit...</div>
             ) : (
@@ -212,14 +251,22 @@ export default function MLinkDashboard({ onBack }) {
                   </div>
                 )}
 
+                <LivePerformanceHero
+                  metrics={wowMetrics}
+                  wells={liveWellPerformance}
+                  timestamp={panelTime}
+                />
+
                 {/* Panel status */}
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-3 h-3 rounded-full bg-[#22c55e] shadow-lg shadow-[#22c55e]/50" />
                   <span className="text-[13px] text-[#22c55e] font-bold">ONLINE - Panel Active</span>
-                  <span className="text-[10px] text-[#888] ml-auto">
-                    Hour Meter: {panel['	 Hour Meter']?.value || panel['Hour Meter']?.value || '--'} hours
-                  </span>
+                  <div className="ml-auto flex items-center gap-2">
+                    <span className="rounded-full border border-[#2f2f40] bg-[#111120] px-2 py-0.5 text-[8px] uppercase tracking-[0.18em] text-[#777]">
+                      Hour Meter <span className="ml-1 text-[10px] text-white font-bold normal-case tracking-normal">{formatHourMeterValue(hourMeterRegister?.datapoint?.value ?? panel['\t Hour Meter']?.value ?? panel['Hour Meter']?.value)}</span>
+                    </span>
                   {panelTime && <span className="text-[10px] text-[#555]">Data from: {panelTime.toLocaleString()}</span>}
+                  </div>
                 </div>
 
                 {/* Well Flow Rates */}
@@ -303,8 +350,20 @@ export default function MLinkDashboard({ onBack }) {
 
                 {/* Compressors */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
-                  <CompressorCard label="Compressor A" data={compA} time={compATime} registers={visibleCompressorARegisters} />
-                  <CompressorCard label="Compressor B" data={compB} time={getTimestamp(compBData)} registers={visibleCompressorBRegisters} />
+                  <CompressorCard
+                    label="Compressor A"
+                    data={compA}
+                    time={compATime}
+                    desiredFlow={getFirstDatapoint(panel, COMPRESSOR_DESIRED_FLOW_KEYS[0])}
+                    registers={visibleCompressorARegisters}
+                  />
+                  <CompressorCard
+                    label="Compressor B"
+                    data={compB}
+                    time={getTimestamp(compBData)}
+                    desiredFlow={getFirstDatapoint(panel, COMPRESSOR_DESIRED_FLOW_KEYS[1])}
+                    registers={visibleCompressorBRegisters}
+                  />
                 </div>
               </>
             )}
@@ -333,10 +392,14 @@ export default function MLinkDashboard({ onBack }) {
   )
 }
 
-function CompressorCard({ label, data, time, registers }) {
+function CompressorCard({ label, data, time, desiredFlow, registers }) {
   const rpm = data['Compressor Speed'] || data['Driver Speed']
   const shutdown = data['Skid - Shutdown']
   const isRunning = rpm && parseFloat(rpm.value) > 100 && !(shutdown && String(shutdown.value).toLowerCase().includes('shutdown'))
+  const actualFlow = data['Flow Rate PID PV']
+  const visibleRegisters = registers.filter(meta => meta.label !== 'Flow Rate PID PV')
+  const desiredFlowValue = formatFlowValue(desiredFlow?.value)
+  const actualFlowValue = formatFlowValue(actualFlow?.value)
 
   return (
     <div className="bg-[#111118] rounded-xl border border-[#222] p-5">
@@ -347,8 +410,24 @@ function CompressorCard({ label, data, time, registers }) {
           {isRunning ? 'RUNNING' : 'STOPPED'}
         </span>
       </div>
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <DataPoint
+          label="Desired Flow"
+          value={desiredFlowValue}
+          unit={desiredFlow?.units || 'MMSCFD'}
+          color="#4fc3f7"
+          compact
+        />
+        <DataPoint
+          label="Actual Flow"
+          value={actualFlowValue}
+          unit={actualFlow?.units || 'MMSCFD'}
+          color={getCompressorColor('Flow Rate PID PV', actualFlow?.value)}
+          compact
+        />
+      </div>
       <div className="grid grid-cols-2 gap-2">
-        {registers.map(meta => (
+        {visibleRegisters.map(meta => (
           <DataPoint
             key={meta.id}
             label={meta.label}
@@ -363,6 +442,120 @@ function CompressorCard({ label, data, time, registers }) {
   )
 }
 
+function LivePerformanceHero({ metrics, wells, timestamp }) {
+  const headline = metrics.currentMatch != null && metrics.currentMatch >= 97
+    ? 'Running Tight. Running On Target.'
+    : metrics.currentMatch != null && metrics.currentMatch >= 93
+      ? 'Pad Logic Is Holding This Pad In Tight Balance.'
+      : 'Live Field Data Is Tracking In Real Time.'
+
+  return (
+    <div className="mb-5 overflow-hidden rounded-2xl border border-[#1c2d21] bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),_rgba(8,8,16,0.95)_45%),linear-gradient(135deg,_#10151d,_#090b12)] shadow-[0_0_50px_rgba(34,197,94,0.08)]">
+      <div className="grid gap-5 p-5 lg:grid-cols-[1.15fr_0.85fr]">
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <span className="rounded-full border border-[#20502d] bg-[#0e1e13] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#66f0a0]">
+              Live Performance Proof
+            </span>
+            {timestamp && <span className="text-[10px] text-[#6b7280]">Snapshot {timestamp.toLocaleString()}</span>}
+          </div>
+          <div className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#ff6b57]">
+            Does Your SCADA Do This?
+          </div>
+          <h2 className="text-[30px] font-black leading-none text-white" style={{ fontFamily: "'Arial Black'" }}>
+            {headline}
+          </h2>
+          <p className="mt-2 max-w-[680px] text-[13px] leading-relaxed text-[#a0a7b5]">
+            This is actual live data from a running location right now. Customers should see instantly how tightly this pad is operating:
+            actual well injection riding on top of desired injection, compressors carrying commanded flow, and the historical time spent
+            below target exposed in plain sight.
+          </p>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-4">
+            <WowMetricCard
+              label="Live Injection Match"
+              value={formatPercent(metrics.currentMatch, 1)}
+              tone="green"
+              helper={metrics.totalDesired ? `${metrics.totalActual.toFixed(3)} actual vs ${metrics.totalDesired.toFixed(3)} desired` : 'Waiting on desired-rate tags'}
+            />
+            <WowMetricCard
+              label="Wells On Target"
+              value={metrics.wellsAtTarget != null ? `${metrics.wellsAtTarget}/4` : '--'}
+              tone="blue"
+              helper="Within 3% of desired injection"
+            />
+            <WowMetricCard
+              label="30-Day Under Target"
+              value={formatPercent(metrics.historicalUnderTarget, 1)}
+              tone={metrics.historicalUnderTarget != null && metrics.historicalUnderTarget <= 8 ? 'green' : 'amber'}
+              helper="Time spent not meeting desired injection"
+            />
+            <WowMetricCard
+              label="Compressor Flow Match"
+              value={formatPercent(metrics.compressorMatch, 1)}
+              tone="purple"
+              helper="Desired flow vs actual compressor flow"
+            />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[#1c2836] bg-[#0a0f17]/90 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9db2ce]">Actual vs Desired By Well</span>
+            <span className="text-[10px] text-[#5e6b80]">Live target tracking</span>
+          </div>
+          <div className="space-y-3">
+            {wells.map((well) => (
+              <div key={well.wellNumber} className="rounded-xl border border-[#15202d] bg-[#0b1119] p-3">
+                <div className="mb-1 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-bold text-white">Well {well.wellNumber}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${well.atTarget ? 'bg-[#0d2d18] text-[#58e68f]' : 'bg-[#33260c] text-[#f7c65d]'}`}>
+                      {well.atTarget ? 'On Target' : 'Chasing'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-[#8d97a8]">{formatPercent(well.matchPct, 1)} match</span>
+                </div>
+                <div className="grid grid-cols-[1fr_auto_auto] gap-3 text-[11px]">
+                  <div className="pt-1">
+                    <div className="h-2 overflow-hidden rounded-full bg-[#14202c]">
+                      <div className="h-full rounded-full bg-gradient-to-r from-[#22c55e] to-[#4fc3f7]" style={{ width: `${Math.max(0, Math.min(100, well.matchPct ?? 0))}%` }} />
+                    </div>
+                  </div>
+                  <span className="font-bold text-[#22c55e]">{formatFlow(well.actual)}</span>
+                  <span className="text-[#8d97a8]">of {formatFlow(well.desired)}</span>
+                </div>
+                <div className="mt-1 text-[10px] text-[#697386]">
+                  Gap {formatSignedFlow(well.gap)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function WowMetricCard({ label, value, helper, tone }) {
+  const tones = {
+    green: 'from-[#10311f] to-[#0e1712] border-[#1d6c3d] text-[#5def95]',
+    blue: 'from-[#10273d] to-[#0f151d] border-[#275d92] text-[#72c8ff]',
+    amber: 'from-[#34260e] to-[#17120d] border-[#8a6421] text-[#f8c767]',
+    purple: 'from-[#26183a] to-[#121019] border-[#5c3ea1] text-[#c69bff]',
+  }
+
+  return (
+    <div className={`rounded-2xl border bg-gradient-to-br p-4 ${tones[tone] || tones.green}`}>
+      <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">{label}</div>
+      <div className="mt-2 text-[28px] font-black leading-none text-white" style={{ fontFamily: "'Arial Black'" }}>
+        {value}
+      </div>
+      <div className="mt-2 text-[11px] leading-relaxed text-white/65">{helper}</div>
+    </div>
+  )
+}
+
 function LiveRegisterRow({ label, value, unit }) {
   return (
     <div className="flex items-start justify-between gap-3">
@@ -373,6 +566,16 @@ function LiveRegisterRow({ label, value, unit }) {
       </div>
     </div>
   )
+}
+
+function formatFlowValue(value) {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric.toFixed(3) : '--'
+}
+
+function formatHourMeterValue(value) {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric.toLocaleString() : '--'
 }
 
 function getCompressorUnit(label) {
@@ -403,18 +606,73 @@ function getCompressorColor(label, value) {
   return '#fff'
 }
 
-function DataPoint({ label, value, unit, color }) {
+function DataPoint({ label, value, unit, color, compact = false }) {
   return (
-    <div className="bg-[#0a0a14] rounded border border-[#2a2a3a] p-2">
+    <div className={`bg-[#0a0a14] rounded border border-[#2a2a3a] ${compact ? 'p-2' : 'p-2'}`}>
       <div className="text-[8px] text-[#888] uppercase tracking-wider">{label}</div>
       <div className="flex items-baseline gap-1">
-        <span className="text-[14px] font-bold" style={{ color: color || '#fff', fontFamily: "'Arial Black'" }}>
+        <span className={compact ? 'text-[16px] font-bold' : 'text-[14px] font-bold'} style={{ color: color || '#fff', fontFamily: "'Arial Black'" }}>
           {value || '--'}
         </span>
         <span className="text-[8px] text-[#666]">{unit}</span>
       </div>
     </div>
   )
+}
+
+function parseLiveNumeric(value) {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+function computeMatchPct(actual, desired) {
+  if (actual == null || desired == null || desired <= 0) return null
+  return Math.max(0, 100 - (Math.abs(actual - desired) / desired) * 100)
+}
+
+function isWithinTarget(actual, desired) {
+  if (actual == null || desired == null || desired <= 0) return false
+  return Math.abs(actual - desired) <= desired * 0.03
+}
+
+function average(values) {
+  const valid = values.filter(value => value != null && Number.isFinite(value))
+  if (!valid.length) return null
+  return valid.reduce((sum, value) => sum + value, 0) / valid.length
+}
+
+function buildHistoricalWellStats(data = []) {
+  if (!data.length) return []
+
+  return [0, 1, 2, 3].map((wellIdx) => {
+    const samples = data.filter(row => row.wells?.[wellIdx])
+    if (!samples.length) return { atTargetPct: null }
+
+    const good = samples.filter((row) => {
+      const well = row.wells[wellIdx]
+      const target = well.desiredInjectionRateMmscfd ?? well.setpointMmscfd
+      const actual = well.flowMmscfd
+      if (target == null || actual == null || target <= 0) return false
+      return Math.abs(actual - target) <= target * 0.05
+    }).length
+
+    return {
+      atTargetPct: (good / samples.length) * 100,
+    }
+  })
+}
+
+function formatPercent(value, decimals = 0) {
+  return value != null && Number.isFinite(value) ? `${value.toFixed(decimals)}%` : '--'
+}
+
+function formatFlow(value) {
+  return value != null && Number.isFinite(value) ? `${value.toFixed(3)} MMSCFD` : '--'
+}
+
+function formatSignedFlow(value) {
+  if (value == null || !Number.isFinite(value)) return '--'
+  return `${value > 0 ? '+' : ''}${value.toFixed(3)} MMSCFD`
 }
 
 // â”€â”€â”€ Klondike 30-Day History Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
