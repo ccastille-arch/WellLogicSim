@@ -349,6 +349,21 @@ function buildCandidateLabels(label) {
     candidates.add('3rd Stage Discharge Temp')
   }
 
+  if (label === 'Flow Rate PID PV') {
+    candidates.add('Flow Rate PV')
+    candidates.add('Flow PID PV')
+    candidates.add('Compressor Flow Rate PID PV')
+  }
+
+  const compressorDesiredMatch = label.match(/^Compressor #?(\d+) Desir(?:e|ed) Flow SP For PID Murphy$/i)
+  if (compressorDesiredMatch) {
+    const compressorNumber = compressorDesiredMatch[1]
+    candidates.add(`Compressor #${compressorNumber} Desire Flow SP For PID Murphy`)
+    candidates.add(`Compressor #${compressorNumber} Desired Flow SP For PID Murphy`)
+    candidates.add(`Compressor ${compressorNumber} Desire Flow SP For PID Murphy`)
+    candidates.add(`Compressor ${compressorNumber} Desired Flow SP For PID Murphy`)
+  }
+
   if (wellMatch) {
     const wellNumber = wellMatch[1]
     const suffix = wellMatch[2]
@@ -419,8 +434,9 @@ function buildCandidateLabels(label) {
       candidates.add(`Wellhead #${wellNumber} PID Min Output`)
     }
 
-    if (suffix === 'Setpoint') {
+    if (suffix === 'Setpoint' || suffix === 'Setpoint From Customer PLC') {
       candidates.add(`Wellhead #${wellNumber} Setpoint From Customer PLC`)
+      candidates.add(`Well ${wellNumber} Setpoint From Customer PLC`)
     }
   }
 

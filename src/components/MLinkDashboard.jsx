@@ -3,6 +3,7 @@ import { useKlondikeData } from '../engine/klondikeData'
 import { useAuth } from './auth/AuthProvider'
 import {
   COMPRESSOR_DEFAULT_VISIBLE_LABELS,
+  findRegisterDatapoint,
   getVisibleCompressorRegisters,
   LIVE_DATA_DEVICES,
   formatLiveRegisterValue,
@@ -169,13 +170,33 @@ export default function MLinkDashboard({ onBack }) {
       && !meta.label.endsWith('Yesterdays Flow')
     )),
   )
+  const compressorDesiredDatapoints = COMPRESSOR_DESIRED_FLOW_KEYS.map((keys, index) =>
+    resolvePreferredDatapoint(panel, [
+      ...keys,
+      `Compressor ${index + 1} Desire Flow SP For PID Murphy`,
+      `Compressor ${index + 1} Desired Flow SP For PID Murphy`,
+    ]),
+  )
+  const compressorActualFlowDatapoints = [compA, compB].map((compressorData) =>
+    resolvePreferredDatapoint(compressorData, [
+      'Flow Rate PID PV',
+      'Flow Rate PV',
+      'Flow PID PV',
+      'Compressor Flow Rate PID PV',
+    ]),
+  )
   const liveWellPerformance = LIVE_WELL_FLOW_KEYS.map((keys, index) => {
     const wellNumber = index + 1
     const actual = parseLiveNumeric(getFirstDatapoint(panel, keys)?.value)
-    const desired = parseLiveNumeric(getFirstDatapoint(panel, [
+    const desiredDatapoint = resolvePreferredDatapoint(panel, [
       `Wellhead #${wellNumber} Calculated Desired Flow`,
       `Wellhead #${wellNumber} Setpoint From Customer PLC`,
-    ])?.value)
+      `Well ${wellNumber} Calculated Desired Flow`,
+      `Well ${wellNumber} Setpoint From Customer PLC`,
+    ])
+    const historicalDesired = latestHistoryRow?.wells?.[index]?.desiredInjectionRateMmscfd
+      ?? latestHistoryRow?.wells?.[index]?.setpointMmscfd
+    const desired = parseLiveNumeric(desiredDatapoint?.value) ?? historicalDesired ?? null
     const gap = actual != null && desired != null ? actual - desired : null
     return {
       wellNumber,
@@ -187,8 +208,10 @@ export default function MLinkDashboard({ onBack }) {
     }
   })
   const liveCompressorPerformance = [compA, compB].map((compressorData, index) => ({
-    desired: parseLiveNumeric(getFirstDatapoint(panel, COMPRESSOR_DESIRED_FLOW_KEYS[index])?.value),
-    actual: parseLiveNumeric(compressorData['Flow Rate PID PV']?.value),
+    desired: parseLiveNumeric(compressorDesiredDatapoints[index]?.value)
+      ?? latestHistoryRow?.[`comp${index + 1}DesiredFlow`]
+      ?? null,
+    actual: parseLiveNumeric(compressorActualFlowDatapoints[index]?.value),
   }))
   const validWells = liveWellPerformance.filter(well => well.actual != null && well.desired != null)
   const historicalStats = buildHistoricalWellStats(klondike.data)
@@ -354,14 +377,16 @@ export default function MLinkDashboard({ onBack }) {
                     label="Compressor A"
                     data={compA}
                     time={compATime}
-                    desiredFlow={getFirstDatapoint(panel, COMPRESSOR_DESIRED_FLOW_KEYS[0])}
+                    desiredFlow={compressorDesiredDatapoints[0]}
+                    actualFlow={compressorActualFlowDatapoints[0]}
                     registers={visibleCompressorARegisters}
                   />
                   <CompressorCard
                     label="Compressor B"
                     data={compB}
                     time={getTimestamp(compBData)}
-                    desiredFlow={getFirstDatapoint(panel, COMPRESSOR_DESIRED_FLOW_KEYS[1])}
+                    desiredFlow={compressorDesiredDatapoints[1]}
+                    actualFlow={compressorActualFlowDatapoints[1]}
                     registers={visibleCompressorBRegisters}
                   />
                 </div>
@@ -392,11 +417,10 @@ export default function MLinkDashboard({ onBack }) {
   )
 }
 
-function CompressorCard({ label, data, time, desiredFlow, registers }) {
+function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers }) {
   const rpm = data['Compressor Speed'] || data['Driver Speed']
   const shutdown = data['Skid - Shutdown']
   const isRunning = rpm && parseFloat(rpm.value) > 100 && !(shutdown && String(shutdown.value).toLowerCase().includes('shutdown'))
-  const actualFlow = data['Flow Rate PID PV']
   const visibleRegisters = registers.filter(meta => meta.label !== 'Flow Rate PID PV')
   const desiredFlowValue = formatFlowValue(desiredFlow?.value)
   const actualFlowValue = formatFlowValue(actualFlow?.value)
@@ -623,6 +647,14 @@ function DataPoint({ label, value, unit, color, compact = false }) {
 function parseLiveNumeric(value) {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric : null
+}
+
+function resolvePreferredDatapoint(dataMap, labels) {
+  for (const label of labels) {
+    const datapoint = findRegisterDatapoint(dataMap, { label, decimals: 3 })
+    if (datapoint) return datapoint
+  }
+  return null
 }
 
 function computeMatchPct(actual, desired) {
