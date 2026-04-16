@@ -642,7 +642,7 @@ function average(values) {
 }
 
 function buildHistoricalWellStats(data = []) {
-  if (!data.length) return []
+  if (!Array.isArray(data) || !data.length) return []
 
   return [0, 1, 2, 3].map((wellIdx) => {
     const samples = data.filter(row => row.wells?.[wellIdx])
