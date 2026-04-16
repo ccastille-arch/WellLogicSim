@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import SiteOverview from '../SiteOverview'
 import { getMetrics } from '../../engine/simulation'
 import { WellLogicCompact } from '../WellLogicBrand'
+import { useAuth } from '../auth/AuthProvider'
 
 // AUTO-PILOT PRESENTATION MODE
 // Runs the entire WellLogic demo automatically.
@@ -156,6 +157,7 @@ const SCRIPT = [
 ]
 
 export default function AutoPilot({ sim, onExit }) {
+  const { isAdmin } = useAuth()
   const [step, setStep] = useState(-1) // -1 = not started
   const [paused, setPaused] = useState(false)
   const [uploadedAudio, setUploadedAudio] = useState(null)
@@ -285,39 +287,47 @@ export default function AutoPilot({ sim, onExit }) {
             </div>
             <div className="text-4xl text-white font-bold mb-3" style={{ fontFamily: "'Arial Black'" }}>Pad Logic</div>
             <div className="text-sm text-[#888] mb-8">Automated Gas Lift Injection Optimization</div>
-            <div className="mb-6 w-[360px] max-w-full mx-auto bg-[#111118] border border-[#222] rounded-xl p-4 text-left">
-              <label className="block text-[10px] text-[#888] mb-2 uppercase tracking-[0.2em] font-bold">
-                Presentation Narration Audio
-              </label>
-              <input
-                type="file"
-                accept="audio/*"
-                onChange={handleAudioUpload}
-                className="block w-full text-[11px] text-[#aaa] file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:bg-[#E8200C] file:text-white file:font-bold hover:file:bg-[#c01a0a]"
-              />
-              <p className="text-[10px] text-[#666] mt-2">
-                Upload your recorded narration. It will play from the start when the presentation begins and pause with the presentation.
-              </p>
-              {uploadedAudio ? (
-                <div className="mt-3">
-                  <div className="text-[10px] text-[#22c55e] font-bold mb-2">Loaded: {uploadedAudio.name}</div>
-                  <audio controls src={uploadedAudio.url} className="w-full" />
+            {isAdmin && (
+              <>
+                <div className="mb-6 w-[360px] max-w-full mx-auto bg-[#111118] border border-[#222] rounded-xl p-4 text-left">
+                  <label className="block text-[10px] text-[#888] mb-2 uppercase tracking-[0.2em] font-bold">
+                    Presentation Narration Audio
+                  </label>
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    onChange={handleAudioUpload}
+                    className="block w-full text-[11px] text-[#aaa] file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:bg-[#E8200C] file:text-white file:font-bold hover:file:bg-[#c01a0a]"
+                  />
+                  <p className="text-[10px] text-[#666] mt-2">
+                    Upload your recorded narration. It will play from the start when the presentation begins and pause with the presentation.
+                  </p>
+                  {uploadedAudio ? (
+                    <div className="mt-3">
+                      <div className="text-[10px] text-[#22c55e] font-bold mb-2">Loaded: {uploadedAudio.name}</div>
+                      <audio controls src={uploadedAudio.url} className="w-full" />
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-[#555] mt-3">
+                      No AI voice will be used. If you do not upload a file, the presentation runs silently.
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="text-[10px] text-[#555] mt-3">
-                  No AI voice will be used. If you do not upload a file, the presentation runs silently.
+                <div className="mb-6 text-[10px] text-[#555]">
+                  Manual `Next` or `Prev` will stop the uploaded narration track so it does not drift out of sync.
                 </div>
-              )}
-            </div>
-            <div className="mb-6 text-[10px] text-[#555]">
-              Manual `Next` or `Prev` will stop the uploaded narration track so it does not drift out of sync.
-            </div>
+              </>
+            )}
             <button onClick={start}
               className="px-12 py-4 bg-[#E8200C] hover:bg-[#c01a0a] text-white font-bold rounded-xl text-lg transition-all hover:scale-105 shadow-xl shadow-[#E8200C]/30"
               style={{ fontFamily: "'Arial Black'" }}>
               ▶ Start Presentation
             </button>
-            <p className="text-[10px] text-[#555] mt-4">Runs automatically with your uploaded narration track. Use Pause/Next to control pace.</p>
+            <p className="text-[10px] text-[#555] mt-4">
+              {isAdmin
+                ? 'Runs automatically with your uploaded narration track. Use Pause/Next to control pace.'
+                : 'Runs automatically as a silent presentation. Admin login is required to load narration audio.'}
+            </p>
           </div>
         </div>
       ) : (

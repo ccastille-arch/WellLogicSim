@@ -10,6 +10,18 @@ import {
   parseLiveDatapoints,
 } from '../../../engine/liveRegisters'
 
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
+async function fetchDevice(deviceId) {
+  try {
+    const res = await fetch(`${API_BASE}/api/mlink/device?deviceId=${encodeURIComponent(deviceId)}`)
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
 export default function SettingsTab() {
   const { settings, updateSettings } = useAuth()
   const [registerCatalog, setRegisterCatalog] = useState([])
@@ -26,9 +38,9 @@ export default function SettingsTab() {
       try {
         const [catalog, panelResponse, compAResponse, compBResponse] = await Promise.all([
           loadAwiRegisterCatalog(),
-          fetch(`/api/mlink/device?deviceId=${LIVE_DATA_DEVICES.panel}`).then(res => res.ok ? res.json() : null),
-          fetch(`/api/mlink/device?deviceId=${LIVE_DATA_DEVICES.compA}`).then(res => res.ok ? res.json() : null),
-          fetch(`/api/mlink/device?deviceId=${LIVE_DATA_DEVICES.compB}`).then(res => res.ok ? res.json() : null),
+          fetchDevice(LIVE_DATA_DEVICES.panel),
+          fetchDevice(LIVE_DATA_DEVICES.compA),
+          fetchDevice(LIVE_DATA_DEVICES.compB),
         ])
 
         if (!mounted) return

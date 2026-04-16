@@ -1,314 +1,658 @@
-﻿import { useState, useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
-// Simulates what Pad Logic does when an operator changes a well's injection setpoint.
-// Shows the choke valve responding, flow rate tracking to the new target, and
-// how the suction header pressure and other wells react to the redistribution.
+const TOTAL_CAPACITY = 3350
+const SUCTION_TARGET = 145
+const DEMO_DEVICE = 'Klondike Well Pad COP0001'
 
-const INITIAL_WELLS = [
-  { id: 1, name: 'Well 1', sp: 750, flow: 748, choke: 62, color: '#22c55e' },
-  { id: 2, name: 'Well 2', sp: 820, flow: 817, choke: 71, color: '#4fc3f7' },
-  { id: 3, name: 'Well 3', sp: 680, flow: 678, choke: 55, color: '#f97316' },
-  { id: 4, name: 'Well 4', sp: 900, flow: 895, choke: 80, color: '#a78bfa' },
+const WELL_DEFS = [
+  { id: 1, display: 'Well 1', short: 'W1', desiredFlow: 800, priority: 1, yesterdayFlow: 0.798 },
+  { id: 2, display: 'Well 2', short: 'W2', desiredFlow: 820, priority: 2, yesterdayFlow: 0.814 },
+  { id: 3, display: 'Well 3', short: 'W3', desiredFlow: 840, priority: 3, yesterdayFlow: 0.836 },
+  { id: 4, display: 'Well 4', short: 'W4', desiredFlow: 890, priority: 4, yesterdayFlow: 0.882 },
 ]
-const TOTAL_GAS = 3155 // MCFD available from compressors
-const SUCTION_TARGET = 145 // PSI
 
-export default function SetpointChangeDemo() {
-  const [wells, setWells] = useState(INITIAL_WELLS.map(w => ({ ...w })))
-  const [pendingSp, setPendingSp] = useState(null) // { wellId, value }
-  const [transitioning, setTransitioning] = useState(false)
-  const [suctionPsi, setSuctionPsi] = useState(SUCTION_TARGET)
-  const [logLines, setLogLines] = useState([
-    { t: '00:00', msg: 'System nominal - all wells on setpoint', type: 'ok' },
-  ])
-  const [selectedWell, setSelectedWell] = useState(1)
-  const [newSp, setNewSp] = useState(750)
-  const [tick, setTick] = useState(0)
-  const rafRef = useRef(null)
-  const startRef = useRef(null)
+function pad(value) {
+  return String(value).padStart(2, '0')
+}
 
-  const addLog = (msg, type = 'ok') => {
-    const now = new Date()
-    const t = `${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`
-    setLogLines(l => [...l.slice(-19), { t, msg, type }])
+function stampNow() {
+  const now = new Date()
+  return `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+}
+
+function desiredRegisterForWell(id) {
+  return {
+    label: `Wellhead #${id} Calculated Desired Flow`,
+    register: String(460050 + (id - 1) * 2),
+    units: 'MCFD',
   }
+}
 
-  // Gentle idle oscillation
-  useEffect(() => {
-    if (transitioning) return
-    const id = setInterval(() => {
-      setWells(ws => ws.map(w => ({
-        ...w,
-        flow: w.sp + (Math.random() - 0.5) * 6,
-        choke: w.choke + (Math.random() - 0.5) * 0.4,
-      })))
-      setSuctionPsi(p => SUCTION_TARGET + (Math.random() - 0.5) * 2)
-    }, 800)
-    return () => clearInterval(id)
-  }, [transitioning])
+function priorityRegisterForWell(id) {
+  return {
+    label: `Wellhead #${id} Choke Flow Priority #`,
+    register: String(461002 + (id - 1) * 2),
+    units: 'rank',
+  }
+}
 
-  // Transition animation when setpoint changes
-  useEffect(() => {
-    if (!pendingSp) return
-    setTransitioning(true)
-    startRef.current = performance.now()
+function flowRegisterForWell(id) {
+  return {
+    label: `Wellhead #${id} Injection Flow Rate From Customer PLC`,
+    register: String(460212 + (id - 1) * 14),
+    units: 'MCFD',
+  }
+}
 
-    const DURATION = 4000 // 4s to settle
-    const target = pendingSp
+function runningStatusRegisterForWell(id) {
+  return {
+    label: `WellHead #${id} Running Status`,
+    register: String(460074 + (id - 1) * 2),
+    units: 'state',
+  }
+}
 
-    const loop = (now) => {
-      const elapsed = now - startRef.current
-      const progress = Math.min(1, elapsed / DURATION)
-      const eased = 1 - Math.pow(1 - progress, 3) // ease-out cubic
+function buildStableModel(overrides = {}) {
+  return WELL_DEFS.map((well) => ({
+    ...well,
+    desiredFlow: overrides[well.id]?.desiredFlow ?? well.desiredFlow,
+    priority: overrides[well.id]?.priority ?? well.priority,
+  }))
+}
 
-      setWells(ws => {
-        const updated = ws.map(w => {
-          if (w.id === target.wellId) {
-            // This well tracks to the new setpoint
-            const targetFlow = target.value
-            const targetChoke = Math.min(98, Math.max(10, w.choke + (target.value - w.sp) * 0.08))
-            return {
-              ...w,
-              sp: target.value,
-              flow: w.sp + (targetFlow - w.sp) * eased + (Math.random() - 0.5) * 4,
-              choke: w.choke + (targetChoke - w.choke) * eased + (Math.random() - 0.5) * 0.5,
-            }
-          }
-          // Other wells: slight redistribution to compensate
-          const delta = (target.value - ws.find(x => x.id === target.wellId).sp) / (ws.length - 1)
-          const adjustedSp = Math.max(300, w.sp - delta * 0.3)
-          return {
-            ...w,
-            flow: w.flow + (adjustedSp - w.flow) * eased * 0.15 + (Math.random() - 0.5) * 4,
-          }
-        })
-        return updated
-      })
+function computeSystemState(model) {
+  const sorted = [...model].sort((a, b) => a.priority - b.priority || a.id - b.id)
+  let remaining = TOTAL_CAPACITY
+  const actualById = new Map()
 
-      // Suction pressure responds transiently
-      const transientDip = Math.sin(progress * Math.PI) * 4
-      setSuctionPsi(SUCTION_TARGET - transientDip * (target.value > wells.find(w=>w.id===target.wellId).sp ? 1 : -0.5))
+  sorted.forEach((well) => {
+    const delivered = Math.max(0, Math.min(well.desiredFlow, remaining))
+    actualById.set(well.id, delivered)
+    remaining -= delivered
+  })
 
-      if (progress < 1) {
-        rafRef.current = requestAnimationFrame(loop)
-      } else {
-        setTransitioning(false)
-        setPendingSp(null)
-        addLog(`W${target.wellId} settled at ${target.value} MCFD - system re-balanced`, 'ok')
-      }
+  const wells = model.map((well) => {
+    const actualFlow = actualById.get(well.id) ?? 0
+    const choke = Math.max(16, Math.min(96, 18 + actualFlow / 12))
+    const trackingError = actualFlow - well.desiredFlow
+    return {
+      ...well,
+      actualFlow,
+      choke,
+      status: actualFlow > 50 ? 'Online' : 'Trimmed',
+      tracking: Math.abs(trackingError) <= 8 ? 'At Target' : trackingError < 0 ? 'Priority Limited' : 'Leading',
     }
+  })
 
-    rafRef.current = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(rafRef.current)
-  }, [pendingSp])
+  const totalInjection = wells.reduce((sum, well) => sum + well.actualFlow, 0)
+  const overload = Math.max(0, wells.reduce((sum, well) => sum + well.desiredFlow, 0) - TOTAL_CAPACITY)
+  const suctionPsi = SUCTION_TARGET + Math.min(4.5, overload / 110) - Math.min(2.5, remaining / 220)
 
-  const handleApplySetpoint = () => {
-    const well = wells.find(w => w.id === selectedWell)
-    if (newSp === well.sp) { addLog('Setpoint unchanged - no action taken', 'info'); return }
-    const dir = newSp > well.sp ? 'UP' : 'DOWN'
-    addLog(`Operator changed W${selectedWell} setpoint ${well.sp} -> ${newSp} MCFD ${dir}`, 'change')
-    setTimeout(() => addLog(`Pad Logic adjusting W${selectedWell} choke valve...`, 'info'), 400)
-    setTimeout(() => addLog(`Suction header rebalancing across all wells`, 'info'), 900)
-    setPendingSp({ wellId: selectedWell, value: newSp })
+  return {
+    wells,
+    totalInjection,
+    suctionPsi,
+    remainingCapacity: remaining,
+    overloaded: overload > 0,
   }
+}
 
-  const handleReset = () => {
-    cancelAnimationFrame(rafRef.current)
-    setWells(INITIAL_WELLS.map(w => ({ ...w })))
-    setPendingSp(null)
-    setTransitioning(false)
-    setSuctionPsi(SUCTION_TARGET)
-    setLogLines([{ t: '00:00', msg: 'System reset - all wells on original setpoints', type: 'ok' }])
-    setNewSp(wells.find(w => w.id === selectedWell)?.sp || 750)
+function interpolateState(fromState, toState, progress) {
+  return {
+    ...toState,
+    totalInjection: fromState.totalInjection + (toState.totalInjection - fromState.totalInjection) * progress,
+    suctionPsi: fromState.suctionPsi + (toState.suctionPsi - fromState.suctionPsi) * progress,
+    wells: toState.wells.map((targetWell) => {
+      const sourceWell = fromState.wells.find((well) => well.id === targetWell.id) || targetWell
+      return {
+        ...targetWell,
+        desiredFlow: sourceWell.desiredFlow + (targetWell.desiredFlow - sourceWell.desiredFlow) * progress,
+        actualFlow: sourceWell.actualFlow + (targetWell.actualFlow - sourceWell.actualFlow) * progress,
+        choke: sourceWell.choke + (targetWell.choke - sourceWell.choke) * progress,
+        priority: progress < 0.5 ? sourceWell.priority : targetWell.priority,
+      }
+    }),
   }
+}
 
-  const totalFlow = wells.reduce((s, w) => s + w.flow, 0)
-  const selWell = wells.find(w => w.id === selectedWell)
-
+function MetricCard({ label, value, helper }) {
   return (
-    <div className="p-4 h-full flex flex-col gap-4 overflow-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-bold text-white" style={{ fontFamily: "'Arial Black'" }}>
-            Setpoint Change Simulation
-          </h2>
-          <p className="text-[10px] text-[#888] mt-0.5">
-            Change a well's injection setpoint and watch Pad Logic redistribute gas in real time
-          </p>
-        </div>
-        <button onClick={handleReset}
-          className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-[#888] border border-[#333] hover:text-white transition">
-          Reset
-        </button>
+    <div className="rounded-md border border-[#d9d9d9] bg-white px-4 py-3 shadow-sm">
+      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7a7a7a]">{label}</div>
+      <div className="mt-2 text-[28px] font-black text-[#1f1f1f]" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+        {value}
       </div>
-
-      {/* Well status grid */}
-      <div className="grid grid-cols-4 gap-3">
-        {wells.map(w => {
-          const onTarget = Math.abs(w.flow - w.sp) < 15
-          const pct = Math.min(100, (w.flow / w.sp) * 100)
-          return (
-            <div key={w.id}
-              onClick={() => { setSelectedWell(w.id); setNewSp(Math.round(w.sp)) }}
-              className={`rounded-xl border p-3 cursor-pointer transition-all ${selectedWell === w.id ? 'border-[#E8200C]' : 'border-[#1e1e2e] hover:border-[#333]'}`}
-              style={{ background: selectedWell === w.id ? '#120508' : '#0e0e1a' }}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-bold" style={{ color: w.color }}>{w.name}</span>
-                <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${onTarget ? 'bg-green-950 text-green-400' : 'bg-yellow-950 text-yellow-400'}`}>
-                  {onTarget ? 'ON SP' : 'TRACKING'}
-                </span>
-              </div>
-
-              {/* Flow bar */}
-              <div className="w-full bg-[#1a1a2a] rounded h-1.5 overflow-hidden mb-2">
-                <div className="h-full rounded transition-all duration-300" style={{ width: `${pct}%`, background: w.color }} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-1 text-[9px]">
-                <div>
-                  <div className="text-[#555]">FLOW</div>
-                  <div className="font-bold" style={{ color: w.color }}>{Math.round(w.flow)}</div>
-                </div>
-                <div>
-                  <div className="text-[#555]">SP</div>
-                  <div className="text-white font-bold">{Math.round(w.sp)}</div>
-                </div>
-                <div>
-                  <div className="text-[#555]">CHOKE</div>
-                  <div className="text-[#aaa]">{Math.round(w.choke)}%</div>
-                </div>
-                <div>
-                  <div className="text-[#555]">DELTA</div>
-                  <div className={Math.abs(w.flow - w.sp) < 15 ? 'text-green-400' : 'text-yellow-400'}>
-                    {w.flow - w.sp > 0 ? '+' : ''}{Math.round(w.flow - w.sp)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Header + control row */}
-      <div className="grid grid-cols-3 gap-3">
-        {/* Suction pressure */}
-        <div className="rounded-xl border border-[#1e1e2e] p-3" style={{ background: '#0e0e1a' }}>
-          <div className="text-[9px] text-[#555] uppercase tracking-wider mb-1">Suction Header</div>
-          <div className="text-2xl font-bold text-white" style={{ fontFamily: "'Arial Black'" }}>
-            {suctionPsi.toFixed(1)} <span className="text-sm font-normal text-[#666]">PSI</span>
-          </div>
-          <div className="w-full bg-[#1a1a2a] rounded h-1.5 overflow-hidden mt-2">
-            <div className="h-full rounded transition-all duration-500"
-              style={{ width: `${Math.min(100,(suctionPsi/200)*100)}%`, background: Math.abs(suctionPsi - SUCTION_TARGET) < 5 ? '#22c55e' : '#eab308' }} />
-          </div>
-          <div className="text-[8px] text-[#555] mt-1">target {SUCTION_TARGET} PSI</div>
-        </div>
-
-        {/* Total flow */}
-        <div className="rounded-xl border border-[#1e1e2e] p-3" style={{ background: '#0e0e1a' }}>
-          <div className="text-[9px] text-[#555] uppercase tracking-wider mb-1">Total Injection</div>
-          <div className="text-2xl font-bold text-white" style={{ fontFamily: "'Arial Black'" }}>
-            {Math.round(totalFlow)} <span className="text-sm font-normal text-[#666]">MCFD</span>
-          </div>
-          <div className="w-full bg-[#1a1a2a] rounded h-1.5 overflow-hidden mt-2">
-            <div className="h-full rounded bg-[#4fc3f7] transition-all duration-300"
-              style={{ width: `${Math.min(100,(totalFlow/TOTAL_GAS)*100)}%` }} />
-          </div>
-          <div className="text-[8px] text-[#555] mt-1">of {TOTAL_GAS} MCFD available</div>
-        </div>
-
-        {/* Status */}
-        <div className="rounded-xl border border-[#1e1e2e] p-3" style={{ background: '#0e0e1a' }}>
-          <div className="text-[9px] text-[#555] uppercase tracking-wider mb-1">Controller</div>
-          <div className={`text-sm font-bold mb-1 ${transitioning ? 'text-yellow-400' : 'text-green-400'}`}>
-            {transitioning ? 'ADJUSTING' : 'STABLE'}
-          </div>
-          <div className="text-[9px] text-[#666]">
-            {transitioning
-              ? `W${pendingSp?.wellId} tracking new setpoint...`
-              : 'All wells within 2% of setpoint'}
-          </div>
-        </div>
-      </div>
-
-      {/* Setpoint control + log */}
-      <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
-        {/* Setpoint editor */}
-        <div className="rounded-xl border border-[#1e1e2e] p-4 flex flex-col gap-3" style={{ background: '#0e0e1a' }}>
-          <div className="text-[10px] text-[#888] font-bold uppercase tracking-widest">Change Setpoint</div>
-
-          <div>
-            <label className="text-[9px] text-[#555] block mb-1">Select Well</label>
-            <div className="flex gap-1.5">
-              {wells.map(w => (
-                <button key={w.id} onClick={() => { setSelectedWell(w.id); setNewSp(Math.round(w.sp)) }}
-                  className="flex-1 py-1.5 rounded text-[10px] font-bold transition-all"
-                  style={{
-                    background: selectedWell === w.id ? w.color + '22' : '#080810',
-                    border: `1px solid ${selectedWell === w.id ? w.color : '#2a2a3a'}`,
-                    color: selectedWell === w.id ? w.color : '#666',
-                  }}>
-                  W{w.id}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {selWell && (
-            <>
-              <div>
-                <div className="flex justify-between text-[9px] mb-1">
-                  <span className="text-[#555]">Current SP: <span className="text-white">{Math.round(selWell.sp)} MCFD</span></span>
-                  <span className="text-[#555]">New SP: <span style={{ color: selWell.color }}>{newSp} MCFD</span></span>
-                </div>
-                <input type="range" min={200} max={1400} step={10} value={newSp}
-                  onChange={e => setNewSp(+e.target.value)}
-                  className="w-full accent-red-600" />
-                <div className="flex justify-between text-[8px] text-[#444] mt-0.5">
-                  <span>200</span><span>800</span><span>1400</span>
-                </div>
-              </div>
-
-              <div className="rounded-lg p-3 text-[10px]" style={{ background: '#080810', border: '1px solid #1a1a2a' }}>
-                <div className="flex justify-between mb-1">
-                  <span className="text-[#666]">Change</span>
-                  <span className={newSp > selWell.sp ? 'text-green-400' : newSp < selWell.sp ? 'text-red-400' : 'text-[#666]'}>
-                    {newSp > selWell.sp ? '+' : ''}{newSp - Math.round(selWell.sp)} MCFD
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#666]">Choke estimate</span>
-                  <span className="text-[#aaa]">{Math.min(98, Math.max(10, Math.round(selWell.choke + (newSp - selWell.sp) * 0.08)))}%</span>
-                </div>
-              </div>
-
-              <button onClick={handleApplySetpoint} disabled={transitioning}
-                className="w-full py-2.5 rounded-xl text-[11px] font-bold text-white transition-all disabled:opacity-40"
-                style={{ background: transitioning ? '#1a1a2a' : '#E8200C' }}>
-                {transitioning ? 'System adjusting...' : `Apply Setpoint -> ${newSp} MCFD`}
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Event log */}
-        <div className="rounded-xl border border-[#1e1e2e] p-4 flex flex-col" style={{ background: '#0e0e1a' }}>
-          <div className="text-[10px] text-[#888] font-bold uppercase tracking-widest mb-3">Event Log</div>
-          <div className="flex-1 overflow-auto space-y-1.5">
-            {logLines.map((ln, i) => (
-              <div key={i} className="flex gap-2 text-[10px]">
-                <span className="text-[#444] shrink-0 font-mono">{ln.t}</span>
-                <span className={
-                  ln.type === 'change' ? 'text-yellow-300' :
-                  ln.type === 'info' ? 'text-[#4fc3f7]' :
-                  ln.type === 'err' ? 'text-red-400' : 'text-green-400'
-                }>{ln.msg}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <div className="mt-1 text-[11px] text-[#6d6d6d]">{helper}</div>
     </div>
   )
 }
 
+function LightBadge({ tone = 'neutral', children }) {
+  const tones = {
+    success: 'bg-[#e8f5e9] text-[#2e7d32] border-[#a5d6a7]',
+    warn: 'bg-[#fff8e1] text-[#946200] border-[#ffe082]',
+    danger: 'bg-[#fff3f3] text-[#c62828] border-[#ffcdd2]',
+    info: 'bg-[#e3f2fd] text-[#1565c0] border-[#90caf9]',
+    neutral: 'bg-[#f4f4f4] text-[#666] border-[#ddd]',
+  }
+
+  return (
+    <span className={`inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${tones[tone]}`}>
+      {children}
+    </span>
+  )
+}
+
+export default function SetpointChangeDemo() {
+  const [activeTab, setActiveTab] = useState('settings')
+  const [system, setSystem] = useState(() => computeSystemState(buildStableModel()))
+  const [editor, setEditor] = useState(null)
+  const [draft, setDraft] = useState(null)
+  const [confirming, setConfirming] = useState(false)
+  const [selectedWellId, setSelectedWellId] = useState(1)
+  const [lastWriteSummary, setLastWriteSummary] = useState('No writes sent yet. Open the settings widget and review a change.')
+  const [logLines, setLogLines] = useState([
+    { at: '00:00:00', type: 'INFO', text: 'MLink training widget ready. Use Settings to simulate customer setpoint writes.' },
+  ])
+  const [transitioning, setTransitioning] = useState(false)
+  const animationRef = useRef(null)
+
+  const selectedWell = useMemo(
+    () => system.wells.find((well) => well.id === selectedWellId) || system.wells[0],
+    [selectedWellId, system.wells],
+  )
+
+  const addLog = (text, type = 'INFO') => {
+    setLogLines((current) => [
+      { at: stampNow(), type, text },
+      ...current.slice(0, 13),
+    ])
+  }
+
+  useEffect(() => {
+    if (transitioning) return undefined
+
+    const id = window.setInterval(() => {
+      setSystem((current) => ({
+        ...current,
+        suctionPsi: current.suctionPsi + (Math.random() - 0.5) * 0.35,
+        wells: current.wells.map((well) => ({
+          ...well,
+          actualFlow: Math.max(0, well.actualFlow + (Math.random() - 0.5) * 3),
+          choke: Math.max(10, Math.min(98, well.choke + (Math.random() - 0.5) * 0.2)),
+        })),
+      }))
+    }, 1400)
+
+    return () => window.clearInterval(id)
+  }, [transitioning])
+
+  useEffect(() => () => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
+    }
+  }, [])
+
+  const realtimeRows = useMemo(() => {
+    return system.wells.flatMap((well) => {
+      const desiredRegister = desiredRegisterForWell(well.id)
+      const priorityRegister = priorityRegisterForWell(well.id)
+      const flowRegister = flowRegisterForWell(well.id)
+      const runningRegister = runningStatusRegisterForWell(well.id)
+
+      return [
+        {
+          key: `${well.id}-desired`,
+          register: desiredRegister.register,
+          tag: desiredRegister.label,
+          value: well.desiredFlow.toFixed(0),
+          units: desiredRegister.units,
+          state: 'Configured',
+        },
+        {
+          key: `${well.id}-priority`,
+          register: priorityRegister.register,
+          tag: priorityRegister.label,
+          value: String(well.priority),
+          units: priorityRegister.units,
+          state: `Priority ${well.priority}`,
+        },
+        {
+          key: `${well.id}-flow`,
+          register: flowRegister.register,
+          tag: flowRegister.label,
+          value: well.actualFlow.toFixed(0),
+          units: flowRegister.units,
+          state: well.tracking,
+        },
+        {
+          key: `${well.id}-status`,
+          register: runningRegister.register,
+          tag: runningRegister.label,
+          value: well.actualFlow > 50 ? '1' : '0',
+          units: runningRegister.units,
+          state: well.status,
+        },
+      ]
+    })
+  }, [system.wells])
+
+  const openEditor = (wellId) => {
+    const well = system.wells.find((item) => item.id === wellId)
+    if (!well) return
+
+    setSelectedWellId(wellId)
+    setActiveTab('settings')
+    setDraft({
+      wellId,
+      desiredFlow: Math.round(well.desiredFlow),
+      priority: well.priority,
+    })
+    setEditor(wellId)
+    addLog(`Opened settings prompt for ${desiredRegisterForWell(wellId).label}`, 'NAV')
+  }
+
+  const cancelEditor = () => {
+    setEditor(null)
+    setDraft(null)
+    setConfirming(false)
+    addLog('Cancelled pending MLink write prompt.', 'NAV')
+  }
+
+  const reviewWrite = () => {
+    if (!draft) return
+    setConfirming(true)
+    addLog(`Reviewing pending write for Well ${draft.wellId}.`, 'CHECK')
+  }
+
+  const saveWrite = () => {
+    if (!draft) return
+
+    const editedWellId = draft.wellId
+    const desiredMeta = desiredRegisterForWell(editedWellId)
+    const priorityMeta = priorityRegisterForWell(editedWellId)
+    const fromState = system
+    const targetModel = buildStableModel(
+      Object.fromEntries(system.wells.map((well) => [well.id, {
+        desiredFlow: well.id === editedWellId ? draft.desiredFlow : well.desiredFlow,
+        priority: well.id === editedWellId ? draft.priority : well.priority,
+      }])),
+    )
+    const targetState = computeSystemState(targetModel)
+
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current)
+    }
+
+    setEditor(null)
+    setConfirming(false)
+    setTransitioning(true)
+    setActiveTab('realtime')
+    setLastWriteSummary(
+      `Wrote ${desiredMeta.label} (${desiredMeta.register}) to ${draft.desiredFlow} ${desiredMeta.units} and ${priorityMeta.label} (${priorityMeta.register}) to ${draft.priority}.`,
+    )
+    addLog(`Write accepted: ${desiredMeta.label} -> ${draft.desiredFlow} ${desiredMeta.units}`, 'ACTION')
+    addLog(`Write accepted: ${priorityMeta.label} -> ${draft.priority}`, 'ACTION')
+
+    const startedAt = performance.now()
+    const durationMs = 2600
+
+    const animate = (now) => {
+      const progress = Math.min(1, (now - startedAt) / durationMs)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setSystem(interpolateState(fromState, targetState, eased))
+
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate)
+        return
+      }
+
+      setSystem(targetState)
+      setTransitioning(false)
+      setDraft(null)
+      addLog(
+        targetState.overloaded
+          ? 'Pad Logic rebalanced flow by priority after the write. Lower-priority wells were trimmed.'
+          : 'Pad Logic settled the new desired rate with all wells still meeting demand.',
+        targetState.overloaded ? 'WARN' : 'INFO',
+      )
+    }
+
+    animationRef.current = requestAnimationFrame(animate)
+  }
+
+  return (
+    <div className="h-full overflow-auto bg-[#f1f1f1] p-4 text-[#222]">
+      <div className="mx-auto flex max-w-[1560px] flex-col gap-4">
+        <div className="overflow-hidden rounded-md border border-[#c8c8c8] bg-white shadow-sm">
+          <div className="bg-[#c40000] px-4 py-2 text-center text-[11px] font-black uppercase tracking-[0.24em] text-white">
+            Pad Logic MLink Settings Training
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d6d6d6] bg-[#333] px-4 py-3 text-white">
+            <div>
+              <div className="text-[22px] font-black tracking-[-0.02em]" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+                MLink Settings Widget
+              </div>
+              <div className="text-[11px] text-[#d6d6d6]">
+                Training mirror for {DEMO_DEVICE} using the real Klondike desired-flow and priority registers
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              <LightBadge tone="success">{transitioning ? 'Write In Progress' : 'Widget Ready'}</LightBadge>
+              <LightBadge tone="info">Capacity {TOTAL_CAPACITY.toLocaleString()} MCFD</LightBadge>
+              <LightBadge tone={system.overloaded ? 'warn' : 'success'}>
+                {system.overloaded ? 'Priority Trim Active' : 'All Wells Meeting Demand'}
+              </LightBadge>
+            </div>
+          </div>
+
+          <div className="grid gap-3 border-b border-[#dcdcdc] bg-[#fafafa] p-4 md:grid-cols-3">
+            <MetricCard
+              label="Total Injection"
+              value={`${Math.round(system.totalInjection).toLocaleString()} MCFD`}
+              helper={`${Math.round(system.remainingCapacity).toLocaleString()} MCFD spare compressor capacity`}
+            />
+            <MetricCard
+              label="Suction Header"
+              value={`${system.suctionPsi.toFixed(1)} PSI`}
+              helper={`Target ${SUCTION_TARGET} PSI`}
+            />
+            <MetricCard
+              label="Last Write"
+              value={selectedWell ? selectedWell.short : 'W1'}
+              helper={lastWriteSummary}
+            />
+          </div>
+
+          <div className="grid gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="overflow-hidden rounded-md border border-[#d9d9d9] bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-[#ddd] bg-[#fafafa] px-4 py-2">
+                <div className="flex gap-2">
+                  {[
+                    ['realtime', 'Real-Time Data'],
+                    ['settings', 'Settings Widget'],
+                  ].map(([id, label]) => (
+                    <button
+                      key={id}
+                      onClick={() => setActiveTab(id)}
+                      className={`rounded-sm border px-3 py-1.5 text-[11px] font-bold ${
+                        activeTab === id
+                          ? 'border-[#c40000] bg-[#fff3f3] text-[#c40000]'
+                          : 'border-[#d4d4d4] bg-white text-[#555]'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="text-[11px] text-[#666]">
+                  Customer workflow: open settings, review register write, confirm, then verify on live data.
+                </div>
+              </div>
+
+              {activeTab === 'realtime' ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border-collapse text-[12px]">
+                    <thead className="bg-[#f0f0f0] text-[#666]">
+                      <tr>
+                        <th className="border-b border-r border-[#e5e5e5] px-3 py-2 text-left text-[11px] font-bold">Register</th>
+                        <th className="border-b border-r border-[#e5e5e5] px-3 py-2 text-left text-[11px] font-bold">Tag Name</th>
+                        <th className="border-b border-r border-[#e5e5e5] px-3 py-2 text-left text-[11px] font-bold">Value</th>
+                        <th className="border-b border-r border-[#e5e5e5] px-3 py-2 text-left text-[11px] font-bold">Units</th>
+                        <th className="border-b border-[#e5e5e5] px-3 py-2 text-left text-[11px] font-bold">State</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {realtimeRows.map((row) => (
+                        <tr
+                          key={row.key}
+                          className={row.tag.includes(`Wellhead #${selectedWellId}`) ? 'bg-[#fff8e1]' : 'even:bg-[#fafafa]'}
+                        >
+                          <td className="border-b border-r border-[#ededed] px-3 py-2 font-mono text-[11px]">{row.register}</td>
+                          <td className="border-b border-r border-[#ededed] px-3 py-2 text-[#222]">{row.tag}</td>
+                          <td className="border-b border-r border-[#ededed] px-3 py-2 font-bold text-[#222]">{row.value}</td>
+                          <td className="border-b border-r border-[#ededed] px-3 py-2 text-[#666]">{row.units}</td>
+                          <td className="border-b border-[#ededed] px-3 py-2">
+                            <LightBadge tone={row.state === 'Priority Limited' ? 'warn' : row.state === 'Online' || row.state === 'Configured' ? 'success' : 'info'}>
+                              {row.state}
+                            </LightBadge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="p-4">
+                  <div className="mb-4 rounded-sm border border-[#90caf9] bg-[#e3f2fd] px-4 py-3 text-[12px] text-[#1565c0]">
+                    This mirrors the customer MLink settings workflow. Each write prompt below uses the actual Klondike well pad register labels for desired injection rate and flow priority.
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse text-[12px]">
+                      <thead className="bg-[#f0f0f0] text-[#666]">
+                        <tr>
+                          <th className="border-b border-r border-[#e5e5e5] px-3 py-2 text-left text-[11px] font-bold">Well</th>
+                          <th className="border-b border-r border-[#e5e5e5] px-3 py-2 text-left text-[11px] font-bold">Desired Injection Register</th>
+                          <th className="border-b border-r border-[#e5e5e5] px-3 py-2 text-left text-[11px] font-bold">Priority Register</th>
+                          <th className="border-b border-r border-[#e5e5e5] px-3 py-2 text-left text-[11px] font-bold">Current Desired</th>
+                          <th className="border-b border-r border-[#e5e5e5] px-3 py-2 text-left text-[11px] font-bold">Current Priority</th>
+                          <th className="border-b border-[#e5e5e5] px-3 py-2 text-left text-[11px] font-bold">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {system.wells.map((well) => {
+                          const desiredMeta = desiredRegisterForWell(well.id)
+                          const priorityMeta = priorityRegisterForWell(well.id)
+                          return (
+                            <tr key={well.id} className={well.id === selectedWellId ? 'bg-[#fff8e1]' : 'even:bg-[#fafafa]'}>
+                              <td className="border-b border-r border-[#ededed] px-3 py-2 font-bold">{well.display}</td>
+                              <td className="border-b border-r border-[#ededed] px-3 py-2">
+                                <div className="font-semibold">{desiredMeta.label}</div>
+                                <div className="font-mono text-[11px] text-[#777]">Reg {desiredMeta.register}</div>
+                              </td>
+                              <td className="border-b border-r border-[#ededed] px-3 py-2">
+                                <div className="font-semibold">{priorityMeta.label}</div>
+                                <div className="font-mono text-[11px] text-[#777]">Reg {priorityMeta.register}</div>
+                              </td>
+                              <td className="border-b border-r border-[#ededed] px-3 py-2 font-bold">{Math.round(well.desiredFlow)} MCFD</td>
+                              <td className="border-b border-r border-[#ededed] px-3 py-2 font-bold">Priority {well.priority}</td>
+                              <td className="border-b border-[#ededed] px-3 py-2">
+                                <button
+                                  onClick={() => openEditor(well.id)}
+                                  className="rounded-sm border border-[#c40000] bg-[#fff3f3] px-3 py-1.5 text-[11px] font-bold text-[#c40000] hover:bg-[#ffe3e3]"
+                                >
+                                  Edit In Widget
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <div className="rounded-md border border-[#d9d9d9] bg-white shadow-sm">
+                <div className="border-b border-[#ddd] bg-[#c40000] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-white">
+                  Customer Workflow
+                </div>
+                <div className="space-y-3 p-4 text-[12px]">
+                  {[
+                    'Open the MLink Settings Widget from laptop or phone.',
+                    'Select the well that needs a desired injection or priority change.',
+                    'Review the exact Klondike register labels before saving.',
+                    'Confirm the write, then verify the result on real-time data.',
+                  ].map((step, index) => (
+                    <div key={step} className="flex gap-3">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#d0d0d0] bg-[#f8f8f8] text-[11px] font-bold">
+                        {index + 1}
+                      </div>
+                      <div className="text-[#333]">{step}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-md border border-[#d9d9d9] bg-white shadow-sm">
+                <div className="border-b border-[#ddd] bg-[#fafafa] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#666]">
+                  Selected Well Snapshot
+                </div>
+                <div className="space-y-3 p-4 text-[12px]">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-[#333]">{selectedWell.display}</span>
+                    <LightBadge tone={selectedWell.tracking === 'Priority Limited' ? 'warn' : 'success'}>
+                      {selectedWell.tracking}
+                    </LightBadge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-[#888]">Desired</div>
+                      <div className="text-[18px] font-black text-[#222]" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+                        {Math.round(selectedWell.desiredFlow)} MCFD
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-[#888]">Actual</div>
+                      <div className="text-[18px] font-black text-[#222]" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+                        {Math.round(selectedWell.actualFlow)} MCFD
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-[#888]">Priority</div>
+                      <div className="text-[16px] font-bold text-[#222]">#{selectedWell.priority}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-[#888]">Yesterday Flow</div>
+                      <div className="text-[16px] font-bold text-[#222]">{selectedWell.yesterdayFlow.toFixed(3)} MMSCFD</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-md border border-[#d9d9d9] bg-white shadow-sm">
+                <div className="border-b border-[#ddd] bg-[#fafafa] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#666]">
+                  Event Log
+                </div>
+                <div className="max-h-[320px] space-y-2 overflow-auto p-4">
+                  {logLines.map((line, index) => (
+                    <div key={`${line.at}-${index}`} className="flex gap-3 text-[11px]">
+                      <span className="shrink-0 font-mono text-[#999]">{line.at}</span>
+                      <span className="shrink-0 font-bold text-[#777]">{line.type}</span>
+                      <span className="text-[#333]">{line.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {editor && draft && !confirming ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-[460px] overflow-hidden rounded-md border border-[#d0d0d0] bg-white shadow-2xl">
+            <div className="bg-[#c40000] px-4 py-3 text-[14px] font-bold text-white">
+              Edit Well {draft.wellId} Settings
+            </div>
+            <div className="space-y-4 p-4 text-[12px] text-[#333]">
+              <div className="rounded-sm border border-[#eee] bg-[#fafafa] p-3">
+                <div className="font-semibold">{desiredRegisterForWell(draft.wellId).label}</div>
+                <div className="mt-1 font-mono text-[11px] text-[#777]">Register {desiredRegisterForWell(draft.wellId).register}</div>
+                <div className="mt-2">
+                  <input
+                    type="range"
+                    min={300}
+                    max={1200}
+                    step={5}
+                    value={draft.desiredFlow}
+                    onChange={(event) => setDraft((current) => ({ ...current, desiredFlow: Number(event.target.value) }))}
+                    className="w-full accent-red-700"
+                  />
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-[11px] text-[#777]">300 MCFD</span>
+                    <span className="text-[18px] font-black text-[#222]" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+                      {draft.desiredFlow} MCFD
+                    </span>
+                    <span className="text-[11px] text-[#777]">1200 MCFD</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-sm border border-[#eee] bg-[#fafafa] p-3">
+                <div className="font-semibold">{priorityRegisterForWell(draft.wellId).label}</div>
+                <div className="mt-1 font-mono text-[11px] text-[#777]">Register {priorityRegisterForWell(draft.wellId).register}</div>
+                <div className="mt-3 grid grid-cols-4 gap-2">
+                  {[1, 2, 3, 4].map((priority) => (
+                    <button
+                      key={priority}
+                      onClick={() => setDraft((current) => ({ ...current, priority }))}
+                      className={`rounded-sm border px-2 py-2 text-[11px] font-bold ${
+                        draft.priority === priority
+                          ? 'border-[#c40000] bg-[#fff3f3] text-[#c40000]'
+                          : 'border-[#ddd] bg-white text-[#555]'
+                      }`}
+                    >
+                      Priority {priority}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-center gap-2 border-t border-[#eee] px-4 py-4">
+              <button onClick={cancelEditor} className="rounded-sm border border-[#d0d0d0] px-4 py-2 text-[12px] font-bold text-[#555]">
+                Cancel
+              </button>
+              <button onClick={reviewWrite} className="rounded-sm border border-[#c40000] bg-[#c40000] px-4 py-2 text-[12px] font-bold text-white">
+                Review Write
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {editor && draft && confirming ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-[430px] overflow-hidden rounded-md border border-[#d0d0d0] bg-white shadow-2xl">
+            <div className="bg-[#c40000] px-4 py-3 text-[14px] font-bold text-white">
+              Confirm MLink Write
+            </div>
+            <div className="space-y-3 p-5 text-center text-[13px] text-[#333]">
+              <p>Send this customer write to the training widget?</p>
+              <div className="rounded-sm border border-[#eee] bg-[#fafafa] px-4 py-3 text-left">
+                <div className="font-semibold">{desiredRegisterForWell(draft.wellId).label}</div>
+                <div className="font-mono text-[11px] text-[#777]">Reg {desiredRegisterForWell(draft.wellId).register}</div>
+                <div className="mt-1 font-bold text-[#222]">{draft.desiredFlow} MCFD</div>
+              </div>
+              <div className="rounded-sm border border-[#eee] bg-[#fafafa] px-4 py-3 text-left">
+                <div className="font-semibold">{priorityRegisterForWell(draft.wellId).label}</div>
+                <div className="font-mono text-[11px] text-[#777]">Reg {priorityRegisterForWell(draft.wellId).register}</div>
+                <div className="mt-1 font-bold text-[#222]">Priority {draft.priority}</div>
+              </div>
+            </div>
+            <div className="flex justify-center gap-2 border-t border-[#eee] px-4 py-4">
+              <button
+                onClick={() => setConfirming(false)}
+                className="rounded-sm border border-[#d0d0d0] px-4 py-2 text-[12px] font-bold text-[#555]"
+              >
+                Back
+              </button>
+              <button
+                onClick={saveWrite}
+                className="rounded-sm border border-[#c40000] bg-[#c40000] px-4 py-2 text-[12px] font-bold text-white"
+              >
+                Yes, Save
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}

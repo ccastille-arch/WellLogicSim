@@ -2,6 +2,7 @@
 import { useKlondikeData } from '../engine/klondikeData'
 import { useAuth } from './auth/AuthProvider'
 import {
+  COMPRESSOR_DEFAULT_VISIBLE_LABELS,
   getVisibleCompressorRegisters,
   LIVE_DATA_DEVICES,
   formatLiveRegisterValue,
@@ -13,17 +14,32 @@ import {
 // MLINK Live Dashboard - data fetched via server-side proxy (key never in browser)
 // ALL customer names, site names, and device IDs are stripped. Generic labels only.
 
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
+async function readErrorPayload(res) {
+  const contentType = res.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) {
+    const body = await res.json().catch(() => ({}))
+    return body?.details || body?.error || res.statusText
+  }
+  return (await res.text().catch(() => '')).trim() || res.statusText
+}
+
 async function fetchDevice(deviceId) {
   try {
-    const res = await fetch(`/api/mlink/device?deviceId=${deviceId}`)
-    if (!res.ok) return null
-    return await res.json()
-  } catch { return null }
+    const res = await fetch(`${API_BASE}/api/mlink/device?deviceId=${encodeURIComponent(deviceId)}`)
+    if (!res.ok) {
+      return { data: null, error: `device ${deviceId}: ${await readErrorPayload(res)}` }
+    }
+    return { data: await res.json(), error: '' }
+  } catch (err) {
+    return { data: null, error: `device ${deviceId}: ${err.message}` }
+  }
 }
 
 async function fetchRunReport(deviceId, startTs, endTs) {
   try {
-    const res = await fetch(`/api/mlink/runreport?deviceId=${deviceId}&startTs=${startTs}&endTs=${endTs}`)
+    const res = await fetch(`${API_BASE}/api/mlink/runreport?deviceId=${encodeURIComponent(deviceId)}&startTs=${startTs}&endTs=${endTs}`)
     if (!res.ok) return null
     return await res.json()
   } catch { return null }
@@ -72,16 +88,22 @@ export default function MLinkDashboard({ onBack }) {
   const refresh = useCallback(async () => {
     setLoading(true)
     setLiveError('')
-    const [p, a, b] = await Promise.all([
+    const [panelResult, compAResult, compBResult] = await Promise.all([
       fetchDevice(LIVE_DATA_DEVICES.panel),
       fetchDevice(LIVE_DATA_DEVICES.compA),
       fetchDevice(LIVE_DATA_DEVICES.compB),
     ])
-    setPanelData(p)
-    setCompAData(a)
-    setCompBData(b)
-    if (!p && !a && !b) {
-      setLiveError('No live MLINK data is coming back right now. Check the MLINK proxy route, Railway environment variables, and field comms.')
+    setPanelData(panelResult.data)
+    setCompAData(compAResult.data)
+    setCompBData(compBResult.data)
+
+    const errors = [panelResult.error, compAResult.error, compBResult.error].filter(Boolean)
+    if (!panelResult.data && !compAResult.data && !compBResult.data) {
+      setLiveError(
+        errors.length > 0
+          ? `No live MLINK data is coming back right now. ${errors.join(' | ')}`
+          : 'No live MLINK data is coming back right now. Check the MLINK proxy route, Railway environment variables, and field comms.',
+      )
     }
     setLastRefresh(new Date())
     setLoading(false)
@@ -401,7 +423,7 @@ function KlondikeHistoryTab({ klondike }) {
   const { data, loading, error } = klondike
   const [cursor, setCursor] = useState(0)
   const [playing, setPlaying] = useState(false)
-  const [view, setView] = useState('overview') // overview | well1 | well2 | well3 | well4
+  const [view, setView] = useState('overview') // overview | well1..4 | comp1..2
 
   useEffect(() => {
     if (!playing || !data) return
@@ -423,6 +445,15 @@ function KlondikeHistoryTab({ klondike }) {
 
   // Mini sparkline data â€” last 40 points up to cursor
   const windowData = data.slice(Math.max(0, cursor - 39), cursor + 1)
+  const tabs = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'well1', label: 'Well 1' },
+    { id: 'well2', label: 'Well 2' },
+    { id: 'well3', label: 'Well 3' },
+    { id: 'well4', label: 'Well 4' },
+    { id: 'comp1', label: 'Comp 1' },
+    { id: 'comp2', label: 'Comp 2' },
+  ]
 
   return (
     <div className="max-w-[1100px] mx-auto">
@@ -435,13 +466,13 @@ function KlondikeHistoryTab({ klondike }) {
           <p className="text-[10px] text-[#888]">{data.length} samples - 15-min intervals - {data[0]?.timestamp} to {data[data.length-1]?.timestamp}</p>
         </div>
         <div className="flex items-center gap-2">
-          {['overview','1','2','3','4'].map(v => (
-            <button key={v} onClick={() => setView(v === 'overview' ? 'overview' : `well${v}`)}
+          {tabs.map(tab => (
+            <button key={tab.id} onClick={() => setView(tab.id)}
               className={`px-3 py-1 text-[10px] font-bold rounded ${
-                view === (v === 'overview' ? 'overview' : `well${v}`)
+                view === tab.id
                   ? 'bg-[#4fc3f7] text-black' : 'text-[#888] border border-[#333] hover:text-white'
               }`}>
-              {v === 'overview' ? 'Overview' : `Well ${v}`}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -472,6 +503,8 @@ function KlondikeHistoryTab({ klondike }) {
 
       {view === 'overview' ? (
         <KlondikeOverview row={row} prev={prev} windowData={windowData} />
+      ) : view.startsWith('comp') ? (
+        <KlondikeCompressorDetail row={row} compressorIdx={parseInt(view.replace('comp',''), 10) - 1} windowData={windowData} />
       ) : (
         <KlondikeWellDetail row={row} prev={prev} wellIdx={parseInt(view.replace('well','')) - 1} windowData={windowData} />
       )}
@@ -609,6 +642,110 @@ function KlondikeWellDetail({ row, prev, wellIdx, windowData }) {
         Yesterday total: <span className="text-white">{w.yesterdayTotal?.toFixed(3) ?? '--'} MMSCFD</span>
         &nbsp;-&nbsp; Desired: <span className="text-white">{w.calcDesiredFlow?.toFixed(3) ?? '--'} MMSCFD</span>
         &nbsp;-&nbsp; Max rate: <span className="text-white">{w.maxFlowRate?.toFixed(3) ?? '--'} MMSCFD</span>
+      </div>
+    </div>
+  )
+}
+
+function KlondikeCompressorDetail({ row, compressorIdx, windowData }) {
+  const desiredFlow = compressorIdx === 0 ? row.comp1DesiredFlow : row.comp2DesiredFlow
+  const runStatus = compressorIdx === 0 ? row.comp1Status : row.comp2Status
+  const compressorNumber = compressorIdx + 1
+
+  const params = [
+    {
+      label: 'Desired Flow SP',
+      value: desiredFlow?.toFixed(3),
+      unit: 'MMSCFD',
+      color: '#4fc3f7',
+      spark: windowData.map(r => compressorIdx === 0 ? (r.comp1DesiredFlow ?? 0) : (r.comp2DesiredFlow ?? 0)),
+    },
+    {
+      label: 'Run Status',
+      value: runStatus || '--',
+      unit: '',
+      color: runStatus === 'Running' ? '#22c55e' : '#E8200C',
+      spark: windowData.map(r => ((compressorIdx === 0 ? r.comp1Status : r.comp2Status) === 'Running' ? 1 : 0)),
+    },
+    {
+      label: 'Pad Injection',
+      value: row.totalFlowMscfd?.toFixed(0),
+      unit: 'MSCFD',
+      color: '#22c55e',
+      spark: windowData.map(r => r.totalFlowMscfd ?? 0),
+    },
+    {
+      label: 'Hour Meter',
+      value: row.hourMeter?.toFixed(0),
+      unit: 'hrs',
+      color: '#eab308',
+      spark: windowData.map(r => r.hourMeter ?? 0),
+    },
+  ]
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className={`w-3 h-3 rounded-full ${runStatus === 'Running' ? 'bg-[#22c55e]' : 'bg-[#555]'}`} />
+        <span className="text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>Compressor {compressorNumber}</span>
+        <span className={`text-[10px] font-bold ${runStatus === 'Running' ? 'text-[#22c55e]' : 'text-[#888]'}`}>{runStatus || '--'}</span>
+        <span className="text-[9px] text-[#555] ml-auto">{row.timestamp}</span>
+      </div>
+
+      <div className="grid grid-cols-4 gap-3">
+        {params.map(p => (
+          <div key={p.label} className="bg-[#111118] rounded-lg border border-[#222] p-4">
+            <div className="text-[9px] text-[#888] uppercase tracking-wider mb-1">{p.label}</div>
+            <div className="text-2xl font-bold mb-0.5" style={{ color: p.color, fontFamily: "'Arial Black'" }}>
+              {p.value ?? '--'}
+            </div>
+            {p.unit && <div className="text-[9px] text-[#888]">{p.unit}</div>}
+            <MiniSparkline data={p.spark} color={p.color} />
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-[#111118] rounded-lg border border-[#222] overflow-hidden">
+        <div className="px-4 py-2 border-b border-[#1a1a2a] bg-[#0c0c18]">
+          <span className="text-[10px] text-white font-bold uppercase tracking-wider">
+            Compressor {compressorNumber} 30-Day History Coverage
+          </span>
+        </div>
+        <table className="w-full text-[10px]">
+          <thead>
+            <tr className="bg-[#0a0a14]">
+              {['Parameter', 'Current 30-Day Value', 'Unit', 'Coverage'].map(h => (
+                <th key={h} className="px-3 py-2 text-left text-[#888] font-normal border-b border-[#1a1a2a]">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="bg-[#080810]">
+              <td className="px-3 py-2 text-white font-bold">Desired Flow SP For PID Murphy</td>
+              <td className="px-3 py-2 text-[#4fc3f7] font-bold">{desiredFlow?.toFixed(3) ?? '--'}</td>
+              <td className="px-3 py-2 text-[#888]">MMSCFD</td>
+              <td className="px-3 py-2 text-[#22c55e]">In 30-day panel export</td>
+            </tr>
+            <tr className="bg-[#0c0c18]">
+              <td className="px-3 py-2 text-white font-bold">Run Status</td>
+              <td className="px-3 py-2 text-[#22c55e] font-bold">{runStatus || '--'}</td>
+              <td className="px-3 py-2 text-[#888]">state</td>
+              <td className="px-3 py-2 text-[#22c55e]">In 30-day panel export</td>
+            </tr>
+            {COMPRESSOR_DEFAULT_VISIBLE_LABELS.map(label => (
+              <tr key={label} className="bg-[#080810]">
+                <td className="px-3 py-2 text-white">{label}</td>
+                <td className="px-3 py-2 text-[#666]">--</td>
+                <td className="px-3 py-2 text-[#666]">{getCompressorUnit(label) || '--'}</td>
+                <td className="px-3 py-2 text-[#eab308]">Needs stored MLINK snapshot history</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="bg-[#0c0c18] rounded border border-[#1a1a2a] p-3 text-[10px] text-[#888]">
+        The current 30-day panel export carries compressor run status and desired-flow history. Full trends for compressor temperatures, speeds, and pressures require stored MLINK compressor snapshots over the same 30-day window.
       </div>
     </div>
   )
