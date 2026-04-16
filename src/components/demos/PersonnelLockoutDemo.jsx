@@ -1,4 +1,4 @@
-import DemoPage from './DemoPage'
+﻿import DemoPage from './DemoPage'
 
 export default function PersonnelLockoutDemo({ sim }) {
   const lockout = (id, locked) => {
@@ -18,23 +18,23 @@ export default function PersonnelLockoutDemo({ sim }) {
     ...sim.state.compressors.map(c => ({
       label: c.personnelLockout ? `Unlock ${c.name}` : `Lock Out ${c.name}`,
       description: c.personnelLockout ? `Clear lockout on ${c.name}` : `Personnel on-site at ${c.name}`,
-      icon: c.personnelLockout ? '🔓' : '👷',
+      icon: c.personnelLockout ? 'ðŸ”“' : 'ðŸ‘·',
       onClick: () => lockout(c.id, !c.personnelLockout),
       active: c.personnelLockout,
     })),
-    { label: 'Lock Out All', description: 'Full crew on-site — all compressors locked', icon: '🔒',
+    { label: 'Lock Out All', description: 'Full crew on-site â€” all compressors locked', icon: 'ðŸ”’',
       onClick: () => sim.state.compressors.forEach(c => lockout(c.id, true)) },
-    { label: 'Lock Out + Trip C1', description: 'Personnel lock out, then compressor trips while locked', icon: '⚠️',
+    { label: 'Lock Out + Trip C1', description: 'Personnel lock out, then compressor trips while locked', icon: 'âš ï¸',
       onClick: () => {
         lockout(0, true)
         setTimeout(() => sim.setCompressorStatus(0, 'locked_out_stopped'), 3000)
       }},
-    { label: 'Lock One, Trip Another', description: 'C1 locked by crew, C2 trips — worst case combo', icon: '💀',
+    { label: 'Lock One, Trip Another', description: 'C1 locked by crew, C2 trips â€” worst case combo', icon: 'ðŸ’€',
       onClick: () => {
         lockout(0, true)
         sim.setCompressorStatus(1, 'tripped')
       }},
-    { label: 'Clear All Lockouts', icon: '↩️',
+    { label: 'Clear All Lockouts', icon: 'â†©ï¸',
       onClick: () => {
         sim.state.compressors.forEach(c => lockout(c.id, false))
         sim.state.compressors.forEach(c => {
@@ -57,7 +57,8 @@ export default function PersonnelLockoutDemo({ sim }) {
 
   return (
     <DemoPage sim={sim} title="Personnel Lockout Protection"
-      pitch="When your people are on-site working on a compressor, WellLogic keeps them safe. The system instantly disables all remote commands to that unit — no accidental starts. Flow contribution is still tracked for accurate pad calculations."
+      pitch="When your people are on-site working on a compressor, Pad Logic keeps them safe. The system instantly disables all remote commands to that unit â€” no accidental starts. Flow contribution is still tracked for accurate pad calculations."
       triggers={triggers} metrics={metrics} />
   )
 }
+

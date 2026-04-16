@@ -1,4 +1,4 @@
-import DemoPage from './DemoPage'
+﻿import DemoPage from './DemoPage'
 
 export default function WellPriorityDemo({ sim }) {
   const maxGas = sim.state.maxGasCapacity
@@ -6,32 +6,32 @@ export default function WellPriorityDemo({ sim }) {
   const sortedWells = [...wells].sort((a, b) => a.priority - b.priority)
 
   const triggers = [
-    { label: 'Normal Operations', description: 'Full gas, all wells at target', icon: '🟢',
+    { label: 'Normal Operations', description: 'Full gas, all wells at target', icon: 'ðŸŸ¢',
       onClick: () => { sim.setTotalAvailableGas(maxGas); sim.state.compressors.forEach(c => sim.setCompressorStatus(c.id, 'running')) },
       active: sim.state.totalAvailableGas >= maxGas * 0.9 },
-    { label: 'Gas Drops to 70%', description: 'Slight constraint — lowest priority well starts losing', icon: '🟡',
+    { label: 'Gas Drops to 70%', description: 'Slight constraint â€” lowest priority well starts losing', icon: 'ðŸŸ¡',
       onClick: () => sim.setTotalAvailableGas(maxGas * 0.7) },
-    { label: 'Gas Drops to 50%', description: 'Moderate constraint — bottom half of wells cut back', icon: '🟠',
+    { label: 'Gas Drops to 50%', description: 'Moderate constraint â€” bottom half of wells cut back', icon: 'ðŸŸ ',
       onClick: () => sim.setTotalAvailableGas(maxGas * 0.5) },
-    { label: 'Gas Drops to 30%', description: 'Severe — only top 1-2 wells get full injection', icon: '🔴',
+    { label: 'Gas Drops to 30%', description: 'Severe â€” only top 1-2 wells get full injection', icon: 'ðŸ”´',
       onClick: () => sim.setTotalAvailableGas(maxGas * 0.3) },
-    { label: 'Trip Largest Compressor', description: 'Sudden capacity loss — watch priority kick in', icon: '⚡',
+    { label: 'Trip Largest Compressor', description: 'Sudden capacity loss â€” watch priority kick in', icon: 'âš¡',
       onClick: () => sim.setCompressorStatus(0, 'tripped') },
-    { label: 'Swap Top 2 Priorities', description: 'Reprioritize — gas shifts to new #1 well', icon: '🔄',
+    { label: 'Swap Top 2 Priorities', description: 'Reprioritize â€” gas shifts to new #1 well', icon: 'ðŸ”„',
       onClick: () => {
         const ids = sortedWells.map(w => w.id)
         const tmp = ids[0]; ids[0] = ids[1]; ids[1] = tmp
         sim.setWellPriorities(ids)
       }},
-    { label: 'Reverse All Priorities', description: 'Flip priority order — bottom becomes top', icon: '↕️',
+    { label: 'Reverse All Priorities', description: 'Flip priority order â€” bottom becomes top', icon: 'â†•ï¸',
       onClick: () => sim.setWellPriorities(sortedWells.map(w => w.id).reverse()) },
-    { label: 'Restore Full Supply', description: 'Return to normal', icon: '↩️',
+    { label: 'Restore Full Supply', description: 'Return to normal', icon: 'â†©ï¸',
       onClick: () => { sim.setTotalAvailableGas(maxGas); sim.state.compressors.forEach(c => sim.setCompressorStatus(c.id, 'running')) }},
   ]
 
   return (
     <DemoPage sim={sim} title="Well Prioritization"
-      pitch="WellLogic ensures your highest-value wells always get gas first. When supply is limited, the system protects your top producers while proportionally reducing injection to lower-priority wells."
+      pitch="Pad Logic ensures your highest-value wells always get gas first. When supply is limited, the system protects your top producers while proportionally reducing injection to lower-priority wells."
       triggers={triggers}>
       <div className="text-[8px] text-[#888] uppercase tracking-wider font-bold mb-2">Priority Order</div>
       {sortedWells.map((w, i) => (
@@ -52,3 +52,4 @@ export default function WellPriorityDemo({ sim }) {
     </DemoPage>
   )
 }
+

@@ -12,7 +12,6 @@ const PERM_LABELS = {
   'tile:quote': 'Request a Quote',
   'tile:detechtion_launchpad': 'Detechtion Launchpad',
   'tile:mlink_connect': 'M-Link Connect',
-  'tile:vote': 'Logo Vote',
   'tile:simulator': 'Tech Simulator',
   'tile:pipeline': 'Sales Pipeline',
   'manage:users': 'Manage Users',

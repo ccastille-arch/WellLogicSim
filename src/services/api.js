@@ -76,9 +76,5 @@ export const api = {
     tileUsage:    (days)   => get(`/analytics/tile-usage?days=${days || 30}`),
     userActivity: ()       => get('/analytics/user-activity'),
   },
-  votes: {
-    getLogo: ()         => get('/votes/logo'),
-    castLogo: (logoId)  => post('/votes/logo', { logoId }),
-  },
   token: { get: getToken, set: setToken },
 }

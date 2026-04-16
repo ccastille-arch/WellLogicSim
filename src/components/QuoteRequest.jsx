@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useAuth } from './auth/AuthProvider'
 
 // Customer-facing quote request form
@@ -9,7 +9,7 @@ export default function QuoteRequest({ onBack }) {
   const [submitted, setSubmitted] = useState(false)
   const [form, setForm] = useState({
     customerName: '', contactName: user?.name || '', contactPhone: '', contactEmail: '',
-    padName: '', basin: 'Permian — Delaware', wellCount: '', compressorCount: '',
+    padName: '', basin: 'Permian â€” Delaware', wellCount: '', compressorCount: '',
     currentSetup: '', injectionType: 'Gas Lift', timeline: '', remoteAccess: '', additionalNotes: '',
   })
 
@@ -32,7 +32,7 @@ export default function QuoteRequest({ onBack }) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#080810]">
         <div className="text-center max-w-[500px] px-6">
-          <div className="text-5xl mb-4">✅</div>
+          <div className="text-5xl mb-4">âœ…</div>
           <h1 className="text-2xl text-white font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>Quote Request Submitted</h1>
           <p className="text-sm text-[#888] mb-2">Thank you, {form.contactName}.</p>
           <p className="text-[12px] text-[#666] mb-6">
@@ -40,7 +40,7 @@ export default function QuoteRequest({ onBack }) {
             A Service Compression representative will contact you shortly with pricing and next steps.
           </p>
           <div className="flex gap-3 justify-center">
-            <button onClick={onBack} className="px-6 py-2 text-[11px] font-bold bg-[#E8200C] text-white rounded-lg hover:bg-[#c01a0a]">← Back to Home</button>
+            <button onClick={onBack} className="px-6 py-2 text-[11px] font-bold bg-[#E8200C] text-white rounded-lg hover:bg-[#c01a0a]">â† Back to Home</button>
             <button onClick={() => { setSubmitted(false); setForm(f => ({ ...f, customerName: '', padName: '', wellCount: '', compressorCount: '', additionalNotes: '' })) }}
               className="px-6 py-2 text-[11px] font-bold text-[#888] border border-[#333] rounded-lg hover:text-white">Submit Another</button>
           </div>
@@ -53,8 +53,8 @@ export default function QuoteRequest({ onBack }) {
     <div className="flex-1 overflow-auto bg-[#080810]">
       <div className="max-w-[650px] mx-auto py-8 px-6">
         <div className="text-center mb-6">
-          <div className="text-xl tracking-tight mb-1" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>FieldTune™</div>
-          <h1 className="text-xl text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>Request a WellLogic™ Quote</h1>
+          <div className="text-xl tracking-tight mb-1" style={{ fontFamily: "'Arial Black'", color: '#E8200C' }}>Service Compression</div>
+          <h1 className="text-xl text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>Request a Pad Logic Quote</h1>
           <p className="text-[12px] text-[#888] mt-1">Tell us about your pad and we'll provide custom pricing.</p>
         </div>
 
@@ -72,22 +72,22 @@ export default function QuoteRequest({ onBack }) {
             <div className="grid grid-cols-2 gap-3">
               <Input label="Pad / Lease Name" value={form.padName} onChange={v => set('padName', v)} placeholder="e.g. Wolfcamp 14H" />
               <Select label="Basin" value={form.basin} onChange={v => set('basin', v)}
-                options={['Permian — Delaware', 'Permian — Midland', 'Eagle Ford', 'DJ Basin', 'Bakken', 'Other']} />
+                options={['Permian â€” Delaware', 'Permian â€” Midland', 'Eagle Ford', 'DJ Basin', 'Bakken', 'Other']} />
               <Input label="Number of Wells" value={form.wellCount} onChange={v => set('wellCount', v)} placeholder="e.g. 6" type="number" />
               <Input label="Number of Compressors" value={form.compressorCount} onChange={v => set('compressorCount', v)} placeholder="e.g. 2" type="number" />
               <Select label="Injection Type" value={form.injectionType} onChange={v => set('injectionType', v)}
                 options={['Gas Lift', 'Plunger Lift', 'ESP', 'Rod Pump', 'Other']} />
               <Select label="Desired Timeline" value={form.timeline} onChange={v => set('timeline', v)}
-                options={['', 'ASAP — within 30 days', '1-3 months', '3-6 months', 'Planning / budgeting phase', 'Just exploring options']} />
+                options={['', 'ASAP â€” within 30 days', '1-3 months', '3-6 months', 'Planning / budgeting phase', 'Just exploring options']} />
             </div>
           </FormSection>
 
           <FormSection title="Current Setup & Remote Access">
             <Select label="How are choke valves controlled today?" value={form.currentSetup} onChange={v => set('currentSetup', v)}
-              options={['', 'Manual — pumper adjusts on-site', 'Timer-based automation', 'Basic PLC / RTU', 'SCADA with manual setpoints', 'No automation', 'Other']} />
+              options={['', 'Manual â€” pumper adjusts on-site', 'Timer-based automation', 'Basic PLC / RTU', 'SCADA with manual setpoints', 'No automation', 'Other']} />
             <div className="mt-3">
               <Select label="Preferred method for remote panel adjustments?" value={form.remoteAccess} onChange={v => set('remoteAccess', v)}
-                options={['', "SC's FieldTune™ Telemetry System", 'Integrate into our existing SCADA / PLC', 'Both — FieldTune + SCADA integration', 'Not sure — discuss with SC integration team']} />
+                options={['', "SC's Telemetry System", 'Integrate into our existing SCADA / PLC', 'Both â€” SC Telemetry + SCADA integration', 'Not sure â€” discuss with SC integration team']} />
               <p className="text-[9px] text-[#555] mt-1">This can be finalized prior to commissioning with the SC integration team.</p>
             </div>
             <div className="mt-3">
@@ -111,7 +111,7 @@ export default function QuoteRequest({ onBack }) {
           <h2 className="text-sm text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>
             How Deployment Works
           </h2>
-          <p className="text-[11px] text-[#888] mb-5">From quote to live operation — here's what to expect.</p>
+          <p className="text-[11px] text-[#888] mb-5">From quote to live operation â€” here's what to expect.</p>
 
           <div className="space-y-0">
             <TimelineStep number="1" title="Quote & Approval" active>
@@ -121,16 +121,16 @@ export default function QuoteRequest({ onBack }) {
               Your electrical team meets with the SC integration team to discuss preferred connection methods, communication protocols, and site-specific requirements.
             </TimelineStep>
             <TimelineStep number="3" title="Panel Build & Delivery">
-              SC engineers and builds your custom WellLogic panel. Once complete, the panel is shipped directly to your site.
+              SC engineers and builds your custom Pad Logic panel. Once complete, the panel is shipped directly to your site.
             </TimelineStep>
             <TimelineStep number="4" title="On-Site Installation">
               The SC integration team is on-site to assist your crew with physical installation, wiring, and communication hookup.
             </TimelineStep>
             <TimelineStep number="5" title="Commissioning Day">
-              An SC commissioning representative is on-site to properly configure the panel to your specific site needs — setpoints, well priorities, compressor parameters, and alarm thresholds.
+              An SC commissioning representative is on-site to properly configure the panel to your specific site needs â€” setpoints, well priorities, compressor parameters, and alarm thresholds.
             </TimelineStep>
             <TimelineStep number="6" title="Panel In Service" highlight>
-              Your WellLogic system is live and optimizing injection 24/7. SC provides remote monitoring and support.
+              Your Pad Logic system is live and optimizing injection 24/7. SC provides remote monitoring and support.
             </TimelineStep>
           </div>
 
@@ -187,7 +187,7 @@ function Select({ label, value, onChange, options }) {
       <label className="block text-[10px] text-[#aaa] uppercase tracking-wider font-bold mb-1">{label}</label>
       <select value={value} onChange={e => onChange(e.target.value)}
         className="w-full bg-[#0a0a14] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#E8200C]">
-        {options.map(o => <option key={o} value={o}>{o || '— Select —'}</option>)}
+        {options.map(o => <option key={o} value={o}>{o || 'â€” Select â€”'}</option>)}
       </select>
     </div>
   )
@@ -218,3 +218,4 @@ function EnhancementStep({ number, children }) {
     </div>
   )
 }
+

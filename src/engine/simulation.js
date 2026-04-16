@@ -17,9 +17,10 @@
 //   Injection temperature: 116–151°F (typical ~137)
 //   Choke AO: 65–68% (tight band — system well-optimized)
 
-const DEFAULT_COMPRESSOR_CAPACITY = 400 // MCFD per compressor
+const DEFAULT_COMPRESSOR_CAPACITY = 1600 // MCFD per compressor
 const DEFAULT_WELL_RATE = 800 // MCFD desired injection per well (Klondike calibrated)
 const DEFAULT_WELL_PRODUCTION = 120 // BOE/day at full injection accuracy
+export const GAS_SUPPLY_UI_MAX = 10000000 // MCFD
 
 // Klondike-calibrated wellhead parameter defaults
 const KLONDIKE_STATIC_PRESSURE = 805   // PSI — typical injection static pressure
@@ -37,6 +38,9 @@ const DEFAULT_COOLER_OUTLET_SP = 200
 const DEFAULT_MAX_TEMP_AT_PLATE = 165
 const DEFAULT_STABILITY_TIMER = 60
 const DEFAULT_STAGING_LOCKOUT = 300
+const DEFAULT_STARTUP_ASSIST_WELLS = 2
+const DEFAULT_STARTUP_FIXED_CHOKE = 38
+const DEFAULT_STARTUP_ASSIST_DURATION = 18
 
 // Default tuning parameters — can be overridden at runtime via admin panel
 export const DEFAULT_TUNING = {
@@ -56,6 +60,7 @@ export const DEFAULT_TUNING = {
 
 export function createInitialState(config) {
   const { compressorCount, wellCount, siteType } = config
+  const compressorMaxFlowRate = config.compressorMaxFlowRate ?? DEFAULT_COMPRESSOR_CAPACITY
 
   const suctionTarget = config.suctionTarget ?? DEFAULT_SUCTION_TARGET
   const suctionLowRange = config.suctionLowRange ?? DEFAULT_SUCTION_LOW_RANGE
@@ -63,6 +68,9 @@ export function createInitialState(config) {
   const dischargeShutdown = config.dischargeShutdownPressure ?? DEFAULT_DISCHARGE_SHUTDOWN
   const dischargeOffset = config.dischargeSlowdownOffset ?? DEFAULT_DISCHARGE_SLOWDOWN_OFFSET
   const coolerSP = config.coolerOutletSP ?? DEFAULT_COOLER_OUTLET_SP
+  const startupAssistWellCount = config.startupAssistWellCount ?? DEFAULT_STARTUP_ASSIST_WELLS
+  const startupFixedChokePct = config.startupFixedChokePct ?? DEFAULT_STARTUP_FIXED_CHOKE
+  const startupAssistDuration = config.startupAssistDuration ?? DEFAULT_STARTUP_ASSIST_DURATION
 
   const compressors = Array.from({ length: compressorCount }, (_, i) => ({
     id: i,
@@ -71,7 +79,7 @@ export function createInitialState(config) {
     mode: 'auto',
     autoStartAllowed: true,
     personnelLockout: false,
-    capacityMcfd: DEFAULT_COMPRESSOR_CAPACITY,
+    capacityMcfd: compressorMaxFlowRate,
     rpm: 1050,
     suctionPsi: suctionTarget,
     dischargePsi: 400,
@@ -112,10 +120,29 @@ export function createInitialState(config) {
   })
 
   const totalCapacity = compressors.reduce((sum, c) => sum + c.capacityMcfd, 0)
+  const totalDesiredRate = wells.reduce((sum, well) => sum + well.desiredRate, 0)
+  const initialDeliveredGas = Math.min(totalDesiredRate, totalCapacity)
+  const initializedCompressors = compressors.map((compressor) => {
+    const throughput = compressors.length > 0 ? initialDeliveredGas / compressors.length : 0
+    const boundedThroughput = Math.min(throughput, compressor.capacityMcfd)
+    const loadPct = compressor.capacityMcfd > 0 ? (boundedThroughput / compressor.capacityMcfd) * 100 : 0
+
+    return {
+      ...compressor,
+      loadPct,
+      actualThroughput: boundedThroughput,
+    }
+  })
 
   return {
-    config,
-    compressors,
+    config: {
+      ...config,
+      compressorMaxFlowRate,
+      startupAssistWellCount,
+      startupFixedChokePct,
+      startupAssistDuration,
+    },
+    compressors: initializedCompressors,
     wells,
     totalAvailableGas: totalCapacity,
     maxGasCapacity: totalCapacity,
@@ -147,6 +174,7 @@ export function createInitialState(config) {
     alarms: [],
     systemRunning: true,
     runningWellsLabel: '',
+    startupAssistRemaining: 0,
     // Tuning parameters — adjustable via admin panel
     tuning: { ...DEFAULT_TUNING, ...(config.tuning || {}) },
   }
@@ -175,18 +203,31 @@ export function tick(state) {
   const onlineCapacity = activeCompressors.reduce((sum, c) => sum + c.capacityMcfd, 0)
   const effectiveGas = Math.min(totalAvailableGas, onlineCapacity)
   const prevEffective = state._prevEffectiveGas || effectiveGas
+  const compressorsOffline = onlineCapacity <= 0
 
   // Detect if a disturbance just happened (capacity changed significantly)
-  const capacityDelta = Math.abs(effectiveGas - prevEffective)
-  const disturbanceOccurred = capacityDelta > T.disturbanceThreshold
+  const capacityDelta = effectiveGas - prevEffective
+  const disturbanceOccurred = Math.abs(capacityDelta) > T.disturbanceThreshold
+  const capacityDropped = capacityDelta < -T.disturbanceThreshold
+  const capacityGained = capacityDelta > T.disturbanceThreshold
+  const coldStartRecovery = prevEffective <= T.disturbanceThreshold && effectiveGas > T.disturbanceThreshold
 
   // ──────────────────────────────────────────────
   // 3. Calculate OPTIMUM allocation (what WellLogic WANTS to achieve)
   //    This is the "perfect" answer — but we don't apply it instantly
   // ──────────────────────────────────────────────
-  const sortedWells = [...updatedWells].sort((a, b) => a.priority - b.priority)
+  const sortedWells = sortedByPriority(updatedWells)
   let remainingGas = effectiveGas
   const optimumAlloc = new Map()
+  const startupAssistRemaining = coldStartRecovery
+    ? state.config.startupAssistDuration
+    : Math.max(0, (state.startupAssistRemaining || 0) - 3)
+  const startupAssistActive = !compressorsOffline && startupAssistRemaining > 0
+  const startupAssistWellIds = new Set(
+    sortedWells
+      .slice(0, Math.max(0, Math.min(state.config.startupAssistWellCount || 0, sortedWells.length)))
+      .map(well => well.id),
+  )
 
   for (const well of sortedWells) {
     const desired = well._huntAdjustedRate || well.desiredRate
@@ -201,17 +242,16 @@ export function tick(state) {
   //    then WellLogic gradually corrects over 30-90 seconds
   // ──────────────────────────────────────────────
   const totalDesired = updatedWells.reduce((sum, w) => sum + (w._huntAdjustedRate || w.desiredRate), 0)
-  const supplyRatio = totalDesired > 0 ? effectiveGas / totalDesired : 1
 
   const finalWells = updatedWells.map((w, i) => {
     const desired = w._huntAdjustedRate || w.desiredRate
     const optimum = optimumAlloc.get(w.id) || 0
     let allocTarget = w._allocTarget || desired
 
-    if (disturbanceOccurred) {
-      // PHASE 1: Disturbance — all wells immediately see proportional flow loss
-      // This simulates the physics: less gas in the header = less to everyone
-      allocTarget = desired * Math.min(1, supplyRatio)
+    if (capacityDropped) {
+      // On a compressor loss, WellLogic should immediately protect the highest
+      // priority wells instead of slowly ramping every choke closed together.
+      allocTarget = optimum
     } else {
       // PHASE 2-3: WellLogic gradually moves allocation toward optimum
       // High priority wells recover first (they get opened), low priority close down
@@ -221,12 +261,21 @@ export function tick(state) {
     // Clamp
     allocTarget = Math.max(0, Math.min(desired, allocTarget))
 
-    // Actual flow lags behind the allocation target (valve travel + piping)
-    const actualRate = smooth(w.actualRate, allocTarget, T.flowResponseRate)
+    if (startupAssistActive && startupAssistWellIds.has(w.id) && desired > 0) {
+      const startupTarget = desired * ((state.config.startupFixedChokePct || DEFAULT_STARTUP_FIXED_CHOKE) / 100)
+      allocTarget = Math.max(allocTarget, Math.min(desired, startupTarget))
+    }
+
+    // Full-close actions should slam the choke shut; partial moves still behave like PID control.
+    const protectedByStartupAssist = startupAssistActive && startupAssistWellIds.has(w.id) && desired > 0
+    const fullShutdown = compressorsOffline || (optimum === 0 && !protectedByStartupAssist)
+    const actualRate = fullShutdown
+      ? smooth(w.actualRate, 0, compressorsOffline ? 0.85 : 0.7)
+      : smooth(w.actualRate, allocTarget, T.flowResponseRate)
 
     // Choke position moves at realistic valve speed
     const targetChokeAO = desired > 0 ? Math.min(100, (allocTarget / desired) * 100) : 0
-    const chokeAO = smooth(w.chokeAO, targetChokeAO, T.chokeMoveRate)
+    const chokeAO = fullShutdown ? 0 : smooth(w.chokeAO, targetChokeAO, T.chokeMoveRate)
 
     // Production has the most inertia
     const accuracy = desired > 0 ? actualRate / desired : 1
@@ -313,6 +362,19 @@ export function tick(state) {
   // ──────────────────────────────────────────────
   const stagingLockoutRemaining = Math.max(0, state.stagingLockoutRemaining - 3)
 
+  const deliveredGas = Math.min(totalActualInjection, effectiveGas)
+  const startingCompressors = capacityGained
+    ? activeCompressors.filter(c => c.actualThroughput < Math.max(c.capacityMcfd * 0.05, 25))
+    : []
+  const establishedCompressors = activeCompressors.filter(
+    c => !startingCompressors.some(starting => starting.id === c.id)
+  )
+  const committedEstablishedFlow = establishedCompressors.reduce(
+    (sum, compressor) => sum + Math.min(compressor.actualThroughput, compressor.capacityMcfd),
+    0,
+  )
+  const remainingForStarters = Math.max(0, deliveredGas - committedEstablishedFlow)
+
   const finalCompressors = compressors.map((c, i) => {
     const isProducing = c.status === 'running' || c.status === 'locked_out_running'
 
@@ -328,9 +390,16 @@ export function tick(state) {
       }
     }
 
-    const shareOfLoad = activeCompressors.length > 0
-      ? totalActualInjection / activeCompressors.length : 0
-    const loadPct = c.capacityMcfd > 0 ? (shareOfLoad / c.capacityMcfd) * 100 : 0
+    const isStarting = startingCompressors.some(starting => starting.id === c.id)
+    const shareOfLoad = activeCompressors.length === 0
+      ? 0
+      : capacityGained && isStarting
+        ? remainingForStarters / Math.max(startingCompressors.length, 1)
+        : capacityGained
+          ? Math.min(c.actualThroughput, c.capacityMcfd)
+          : deliveredGas / activeCompressors.length
+    const boundedThroughput = Math.min(shareOfLoad, c.capacityMcfd)
+    const loadPct = c.capacityMcfd > 0 ? (boundedThroughput / c.capacityMcfd) * 100 : 0
     const clampedLoad = Math.min(100, Math.max(0, loadPct))
 
     const rpm = 950 + (clampedLoad / 100) * 200
@@ -346,7 +415,7 @@ export function tick(state) {
       suctionPsi: smooth(c.suctionPsi, suctionPsi, T.pressureResponse),
       dischargePsi: smooth(c.dischargePsi, dischargePsi + noise() * 5, T.compressorRamp),
       loadPct: smooth(c.loadPct, clampedLoad, T.compressorRamp),
-      actualThroughput: smooth(c.actualThroughput, shareOfLoad, T.flowResponseRate),
+      actualThroughput: smooth(c.actualThroughput, boundedThroughput, T.flowResponseRate),
       speedAutoSuctionSP,
       speedAutoDischargeSP: state.dischargeShutdownPressure - state.dischargeSlowdownOffset,
     }
@@ -356,6 +425,9 @@ export function tick(state) {
   // 10. Alarms
   // ──────────────────────────────────────────────
   const alarms = []
+  if (compressorsOffline) {
+    alarms.push({ type: 'critical', message: 'Compressors Offline - Well Flow Control Suspended' })
+  }
   const lockedOutCompressors = finalCompressors.filter(c => c.personnelLockout)
   if (lockedOutCompressors.length === 1) {
     alarms.push({ type: 'warning', message: `${lockedOutCompressors[0].name} Personnel Lockout Active` })
@@ -392,13 +464,19 @@ export function tick(state) {
     salesValvePosition: Math.max(0, salesValvePosition),
     flowMeterTemp,
     stagingLockoutRemaining,
+    startupAssistRemaining,
     alarms,
-    runningWellsLabel: runningWells,
+    systemRunning: !compressorsOffline,
+    runningWellsLabel: compressorsOffline ? 'Compressors Offline' : runningWells,
   }
 }
 
 function smooth(current, target, factor) {
   return current + (target - current) * factor
+}
+
+function sortedByPriority(wells) {
+  return [...wells].sort((a, b) => a.priority - b.priority)
 }
 
 export function getMetrics(state) {

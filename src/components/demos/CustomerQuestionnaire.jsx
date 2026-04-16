@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { WellLogicCompact } from '../WellLogicBrand'
 
-// Customer Questionnaire — non-sensitive operational questions only
+// Customer Questionnaire - non-sensitive operational questions only
 // No accounting data, no financials from the customer
 // We calculate economics using public Brent Crude + standard Permian Basin burden rates
 
@@ -8,14 +9,14 @@ const QUESTIONS = [
   { section: 'About Your Operation', questions: [
     { key: 'customerName', label: 'Company Name', type: 'text', placeholder: 'e.g. Company Name' },
     { key: 'padName', label: 'Pad / Lease Name', type: 'text', placeholder: 'e.g. Wolfcamp A 14H' },
-    { key: 'basin', label: 'Basin', type: 'select', options: ['Permian — Delaware', 'Permian — Midland', 'Eagle Ford', 'DJ Basin', 'Bakken', 'Other'], default: 'Permian — Delaware' },
+    { key: 'basin', label: 'Basin', type: 'select', options: ['Permian - Delaware', 'Permian - Midland', 'Eagle Ford', 'DJ Basin', 'Bakken', 'Other'], default: 'Permian - Delaware' },
     { key: 'wellCount', label: 'How many wells on this pad?', type: 'number', min: 1, max: 20, default: 6 },
     { key: 'compressorCount', label: 'How many compressors?', type: 'number', min: 1, max: 6, default: 2 },
     { key: 'avgWellProduction', label: 'Average well production (BOE/day)?', type: 'number', min: 10, max: 2000, default: 120, unit: 'BOE/day' },
   ]},
   { section: 'Response Times', questions: [
-    { key: 'dayResponseMin', label: 'Avg operator response time — DAYTIME (minutes to reach pad)?', type: 'number', min: 5, max: 300, default: 45, unit: 'min' },
-    { key: 'nightResponseMin', label: 'Avg operator response time — NIGHTTIME / WEEKENDS?', type: 'number', min: 15, max: 480, default: 90, unit: 'min' },
+    { key: 'dayResponseMin', label: 'Avg operator response time - DAYTIME (minutes to reach pad)?', type: 'number', min: 5, max: 300, default: 45, unit: 'min' },
+    { key: 'nightResponseMin', label: 'Avg operator response time - NIGHTTIME / WEEKENDS?', type: 'number', min: 15, max: 480, default: 90, unit: 'min' },
     { key: 'roundTripHours', label: 'Average total time per trip (drive + diagnose + fix + drive back)?', type: 'number', min: 0.5, max: 8, default: 2.5, step: 0.5, unit: 'hours' },
   ]},
   { section: 'Event Frequency', questions: [
@@ -26,25 +27,25 @@ const QUESTIONS = [
   ]},
   { section: 'Current Setup', questions: [
     { key: 'currentControl', label: 'How are choke valves controlled today?', type: 'select',
-      options: ['Manual — pumper adjusts on-site', 'Timer-based automation', 'Basic PLC / RTU', 'SCADA with manual setpoints', 'No automation'], default: 'Manual — pumper adjusts on-site' },
+      options: ['Manual - pumper adjusts on-site', 'Timer-based automation', 'Basic PLC / RTU', 'SCADA with manual setpoints', 'No automation'], default: 'Manual - pumper adjusts on-site' },
     { key: 'nighttimeCoverage', label: 'Do you have 24/7 monitoring?', type: 'select',
-      options: ['No — unmanned overnight', 'Call-out only (on-call pumper)', 'Partial — SCADA alarms to phone', '24/7 staffed control room'], default: 'No — unmanned overnight' },
+      options: ['No - unmanned overnight', 'Call-out only (on-call pumper)', 'Partial - SCADA alarms to phone', '24/7 staffed control room'], default: 'No - unmanned overnight' },
   ]},
 ]
 
 // Standard West Texas / Permian Basin burden rates (public knowledge)
 export const INDUSTRY_RATES = {
   // Loaded operator burden rate (salary + benefits + truck + fuel + insurance)
-  operatorBurdenRate: 85, // $/hour — standard Permian pumper fully loaded
+  operatorBurdenRate: 85, // $/hour - standard Permian pumper fully loaded
   // Overtime/night premium multiplier
   nightPremium: 1.5,
   // Average downtime per unattended compressor trip (hours until pumper arrives + fixes)
   avgUnatendedDowntime: 3, // hours
   // Production loss during constraint events (% of pad production affected)
   constraintProductionLoss: 0.25, // 25% of production typically affected
-  // WellLogic recovery rate (% of lost production WellLogic saves vs manual)
+  // Pad Logic recovery rate (% of lost production saved vs manual)
   wellLogicRecoveryPct: 0.85, // saves 85% of what would be lost
-  // Avoided site visits per week with WellLogic (reduces unnecessary trips)
+  // Avoided site visits per week with Pad Logic (reduces unnecessary trips)
   avoidedVisitsPct: 0.30, // reduces trips by 30%
 }
 
@@ -54,7 +55,7 @@ export default function CustomerQuestionnaire({ data, onChange, onComplete }) {
 
   const set = (key, val) => onChange({ ...data, [key]: val })
 
-  // Always allow launch — defaults are valid, customer name is optional
+  // Always allow launch - defaults are valid, customer name is optional
   const isComplete = true
 
   return (
@@ -62,14 +63,14 @@ export default function CustomerQuestionnaire({ data, onChange, onComplete }) {
       <div className="w-[600px] max-w-full px-4">
         {/* Header */}
         <div className="text-center mb-6">
-          <span className="text-2xl tracking-tight" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>
-            FieldTune™
-          </span>
+          <div className="flex justify-center">
+            <WellLogicCompact size={42} />
+          </div>
           <h1 className="text-xl text-white mt-2" style={{ fontFamily: "'Arial Black'" }}>
-            WellLogic™ — Custom Demo Setup
+            Pad Logic Custom Demo Setup
           </h1>
           <p className="text-[12px] text-[#888] mt-1">
-            Answer a few questions about your operation so we can show you exactly how WellLogic performs on YOUR pad.
+            Answer a few questions about your operation so we can show you exactly how Pad Logic performs on your pad.
           </p>
         </div>
 
@@ -103,7 +104,7 @@ export default function CustomerQuestionnaire({ data, onChange, onComplete }) {
             disabled={currentSection === 0}
             className="px-4 py-2 text-[11px] font-bold text-[#888] border border-[#333] rounded hover:text-white hover:border-[#555] disabled:opacity-30"
           >
-            ← Back
+            Back
           </button>
 
           <span className="text-[10px] text-[#555]">{currentSection + 1} of {totalSections}</span>
@@ -113,25 +114,25 @@ export default function CustomerQuestionnaire({ data, onChange, onComplete }) {
               onClick={() => setCurrentSection(s => Math.min(totalSections - 1, s + 1))}
               className="px-4 py-2 text-[11px] font-bold bg-[#E8200C] text-white rounded hover:bg-[#c01a0a]"
             >
-              Next →
+              Next
             </button>
           ) : (
             <button
               type="button"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onComplete(); }}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onComplete() }}
               className="px-8 py-3 text-sm font-bold bg-[#E8200C] text-white rounded-lg hover:bg-[#ff2510] shadow-lg shadow-[#E8200C]/30 transition-all cursor-pointer select-none"
               style={{ fontFamily: "'Arial Black', Arial, sans-serif", pointerEvents: 'auto', zIndex: 10, position: 'relative' }}
             >
-              Launch Demo →
+              Launch Demo
             </button>
           )}
         </div>
 
         {/* Skip option */}
         <div className="text-center mt-4">
-          <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onComplete(); }}
+          <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onComplete() }}
             className="text-[10px] text-[#555] hover:text-[#888] underline cursor-pointer" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}>
-            Skip questionnaire — use defaults
+            Skip questionnaire - use defaults
           </button>
         </div>
       </div>

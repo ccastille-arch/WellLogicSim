@@ -39,19 +39,19 @@ import AdminDashboard from './components/auth/AdminDashboard'
 import { ForumButton, ForumPanel } from './components/Forum'
 import MLinkDashboard from './components/MLinkDashboard'
 import AutoPilot from './components/demos/AutoPilot'
-import LogoVote from './components/LogoVote'
-import { getSelectedLogo } from './components/BrandLogos'
+import { WellLogicCompact } from './components/WellLogicBrand'
 
 function AppContent() {
   const { user, isAdmin, isTech, canViewQuotes, canAccess, logout, trackActivity, settings, loading } = useAuth()
-  const activeLogo = getSelectedLogo(settings)
 
   // Show spinner while restoring session from server
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#080810]">
         <div className="text-center">
-          <div className="text-[#E8200C] text-3xl mb-3 animate-pulse" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic' }}>FieldTune™</div>
+          <div className="flex justify-center mb-3 animate-pulse">
+            <WellLogicCompact size={46} />
+          </div>
           <div className="text-[#555] text-xs">Connecting...</div>
         </div>
       </div>
@@ -134,9 +134,6 @@ function AppContent() {
       case 'livedata':
         return <MLinkDashboard onBack={() => setPage('home')} />
 
-      case 'vote':
-        return <LogoVote />
-
       case 'simulator':
         return (
           <>
@@ -162,22 +159,13 @@ function AppContent() {
   return (
     <div className="flex flex-col h-screen bg-[#080810]">
       {/* Header for pages that need it */}
-      {(page === 'home' || page === 'technical' || page === 'quote' || page === 'admin' || page === 'pipeline' || page === 'livedata' || page === 'vote') && (
+      {(page === 'home' || page === 'technical' || page === 'quote' || page === 'admin' || page === 'pipeline' || page === 'livedata') && (
         <header className="flex items-center justify-between px-3 sm:px-5 py-2 sm:py-2.5 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0 gap-2" style={{ minHeight: 44 }}>
-          <div className="flex items-center gap-2 sm:gap-4 cursor-pointer shrink-0" onClick={() => { setPage('home'); setConfig(null) }}>
-            {activeLogo ? (
-              <activeLogo.Compact size={32} />
-            ) : (
-              <>
-                <span className="text-sm sm:text-lg tracking-tight" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>FieldTune™</span>
-                <div className="w-px h-5 bg-[#333] hidden sm:block" />
-                <span className="text-xs sm:text-sm text-[#ccc] tracking-wide hidden sm:block" style={{ fontFamily: "'Arial Black'" }}>WellLogic™</span>
-              </>
-            )}
+          <div className="flex items-center gap-2 sm:gap-4 cursor-pointer shrink-0" onClick={() => { setPage('home') }}>
+            <WellLogicCompact size={32} />
           </div>
           <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap justify-end">
             <span className="text-[9px] sm:text-[11px] text-[#888] hidden sm:inline">👤 {user.name}</span>
-            <button onClick={() => navigate('vote')} className="text-[9px] sm:text-[10px] text-[#a78bfa] hover:text-white font-bold">🗳 Vote Logo</button>
             {isTech && <button onClick={() => navigate('simulator')} className="text-[9px] sm:text-[10px] text-[#4fc3f7] hover:text-white font-bold">🔧 Simulator</button>}
             {isAdmin && <button onClick={() => navigate('admin')} className="text-[9px] sm:text-[10px] text-[#f97316] hover:text-white font-bold">⚙️ Admin</button>}
             <button onClick={logout} className="px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-[#888] border border-[#333] rounded hover:text-white hover:border-[#E8200C]">Logout</button>
@@ -189,7 +177,7 @@ function AppContent() {
 
       {/* Home button — every page except home */}
       {page !== 'home' && (
-        <button onClick={() => { setPage('home'); setConfig(null) }}
+        <button onClick={() => { setPage('home') }}
           className="fixed bottom-5 left-5 z-40 px-4 py-2.5 bg-[#1a1a2a] hover:bg-[#E8200C] border border-[#333] hover:border-[#E8200C] text-[#ccc] hover:text-white rounded-full shadow-lg text-[11px] font-bold transition-all flex items-center gap-2"
           style={{ fontFamily: "'Arial Black'" }}>
           🏠 Home

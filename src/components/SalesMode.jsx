@@ -20,6 +20,7 @@ import AutoStagingDemo from './demos/AutoStagingDemo'
 import PersonnelLockoutDemo from './demos/PersonnelLockoutDemo'
 import BreakItChallenge from './demos/BreakItChallenge'
 import SetpointChangeDemo from './demos/SetpointChangeDemo'
+import { WellLogicCompact } from './WellLogicBrand'
 import {
   RevenueTicker, BeforeAfterOverlay, BadDayButton,
   ROICalculator, ResponseTimer, SaturdayNightButton, FeatureToggles,
@@ -47,12 +48,29 @@ const DEFAULT_FEATURES = {
   roiCalc: false,
 }
 
-const DEFAULT_CUSTOMER = {
-  customerName: '', padName: '', basin: 'Permian — Delaware',
-  wellCount: 6, compressorCount: 2, avgWellProduction: 120,
-  dayResponseMin: 45, nightResponseMin: 90, roundTripHours: 2.5,
-  compTripsMonth: 4, gasConstraintWeek: 2, wellUnloadWeek: 3, siteVisitsWeek: 8,
-  currentControl: 'Manual — pumper adjusts on-site', nighttimeCoverage: 'No — unmanned overnight',
+const SALES_DEMO_SETPOINTS = [1000, 750, 800, 800]
+
+function buildSalesDemoSetpoints(wellCount) {
+  return Array.from({ length: wellCount }, (_, i) => SALES_DEMO_SETPOINTS[i] ?? 800)
+}
+
+function buildSalesDemoConfig(baseConfig, customerData) {
+  const wellCount = Math.max(1, Number(customerData.wellCount) || 1)
+  const compressorCount = Math.max(1, Number(customerData.compressorCount) || 1)
+  const wellSetpoints = buildSalesDemoSetpoints(wellCount)
+  const totalDemand = wellSetpoints.reduce((sum, rate) => sum + rate, 0)
+  const perCompressorDemand = totalDemand / compressorCount
+  const reserve = Math.max(50, perCompressorDemand * 0.05)
+  const compressorMaxFlowRate = Math.ceil((perCompressorDemand + reserve) / 50) * 50
+
+  return {
+    ...baseConfig,
+    compressorCount,
+    wellCount,
+    salesMode: true,
+    wellSetpoints,
+    compressorMaxFlowRate,
+  }
 }
 
 export default function SalesMode({ sim, config }) {
@@ -60,7 +78,23 @@ export default function SalesMode({ sim, config }) {
   const [activeDemo, setActiveDemo] = useState('priority')
   const [showAdmin, setShowAdmin] = useState(false)
   const [features, setFeatures] = useState(DEFAULT_FEATURES)
-  const [customerData, setCustomerData] = useState(DEFAULT_CUSTOMER)
+  const [customerData, setCustomerData] = useState(() => ({
+    customerName: '',
+    padName: '',
+    basin: 'Permian — Delaware',
+    wellCount: config?.wellCount ?? 4,
+    compressorCount: config?.compressorCount ?? 2,
+    avgWellProduction: 120,
+    dayResponseMin: 45,
+    nightResponseMin: 90,
+    roundTripHours: 2.5,
+    compTripsMonth: 4,
+    gasConstraintWeek: 2,
+    wellUnloadWeek: 3,
+    siteVisitsWeek: 8,
+    currentControl: 'Manual — pumper adjusts on-site',
+    nighttimeCoverage: 'No — unmanned overnight',
+  }))
   const [showFeaturePanel, setShowFeaturePanel] = useState(false)
   const { brentPrice } = useBrentPrice()
 
@@ -73,7 +107,11 @@ export default function SalesMode({ sim, config }) {
       <CustomerQuestionnaire
         data={customerData}
         onChange={setCustomerData}
-        onComplete={() => { console.log('Questionnaire complete'); setQuestionnaireComplete(true) }}
+        onComplete={() => {
+          sim.applyConfig?.(buildSalesDemoConfig(config, customerData))
+          setActiveDemo('priority')
+          setQuestionnaireComplete(true)
+        }}
       />
     )
   }
@@ -88,9 +126,7 @@ export default function SalesMode({ sim, config }) {
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-2 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-lg tracking-tight" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>FieldTune™</span>
-          <div className="w-px h-5 bg-[#333]" />
-          <span className="text-sm text-white tracking-wide" style={{ fontFamily: "'Arial Black'" }}>WellLogic™</span>
+          <WellLogicCompact size={32} />
           {customerData.customerName && (
             <>
               <div className="w-px h-5 bg-[#333]" />

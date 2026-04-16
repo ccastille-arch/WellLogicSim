@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from './AuthProvider'
+import WellLogicLogo from '../WellLogicBrand'
 
 // First name becomes username, last name becomes password.
 // Entering the same name again signs the user back in.
@@ -45,11 +46,8 @@ export default function SignupGate() {
     <div className="flex-1 flex flex-col bg-[#080810] overflow-auto py-10">
       <div className="w-[440px] max-w-full px-4 mx-auto my-auto">
         <div className="text-center mb-8">
-          <div className="text-3xl tracking-tight mb-1" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>
-            FieldTune
-          </div>
-          <div className="text-xl text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>
-            WellLogic
+          <div className="flex justify-center mb-3">
+            <WellLogicLogo size={110} />
           </div>
           <div className="text-[11px] text-[#888]">Automated Gas Lift Injection Optimization</div>
           <div className="w-16 h-0.5 bg-[#E8200C] mx-auto mt-3" />

@@ -8,6 +8,7 @@ import MarketingHub from './marketing/MarketingHub'
 const DEFAULTS = {
   compressorCount: 2,
   wellCount: 4,
+  compressorMaxFlowRate: 1600,
   siteType: 'greenfield',
   suctionTarget: 80,
   suctionHighRange: 20,
@@ -33,6 +34,7 @@ const DEFAULTS = {
 const KLONDIKE_PRESET = {
   compressorCount: 2,
   wellCount: 4,
+  compressorMaxFlowRate: 1600,
   siteType: 'brownfield',
   suctionTarget: 80,
   suctionHighRange: 20,
@@ -106,7 +108,7 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
                 <span className="text-[#E8200C]">★</span> Sales Demo Mode
               </h2>
               <p className="text-[11px] text-[#888] mt-1">
-                Interactive presentation mode for client meetings. Walks through each WellLogic capability with
+                Interactive presentation mode for client meetings. Walks through each Pad Logic capability with
                 live demonstrations and pre-built scenario triggers. No technical details exposed.
               </p>
             </div>
@@ -121,7 +123,7 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
             <div className="mt-3 bg-[#E8200C]/5 rounded p-3 border border-[#E8200C]/20">
               <p className="text-[11px] text-[#E8200C]">
                 Sales Mode will launch with guided demo scenarios. Each scenario has interactive trigger buttons
-                your prospect can click to see WellLogic respond in real-time.
+                your prospect can click to see Pad Logic respond in real time.
               </p>
             </div>
           )}
@@ -137,7 +139,7 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
           </div>
           <div className="flex-1">
             <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
-              FieldTune™ Marketing Hub
+              Pad Logic Marketing Hub
             </h2>
             <p className="text-[11px] text-[#888] mt-0.5">
               Product videos, sales sheets, ROI templates, technical specs, and a full presentation slide deck.
@@ -185,6 +187,19 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
                 <span className="text-xl font-bold text-white w-8 text-center">{cfg.wellCount}</span>
               </div>
             </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <ParamInput
+              label="Compressor Max Flow Rate"
+              value={cfg.compressorMaxFlowRate}
+              unit="MCFD per compressor"
+              onChange={v => set('compressorMaxFlowRate', v)}
+              min={100}
+              max={4000}
+              step={50}
+              description="Applied to each compressor when the simulation launches"
+            />
           </div>
 
           {/* Site Type */}

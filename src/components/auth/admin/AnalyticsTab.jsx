@@ -5,7 +5,7 @@ import { api } from '../../../services/api'
 const TILE_LABELS = {
   admin: 'Admin', livedata: 'Live Data', autopilot: 'Presentation', marketing: 'Marketing',
   sales: 'Sales Demo', technical: 'Tech Docs', quote: 'Quote', detechtion_launchpad: 'Detechtion',
-  mlink_connect: 'M-Link', vote: 'Logo Vote', simulator: 'Simulator', pipeline: 'Pipeline',
+  mlink_connect: 'M-Link', simulator: 'Simulator', pipeline: 'Pipeline',
 }
 
 function StatCard({ label, value, color }) {

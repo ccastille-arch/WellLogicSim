@@ -1,39 +1,25 @@
-// Sales Features — enable/disable overlays for the demo mode
-// Economics calculated from: questionnaire answers + live Brent Crude + standard Permian burden rates
+﻿// Sales Features â€” enable/disable overlays for the demo mode
+// Economics calculated from questionnaire answers plus a fixed demo Brent assumption.
 
 import { useState, useEffect, useRef } from 'react'
 import { INDUSTRY_RATES } from './CustomerQuestionnaire'
 
-// ═══════════════════════════════════════════════════════════
-// BRENT CRUDE PRICE — fetch live, fallback to default
-// ═══════════════════════════════════════════════════════════
-let cachedBrentPrice = null
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// BRENT CRUDE PRICE â€” fixed demo benchmark so live data stays isolated to the
+// dedicated "View Live Data" experience.
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+let cachedBrentPrice = 72
 
 export function useBrentPrice() {
-  const [price, setPrice] = useState(cachedBrentPrice || 72)
-  const [source, setSource] = useState(cachedBrentPrice ? 'cached' : 'default')
-
-  useEffect(() => {
-    if (cachedBrentPrice) return
-    // Try to fetch live Brent crude price
-    fetch('https://api.exchangerate.host/latest?base=USD&symbols=XAU')
-      .catch(() => null)
-      .then(() => {
-        // Fallback: use a reasonable current price
-        // In production you'd use a real commodity API
-        const estimated = 72 + (Math.random() - 0.5) * 4 // ~$70-74
-        cachedBrentPrice = estimated
-        setPrice(estimated)
-        setSource('estimated')
-      })
-  }, [])
+  const [price] = useState(cachedBrentPrice)
+  const [source] = useState('demo')
 
   return { brentPrice: price, priceSource: source }
 }
 
-// ═══════════════════════════════════════════════════════════
-// ECONOMICS ENGINE — calculates all $/costs from questionnaire
-// ═══════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ECONOMICS ENGINE â€” calculates all $/costs from questionnaire
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export function calculateEconomics(customerData, brentPrice) {
   const d = customerData
   const R = INDUSTRY_RATES
@@ -64,7 +50,7 @@ export function calculateEconomics(customerData, brentPrice) {
   const boeLostPerTrip = boePerHour * totalManualHrs * 0.7 // 70% of pad affected during full cycle
   const boeSavedPerTrip = boeLostPerTrip * R.wellLogicRecoveryPct
 
-  // Revenue per BOE (Brent crude is a proxy — actual wellhead price is lower)
+  // Revenue per BOE (Brent crude is a proxy â€” actual wellhead price is lower)
   const wellheadDiscount = 0.85 // wellhead ~85% of Brent
   const boeValue = brentPrice * wellheadDiscount
 
@@ -118,9 +104,9 @@ export function calculateEconomics(customerData, brentPrice) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // 1. REVENUE IMPACT TICKER
-// ═══════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export function RevenueTicker({ sim, customerData, brentPrice }) {
   const [cumulativeSaved, setCumulativeSaved] = useState(0)
   const prevAccuracyRef = useRef(100)
@@ -148,7 +134,7 @@ export function RevenueTicker({ sim, customerData, brentPrice }) {
   return (
     <div className="bg-[#0a1a0a] border border-[#22c55e]/30 rounded-lg p-2.5">
       <div className="flex items-center gap-1 mb-1.5">
-        <span className="text-[8px] text-[#22c55e] uppercase tracking-wider font-bold">💰 Revenue Impact</span>
+        <span className="text-[8px] text-[#22c55e] uppercase tracking-wider font-bold">ðŸ’° Revenue Impact</span>
         <span className="text-[7px] text-[#555] ml-auto">Brent ${brentPrice.toFixed(0)}/bbl</span>
       </div>
       <div className="grid grid-cols-4 gap-2">
@@ -172,14 +158,14 @@ function MiniStat({ label, value, sub, color }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // 2. PRODUCTION RECOVERY COMPARISON
-// Shows the full manual workflow vs WellLogic automatic response
-// Manual: SCADA alarm → dispatch operator → drive to pad → diagnose →
-//         call out mechanic → mechanic fixes comp → operator returns →
-//         operator readjusts chokes → production restored
-// WellLogic: detects → rebalances chokes automatically → production protected
-// ═══════════════════════════════════════════════════════════
+// Shows the full manual workflow vs Pad Logic automatic response
+// Manual: SCADA alarm â†’ dispatch operator â†’ drive to pad â†’ diagnose â†’
+//         call out mechanic â†’ mechanic fixes comp â†’ operator returns â†’
+//         operator readjusts chokes â†’ production restored
+// Pad Logic: detects â†’ rebalances chokes automatically â†’ production protected
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export function BeforeAfterOverlay({ sim, customerData }) {
   const [manualState, setManualState] = useState({ elapsed: 0, phase: 'idle' })
   const intervalRef = useRef(null)
@@ -188,8 +174,8 @@ export function BeforeAfterOverlay({ sim, customerData }) {
   const accuracy = wells.reduce((s, w) => s + (w.isAtTarget ? 1 : 0), 0) / Math.max(wells.length, 1) * 100
   const isDisturbance = accuracy < 85
 
-  // Manual timeline (scaled for demo — real times shown in labels)
-  const driveTime1 = (customerData?.dayResponseMin || 45) // min — first dispatch
+  // Manual timeline (scaled for demo â€” real times shown in labels)
+  const driveTime1 = (customerData?.dayResponseMin || 45) // min â€” first dispatch
   const diagTime = 15 // min to diagnose
   const mechWait = 60 // min waiting for mechanic
   const fixTime = 30 // min for mechanic to fix
@@ -235,24 +221,24 @@ export function BeforeAfterOverlay({ sim, customerData }) {
   const manualProdPct = phase === 'restored' ? 95 : phase === 'readjusting_chokes' ? 60 : phase === 'mechanic_fixing' ? 25 : Math.max(10, 100 - elapsed * 3)
 
   const phaseLabels = {
-    alarm: `🚨 SCADA alarm fired — dispatching operator (${driveTime1} min drive)`,
-    diagnose: `🔍 Operator on-site — diagnosing issue (~${diagTime} min)`,
-    waiting_mechanic: `📞 Called mechanic — waiting for arrival (~${mechWait} min)`,
-    mechanic_fixing: `🔧 Mechanic repairing compressor (~${fixTime} min)`,
-    operator_returning: `🚗 Comp fixed — dispatching operator BACK to readjust chokes (${driveTime2} min drive)`,
-    readjusting_chokes: `⚙️ Operator manually readjusting chokes on ${sim.state.wells.length} wells (~${chokeAdjust} min)`,
-    restored: `✅ Production finally restored — total time: ${totalManualMin} min (${(totalManualMin / 60).toFixed(1)} hrs)`,
+    alarm: `ðŸš¨ SCADA alarm fired â€” dispatching operator (${driveTime1} min drive)`,
+    diagnose: `ðŸ” Operator on-site â€” diagnosing issue (~${diagTime} min)`,
+    waiting_mechanic: `ðŸ“ž Called mechanic â€” waiting for arrival (~${mechWait} min)`,
+    mechanic_fixing: `ðŸ”§ Mechanic repairing compressor (~${fixTime} min)`,
+    operator_returning: `ðŸš— Comp fixed â€” dispatching operator BACK to readjust chokes (${driveTime2} min drive)`,
+    readjusting_chokes: `âš™ï¸ Operator manually readjusting chokes on ${sim.state.wells.length} wells (~${chokeAdjust} min)`,
+    restored: `âœ… Production finally restored â€” total time: ${totalManualMin} min (${(totalManualMin / 60).toFixed(1)} hrs)`,
   }
 
   return (
     <div className="bg-[#111] border border-[#333] rounded-lg p-2.5">
       <div className="text-[8px] text-[#f97316] uppercase tracking-wider font-bold mb-1">
-        Production Recovery Comparison — What Happens When a Compressor Goes Down?
+        Production Recovery Comparison â€” What Happens When a Compressor Goes Down?
       </div>
       <div className="grid grid-cols-2 gap-2">
         {/* MANUAL SIDE */}
         <div className="bg-[#1a0808] rounded p-2 border border-[#E8200C]/20">
-          <div className="text-[9px] text-[#E8200C] font-bold mb-1">❌ TODAY — Manual Response</div>
+          <div className="text-[9px] text-[#E8200C] font-bold mb-1">âŒ TODAY â€” Manual Response</div>
           <div className="w-full bg-[#200] rounded h-3 overflow-hidden">
             <div className="h-full bg-[#E8200C] transition-all duration-1000" style={{ width: `${manualProdPct}%` }} />
           </div>
@@ -275,7 +261,7 @@ export function BeforeAfterOverlay({ sim, customerData }) {
               const active = current === stepIdx
               return (
                 <div key={i} className={`text-[7px] flex items-center gap-1 ${done ? 'text-[#E8200C]' : active ? 'text-white' : 'text-[#444]'}`}>
-                  <span>{done ? '✓' : active ? '►' : '○'}</span>
+                  <span>{done ? 'âœ“' : active ? 'â–º' : 'â—‹'}</span>
                   <span>{step.t}</span>
                 </div>
               )
@@ -285,28 +271,28 @@ export function BeforeAfterOverlay({ sim, customerData }) {
 
         {/* WELLLOGIC SIDE */}
         <div className="bg-[#081a08] rounded p-2 border border-[#22c55e]/20">
-          <div className="text-[9px] text-[#22c55e] font-bold mb-1">✅ WITH WellLogic — Automatic</div>
+          <div className="text-[9px] text-[#22c55e] font-bold mb-1">âœ… WITH Pad Logic â€” Automatic</div>
           <div className="w-full bg-[#020] rounded h-3 overflow-hidden">
             <div className="h-full bg-[#22c55e] transition-all duration-1000" style={{ width: `${accuracy}%` }} />
           </div>
           <div className="text-[10px] text-[#22c55e] font-bold mt-1">{accuracy.toFixed(0)}% production</div>
           <div className="text-[8px] text-[#ccc] mt-1 leading-relaxed">
             {accuracy >= 95
-              ? '✅ Priority wells at full injection. Low-priority wells curtailed to protect top producers.'
+              ? 'âœ… Priority wells at full injection. Low-priority wells curtailed to protect top producers.'
               : accuracy >= 70
-              ? '⚡ Rebalancing in progress — closing chokes on low-priority wells, protecting top producers.'
-              : '🔄 Disturbance detected — reallocating gas by well priority...'}
+              ? 'âš¡ Rebalancing in progress â€” closing chokes on low-priority wells, protecting top producers.'
+              : 'ðŸ”„ Disturbance detected â€” reallocating gas by well priority...'}
           </div>
           <div className="mt-1.5 space-y-0.5">
-            <div className="text-[7px] text-[#22c55e] flex items-center gap-1"><span>✓</span><span>Detects shortfall (instant)</span></div>
+            <div className="text-[7px] text-[#22c55e] flex items-center gap-1"><span>âœ“</span><span>Detects shortfall (instant)</span></div>
             <div className={`text-[7px] flex items-center gap-1 ${accuracy >= 50 ? 'text-[#22c55e]' : 'text-white'}`}>
-              <span>{accuracy >= 50 ? '✓' : '►'}</span><span>Rebalances chokes (30-60 sec)</span>
+              <span>{accuracy >= 50 ? 'âœ“' : 'â–º'}</span><span>Rebalances chokes (30-60 sec)</span>
             </div>
             <div className={`text-[7px] flex items-center gap-1 ${accuracy >= 90 ? 'text-[#22c55e]' : 'text-[#444]'}`}>
-              <span>{accuracy >= 90 ? '✓' : '○'}</span><span>Priority wells at target</span>
+              <span>{accuracy >= 90 ? 'âœ“' : 'â—‹'}</span><span>Priority wells at target</span>
             </div>
             <div className={`text-[7px] flex items-center gap-1 ${accuracy >= 95 ? 'text-[#22c55e]' : 'text-[#444]'}`}>
-              <span>{accuracy >= 95 ? '✓' : '○'}</span><span>Stable — no operator needed</span>
+              <span>{accuracy >= 95 ? 'âœ“' : 'â—‹'}</span><span>Stable â€” no operator needed</span>
             </div>
           </div>
         </div>
@@ -315,9 +301,9 @@ export function BeforeAfterOverlay({ sim, customerData }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // 3. BAD DAY CHAOS BUTTON
-// ═══════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export function BadDayButton({ sim }) {
   const [chaosActive, setChaosActive] = useState(false)
   const trigger = () => {
@@ -344,27 +330,27 @@ export function BadDayButton({ sim }) {
     <div className="space-y-1.5">
       <button onClick={trigger} disabled={chaosActive}
         className={`w-full py-2.5 rounded-lg font-bold text-[11px] transition-all ${chaosActive ? 'bg-[#E8200C] text-white animate-pulse' : 'bg-[#E8200C]/20 border-2 border-[#E8200C] text-[#E8200C] hover:bg-[#E8200C] hover:text-white'}`}>
-        {chaosActive ? '💥 CHAOS IN PROGRESS...' : '💀 THE BAD DAY'}
+        {chaosActive ? 'ðŸ’¥ CHAOS IN PROGRESS...' : 'ðŸ’€ THE BAD DAY'}
       </button>
-      <button onClick={reset} className="w-full py-1.5 rounded text-[10px] text-[#888] border border-[#333] hover:text-white">↩️ Reset</button>
+      <button onClick={reset} className="w-full py-1.5 rounded text-[10px] text-[#888] border border-[#333] hover:text-white">â†©ï¸ Reset</button>
     </div>
   )
 }
 
-// ═══════════════════════════════════════════════════════════
-// 5. ROI CALCULATOR — uses questionnaire + burden rates + Brent
-// ═══════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// 5. ROI CALCULATOR â€” uses questionnaire + burden rates + Brent
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export function ROICalculator({ customerData, brentPrice }) {
   const econ = calculateEconomics(customerData, brentPrice)
 
   return (
     <div className="bg-[#0a0a1a] border border-[#4fc3f7]/30 rounded-lg p-3">
       <div className="flex items-center gap-1 mb-2">
-        <span className="text-[8px] text-[#4fc3f7] uppercase tracking-wider font-bold">📊 Estimated Annual ROI</span>
+        <span className="text-[8px] text-[#4fc3f7] uppercase tracking-wider font-bold">ðŸ“Š Estimated Annual ROI</span>
         <span className="text-[7px] text-[#555] ml-auto">Brent ${brentPrice.toFixed(0)}/bbl</span>
       </div>
       {customerData.customerName && (
-        <div className="text-[10px] text-white font-bold mb-2">{customerData.customerName} {customerData.padName && `— ${customerData.padName}`}</div>
+        <div className="text-[10px] text-white font-bold mb-2">{customerData.customerName} {customerData.padName && `â€” ${customerData.padName}`}</div>
       )}
       <div className="space-y-1.5 text-[10px]">
         <ROILine label={`Comp Trip Recovery (${econ.tripsMonth}/mo)`} value={econ.tripAnnualRevenueSaved} />
@@ -394,11 +380,11 @@ function ROILine({ label, value }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // 6. TIME TO FULL PRODUCTION RECOVERY
 // Manual: drive1 + diagnose + wait mechanic + fix + drive2 + readjust chokes
-// WellLogic: 30-60 seconds automatic
-// ═══════════════════════════════════════════════════════════
+// Pad Logic: 30-60 seconds automatic
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export function ResponseTimer({ sim, customerData }) {
   const [eventStart, setEventStart] = useState(null)
   const [elapsed, setElapsed] = useState(0)
@@ -414,7 +400,7 @@ export function ResponseTimer({ sim, customerData }) {
   const diagnose = 15
   const mechWait = 60
   const fix = 30
-  const drive2 = drive1 // RETURN TRIP — operator drives back to readjust
+  const drive2 = drive1 // RETURN TRIP â€” operator drives back to readjust
   const chokeAdj = 20
   const totalManualMin = drive1 + diagnose + mechWait + fix + drive2 + chokeAdj
 
@@ -443,12 +429,12 @@ export function ResponseTimer({ sim, customerData }) {
   return (
     <div className="bg-[#111] border border-[#333] rounded-lg p-2.5">
       <div className="text-[8px] text-[#f97316] uppercase tracking-wider font-bold mb-1">
-        ⏱ Time to Full Production Recovery
+        â± Time to Full Production Recovery
       </div>
       <div className="grid grid-cols-2 gap-3">
         {/* MANUAL */}
         <div className="text-center bg-[#1a0808] rounded p-2 border border-[#E8200C]/20">
-          <div className="text-[8px] text-[#E8200C] font-bold mb-0.5">Manual — Operator + Mechanic</div>
+          <div className="text-[8px] text-[#E8200C] font-bold mb-0.5">Manual â€” Operator + Mechanic</div>
           <div className="text-[20px] text-[#E8200C] font-bold" style={{ fontFamily: "'Arial Black'" }}>
             {totalManualMin} min
           </div>
@@ -460,17 +446,17 @@ export function ResponseTimer({ sim, customerData }) {
 
         {/* WELLLOGIC */}
         <div className="text-center bg-[#081a08] rounded p-2 border border-[#22c55e]/20">
-          <div className="text-[8px] text-[#22c55e] font-bold mb-0.5">WellLogic — Fully Automatic</div>
+          <div className="text-[8px] text-[#22c55e] font-bold mb-0.5">Pad Logic â€” Fully Automatic</div>
           <div className="text-[20px] font-bold" style={{ fontFamily: "'Arial Black'", color: recovered ? '#22c55e' : '#eab308' }}>
             {recovered ? fmt(Math.min(elapsed, 60)) : fmt(elapsed)}
           </div>
           <div className="text-[7px] text-[#888] leading-relaxed mt-1">
             {recovered
-              ? 'Priority wells at target. No operator dispatch needed. Mechanic dispatched only for compressor — chokes already handled.'
+              ? 'Priority wells at target. No operator dispatch needed. Mechanic dispatched only for compressor â€” chokes already handled.'
               : 'Detecting shortfall and rebalancing injection across wells by priority...'}
           </div>
           <div className="text-[8px] text-[#22c55e] font-bold mt-1">
-            {recovered ? '✅ Production protected — zero operator trips for choke adjustment' : '⚡ Rebalancing...'}
+            {recovered ? 'âœ… Production protected â€” zero operator trips for choke adjustment' : 'âš¡ Rebalancing...'}
           </div>
         </div>
       </div>
@@ -478,9 +464,9 @@ export function ResponseTimer({ sim, customerData }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // 7. 2AM SATURDAY
-// ═══════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export function SaturdayNightButton({ sim, customerData }) {
   const [active, setActive] = useState(false)
   const [stage, setStage] = useState('')
@@ -488,12 +474,12 @@ export function SaturdayNightButton({ sim, customerData }) {
 
   const trigger = () => {
     setActive(true)
-    setStage(`🌙 2:00 AM Saturday — Pad unmanned. Nearest pumper is ${nightMin} minutes away.`)
-    setTimeout(() => { setStage('⚡ 2:03 AM — C1 trips on high discharge temp.'); sim.setCompressorStatus(0, 'tripped') }, 3000)
-    setTimeout(() => { setStage('📉 2:05 AM — Suction pressure dropping. All wells losing injection.'); sim.setTotalAvailableGas(sim.state.maxGasCapacity * 0.5) }, 8000)
-    setTimeout(() => { setStage('💥 2:08 AM — Well unloads. Scrubber pressure spikes.'); sim.setStateField('scrubberPressure', sim.state.suctionTarget + 30); sim.setStateField('wellUnloadActive', true) }, 14000)
-    setTimeout(() => { setStage('🟢 WellLogic rebalanced. Priority wells protected. Sales valve managing pressure.'); sim.setStateField('wellUnloadActive', false) }, 22000)
-    setTimeout(() => setStage(`📱 2:${nightMin > 60 ? Math.floor(nightMin / 60) + ':' + (nightMin % 60).toString().padStart(2, '0') : nightMin} AM — Pumper finally arrives. WellLogic handled it ${nightMin} minutes ago.`), 30000)
+    setStage(`ðŸŒ™ 2:00 AM Saturday â€” Pad unmanned. Nearest pumper is ${nightMin} minutes away.`)
+    setTimeout(() => { setStage('âš¡ 2:03 AM â€” C1 trips on high discharge temp.'); sim.setCompressorStatus(0, 'tripped') }, 3000)
+    setTimeout(() => { setStage('ðŸ“‰ 2:05 AM â€” Suction pressure dropping. All wells losing injection.'); sim.setTotalAvailableGas(sim.state.maxGasCapacity * 0.5) }, 8000)
+    setTimeout(() => { setStage('ðŸ’¥ 2:08 AM â€” Well unloads. Scrubber pressure spikes.'); sim.setStateField('scrubberPressure', sim.state.suctionTarget + 30); sim.setStateField('wellUnloadActive', true) }, 14000)
+    setTimeout(() => { setStage('ðŸŸ¢ Pad Logic rebalanced. Priority wells protected. Sales valve managing pressure.'); sim.setStateField('wellUnloadActive', false) }, 22000)
+    setTimeout(() => setStage(`ðŸ“± 2:${nightMin > 60 ? Math.floor(nightMin / 60) + ':' + (nightMin % 60).toString().padStart(2, '0') : nightMin} AM â€” Pumper finally arrives. Pad Logic handled it ${nightMin} minutes ago.`), 30000)
     setTimeout(() => setActive(false), 40000)
   }
 
@@ -501,24 +487,24 @@ export function SaturdayNightButton({ sim, customerData }) {
     <div className="space-y-1.5">
       <button onClick={trigger} disabled={active}
         className={`w-full py-2.5 rounded-lg font-bold text-[11px] transition-all ${active ? 'bg-[#1a1a40] border border-[#4a4aff] text-[#8888ff]' : 'bg-[#1a1a30] border-2 border-[#4a4aff] text-[#8888ff] hover:bg-[#2a2a50] hover:text-white'}`}>
-        {active ? '🌙 Running...' : '🌙 2AM Saturday — Nobody On-Site'}
+        {active ? 'ðŸŒ™ Running...' : 'ðŸŒ™ 2AM Saturday â€” Nobody On-Site'}
       </button>
       {active && stage && <div className="bg-[#1a1a30] rounded p-2 border border-[#333]"><div className="text-[10px] text-[#ccc] leading-relaxed">{stage}</div></div>}
     </div>
   )
 }
 
-// ═══════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // FEATURE TOGGLES
-// ═══════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export function FeatureToggles({ features, onToggle }) {
   const items = [
-    { key: 'revenueTicker', label: 'Revenue Ticker', icon: '💰' },
-    { key: 'beforeAfter', label: 'Before / After', icon: '⚡' },
-    { key: 'responseTimer', label: 'Response Timer', icon: '⏱' },
-    { key: 'badDay', label: 'Bad Day Button', icon: '💀' },
-    { key: 'saturdayNight', label: '2AM Saturday', icon: '🌙' },
-    { key: 'roiCalc', label: 'ROI Calculator', icon: '📊' },
+    { key: 'revenueTicker', label: 'Revenue Ticker', icon: 'ðŸ’°' },
+    { key: 'beforeAfter', label: 'Before / After', icon: 'âš¡' },
+    { key: 'responseTimer', label: 'Response Timer', icon: 'â±' },
+    { key: 'badDay', label: 'Bad Day Button', icon: 'ðŸ’€' },
+    { key: 'saturdayNight', label: '2AM Saturday', icon: 'ðŸŒ™' },
+    { key: 'roiCalc', label: 'ROI Calculator', icon: 'ðŸ“Š' },
   ]
   return (
     <div className="bg-[#111120] border border-[#2a2a3a] rounded-lg p-3 mb-3">
@@ -536,3 +522,5 @@ export function FeatureToggles({ features, onToggle }) {
     </div>
   )
 }
+
+

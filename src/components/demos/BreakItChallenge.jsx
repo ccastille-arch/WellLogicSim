@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import SiteOverview from '../SiteOverview'
-import { getMetrics } from '../../engine/simulation'
+import { getMetrics, GAS_SUPPLY_UI_MAX } from '../../engine/simulation'
 
 // "BREAK IT" CHALLENGE
 // Give the customer every slider and button. Dare them to crash the system.
-// WellLogic handles it all. The lightbulb moment: "I literally cannot break this thing."
+// Pad Logic handles it all. The lightbulb moment: "I literally cannot break this thing."
 
 export default function BreakItChallenge({ sim }) {
   const m = getMetrics(sim.state)
@@ -31,10 +31,10 @@ export default function BreakItChallenge({ sim }) {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg text-white font-bold flex items-center gap-2" style={{ fontFamily: "'Arial Black'" }}>
-              <span className="text-2xl">🎮</span> Break It Challenge
+              <span className="text-2xl">ðŸŽ®</span> Break It Challenge
             </h2>
             <p className="text-[11px] text-[#888] mt-0.5">
-              Go ahead — try to crash the system. Every slider and button is yours. WellLogic handles it all.
+              Go ahead â€” try to crash the system. Every slider and button is yours. Pad Logic handles it all.
             </p>
           </div>
           <div className="flex gap-3">
@@ -50,8 +50,8 @@ export default function BreakItChallenge({ sim }) {
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Live diagram */}
         <div className="flex-1 min-h-0 min-w-0 overflow-hidden relative">
-          <SiteOverview state={sim.state} config={sim.state.config} />
-          {/* RESET ALL button — top right */}
+          <SiteOverview state={sim.state} config={sim.state.config} animateFlow={false} />
+          {/* RESET ALL button â€” top right */}
           <button onClick={() => {
             sim.state.compressors.forEach(c => sim.setCompressorStatus(c.id, 'running'))
             sim.state.wells.forEach(w => { if (w.desiredRate === 0) sim.setWellDesiredRate(w.id, 150) })
@@ -61,7 +61,7 @@ export default function BreakItChallenge({ sim }) {
           }}
             className="absolute top-3 right-3 z-10 px-4 py-2 bg-[#22c55e] hover:bg-[#16a34a] text-black text-[11px] font-bold rounded-lg shadow-lg shadow-[#22c55e]/20 transition-all active:scale-95"
             style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
-            ↩ RESET ALL TO NORMAL
+            â†© RESET ALL TO NORMAL
           </button>
         </div>
 
@@ -70,45 +70,45 @@ export default function BreakItChallenge({ sim }) {
           <div className="p-3 space-y-3">
 
             {/* Quick chaos buttons */}
-            <PanelSection title="🔥 Quick Chaos" color="#E8200C">
+            <PanelSection title="ðŸ”¥ Quick Chaos" color="#E8200C">
               <div className="grid grid-cols-2 gap-1.5">
-                <ChaosBtn label="Trip Random Comp" icon="⚡" onClick={() => {
+                <ChaosBtn label="Trip Random Comp" icon="âš¡" onClick={() => {
                   trackEvent()
                   const running = sim.state.compressors.filter(c => c.status === 'running')
                   if (running.length) sim.setCompressorStatus(running[Math.floor(Math.random() * running.length)].id, 'tripped')
                 }} />
-                <ChaosBtn label="Trip ALL Comps" icon="💥" color="#E8200C" onClick={() => {
+                <ChaosBtn label="Trip ALL Comps" icon="ðŸ’¥" color="#E8200C" onClick={() => {
                   trackEvent()
                   sim.state.compressors.forEach(c => sim.setCompressorStatus(c.id, 'tripped'))
                 }} />
-                <ChaosBtn label="Well Unload" icon="🌋" onClick={() => {
+                <ChaosBtn label="Well Unload" icon="ðŸŒ‹" onClick={() => {
                   trackEvent()
                   sim.setStateField('scrubberPressure', sim.state.suctionTarget + 40)
                   sim.setStateField('wellUnloadActive', true)
                   setTimeout(() => sim.setStateField('wellUnloadActive', false), 6000)
                 }} />
-                <ChaosBtn label="Kill Gas Supply" icon="🚫" onClick={() => {
+                <ChaosBtn label="Kill Gas Supply" icon="ðŸš«" onClick={() => {
                   trackEvent()
                   sim.setTotalAvailableGas(0)
                 }} />
-                <ChaosBtn label="Slam Sales Line" icon="📛" onClick={() => {
+                <ChaosBtn label="Slam Sales Line" icon="ðŸ“›" onClick={() => {
                   trackEvent()
                   sim.setStateField('salesValvePosition', 100)
                   sim.setStateField('suctionHeaderPressure', sim.state.suctionTarget + 30)
                 }} />
-                <ChaosBtn label="Load Up a Well" icon="🛢️" onClick={() => {
+                <ChaosBtn label="Load Up a Well" icon="ðŸ›¢ï¸" onClick={() => {
                   trackEvent()
                   const wells = sim.state.wells.filter(w => w.desiredRate > 0)
                   if (wells.length) sim.setWellDesiredRate(wells[Math.floor(Math.random() * wells.length)].id, 0)
                 }} />
-                <ChaosBtn label="THE BAD DAY" icon="💀" color="#E8200C" onClick={() => {
+                <ChaosBtn label="THE BAD DAY" icon="ðŸ’€" color="#E8200C" onClick={() => {
                   trackEvent(); trackEvent(); trackEvent()
                   sim.setCompressorStatus(0, 'tripped')
                   setTimeout(() => sim.setTotalAvailableGas(sim.state.maxGasCapacity * 0.4), 2000)
                   setTimeout(() => { sim.setStateField('scrubberPressure', sim.state.suctionTarget + 40); sim.setStateField('wellUnloadActive', true) }, 4000)
                   setTimeout(() => { if (sim.state.compressors.length > 1) sim.setCompressorStatus(1, 'tripped') }, 7000)
                 }} />
-                <ChaosBtn label="↩️ RESET ALL" icon="" color="#22c55e" onClick={() => {
+                <ChaosBtn label="â†©ï¸ RESET ALL" icon="" color="#22c55e" onClick={() => {
                   sim.state.compressors.forEach(c => sim.setCompressorStatus(c.id, 'running'))
                   sim.state.wells.forEach(w => { if (w.desiredRate === 0) sim.setWellDesiredRate(w.id, 150) })
                   sim.setTotalAvailableGas(sim.state.maxGasCapacity)
@@ -119,14 +119,14 @@ export default function BreakItChallenge({ sim }) {
             </PanelSection>
 
             {/* Gas Supply */}
-            <PanelSection title="⛽ Gas Supply" color="#22c55e">
-              <SliderControl label="Total Available Gas" value={sim.state.totalAvailableGas} min={0} max={sim.state.maxGasCapacity}
+            <PanelSection title="â›½ Gas Supply" color="#22c55e">
+              <SliderControl label="Total Available Gas" value={sim.state.totalAvailableGas} min={0} max={GAS_SUPPLY_UI_MAX}
                 unit="MCFD" onChange={v => { sim.setTotalAvailableGas(v); trackEvent() }}
                 color={sim.state.totalAvailableGas > sim.state.maxGasCapacity * 0.7 ? '#22c55e' : sim.state.totalAvailableGas > sim.state.maxGasCapacity * 0.4 ? '#eab308' : '#E8200C'} />
             </PanelSection>
 
             {/* Compressors */}
-            <PanelSection title="🔧 Compressors" color="#22c55e">
+            <PanelSection title="ðŸ”§ Compressors" color="#22c55e">
               {sim.state.compressors.map(c => (
                 <div key={c.id} className="flex items-center gap-2 py-1">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.status === 'running' ? '#22c55e' : '#E8200C' }} />
@@ -143,7 +143,7 @@ export default function BreakItChallenge({ sim }) {
             </PanelSection>
 
             {/* Individual Well Rates */}
-            <PanelSection title="🛢️ Well Injection Rates" color="#f97316">
+            <PanelSection title="ðŸ›¢ï¸ Well Injection Rates" color="#f97316">
               {sim.state.wells.map(w => (
                 <SliderControl key={w.id} label={`${w.name} Desired`} value={w.desiredRate} min={0} max={400} step={10}
                   unit="MCFD" onChange={v => { sim.setWellDesiredRate(w.id, v); trackEvent() }}
@@ -153,7 +153,7 @@ export default function BreakItChallenge({ sim }) {
             </PanelSection>
 
             {/* Pressure System */}
-            <PanelSection title="📐 Pressure System" color="#4fc3f7">
+            <PanelSection title="ðŸ“ Pressure System" color="#4fc3f7">
               <SliderControl label="Suction Header Target" value={sim.state.suctionTarget} min={20} max={200}
                 unit="PSI" onChange={v => sim.setStateField('suctionTarget', v)} />
               <SliderControl label="Suction High Range" value={sim.state.suctionHighRange} min={0} max={100}
@@ -169,22 +169,22 @@ export default function BreakItChallenge({ sim }) {
             </PanelSection>
 
             {/* Temperature */}
-            <PanelSection title="🌡️ Temperature" color="#eab308">
+            <PanelSection title="ðŸŒ¡ï¸ Temperature" color="#eab308">
               <SliderControl label="Max Temp at Plate" value={sim.state.maxTempAtPlate} min={100} max={250}
-                unit="°F" onChange={v => sim.setStateField('maxTempAtPlate', v)} />
-              <ReadOnly label="Flow Meter Temp" value={sim.state.flowMeterTemp.toFixed(0)} unit="°F"
+                unit="Â°F" onChange={v => sim.setStateField('maxTempAtPlate', v)} />
+              <ReadOnly label="Flow Meter Temp" value={sim.state.flowMeterTemp.toFixed(0)} unit="Â°F"
                 color={sim.state.flowMeterTemp > sim.state.maxTempAtPlate ? '#E8200C' : '#22c55e'} />
             </PanelSection>
 
             {/* Sales Valve */}
-            <PanelSection title="🔀 Sales / Recirc" color="#22c55e">
+            <PanelSection title="ðŸ”€ Sales / Recirc" color="#22c55e">
               <SliderControl label="Force Sales Valve Position" value={sim.state.salesValvePosition} min={0} max={100}
                 unit="%" onChange={v => { sim.setStateField('salesValvePosition', v); trackEvent() }}
                 color={sim.state.salesValvePosition > 50 ? '#eab308' : '#22c55e'} />
             </PanelSection>
 
             {/* Staging */}
-            <PanelSection title="⏱ Staging Timers" color="#888">
+            <PanelSection title="â± Staging Timers" color="#888">
               <SliderControl label="Stability Timer" value={sim.state.stabilityTimer} min={10} max={300}
                 unit="sec" onChange={v => sim.setStateField('stabilityTimer', v)} />
               <SliderControl label="Lockout Timer" value={sim.state.stagingLockoutTimer} min={60} max={900}
@@ -194,7 +194,7 @@ export default function BreakItChallenge({ sim }) {
             </PanelSection>
 
             {/* Well Priorities */}
-            <PanelSection title="📊 Well Priorities" color="#f97316">
+            <PanelSection title="ðŸ“Š Well Priorities" color="#f97316">
               <p className="text-[9px] text-[#666] mb-1">Drag to reorder. Top = highest priority.</p>
               <PriorityList wells={sim.state.wells} onReorder={sim.setWellPriorities} onEvent={trackEvent} />
             </PanelSection>
@@ -215,14 +215,14 @@ export default function BreakItChallenge({ sim }) {
         <Metric label="Wells OK" value={`${m.wellsAtTarget}/${m.wellsTotal}`}
           color={m.wellsAtTarget === m.wellsTotal ? '#22c55e' : '#E8200C'} />
         <div className="ml-auto text-[10px] text-[#555]">
-          🎮 Throw events → Watch WellLogic handle it
+          ðŸŽ® Throw events â†’ Watch Pad Logic handle it
         </div>
       </div>
     </div>
   )
 }
 
-// ═══════ Sub-components ═══════
+// â•â•â•â•â•â•â• Sub-components â•â•â•â•â•â•â•
 
 function ScoreCard({ label, value, color }) {
   return (
@@ -316,7 +316,7 @@ function PriorityList({ wells, onReorder, onEvent }) {
             ${dragIdx === idx ? 'opacity-50' : ''} ${overIdx === idx && dragIdx !== idx ? 'border-t border-[#E8200C]' : ''}
             bg-[#0a0a14] hover:bg-[#1a1a2a]`}>
           <span className="text-[#555] w-3 text-right font-bold">{idx + 1}</span>
-          <span className="text-[#555]">⠿</span>
+          <span className="text-[#555]">â ¿</span>
           <span className="text-white font-bold">{w.name}</span>
           <div className="flex-1 bg-[#111] rounded h-1.5 overflow-hidden">
             <div className="h-full transition-all" style={{
@@ -330,3 +330,4 @@ function PriorityList({ wells, onReorder, onEvent }) {
     </div>
   )
 }
+

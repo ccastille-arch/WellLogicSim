@@ -1,7 +1,8 @@
 // Quotes, settings, activity, analytics — all in one file since they're small
 import { Router } from 'express'
 import { pool } from '../db.js'
-import { requireAuth, requireAdmin, requirePermission, userHasPermission } from '../auth.js'
+import { requireAuth, requirePermission, userHasPermission } from '../auth.js'
+import { getStorageStatusDetailed, writeBackupSnapshot } from '../storage.js'
 
 const router = Router()
 
@@ -28,6 +29,28 @@ router.patch('/settings', requirePermission('manage:settings'), async (req, res)
     )
   }
   res.json({ ok: true })
+})
+
+// GET /api/storage/status - admin/settings visibility into mounted volume state
+router.get('/storage/status', requirePermission('manage:settings'), async (_req, res) => {
+  try {
+    res.json(await getStorageStatusDetailed())
+  } catch (err) {
+    console.error('Storage status error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// POST /api/storage/backup - write a JSON snapshot into the mounted data volume
+router.post('/storage/backup', requirePermission('manage:settings'), async (req, res) => {
+  try {
+    const reason = req.body?.reason || 'manual'
+    const backup = await writeBackupSnapshot(reason)
+    res.status(201).json({ ok: true, backup })
+  } catch (err) {
+    console.error('Storage backup error:', err)
+    res.status(500).json({ error: err.message || 'Backup failed' })
+  }
 })
 
 // ─── Quotes / CRM ───────────────────────────────────────────

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { GAS_SUPPLY_UI_MAX } from '../../engine/simulation'
 
 // Main HMI Dashboard — matches actual WellLogic DE-4000 panel
 // White/light cards on dark background, matching real SCADA HMI
@@ -308,7 +309,7 @@ function PriorityPage({ wells, onWellPriorities, onWellRate }) {
             <span className="text-[10px] text-[#666]">⠿</span>
             <span className="text-sm font-bold text-white w-10">{w.name}</span>
             <input
-              type="range" min={0} max={400} step={10}
+              type="range" min={0} max={1600} step={10}
               value={w.desiredRate}
               onChange={e => onWellRate(w.id, Number(e.target.value))}
               className="flex-1 accent-[#E8200C]"
@@ -349,7 +350,7 @@ function SuctionPage({ state, onTotalGas }) {
           <span className="text-[11px] text-[#888]">Total Available Gas</span>
           <span className="text-sm font-bold text-white">{state.totalAvailableGas.toFixed(0)} MCFD</span>
         </div>
-        <input type="range" min={0} max={state.maxGasCapacity} step={10}
+        <input type="range" min={0} max={GAS_SUPPLY_UI_MAX} step={10}
           value={state.totalAvailableGas} onChange={e => onTotalGas(Number(e.target.value))} className="w-full accent-[#E8200C]" />
       </div>
       <div className="bg-[#2a2a2e] rounded border border-[#444] p-3">

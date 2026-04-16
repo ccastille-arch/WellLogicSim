@@ -15,7 +15,7 @@ import { useMemo } from 'react'
 //
 // RIGHT SIDE:   Gas from scrubber → Sales Line + Recirc/Buyback feeding back to suction header
 
-export default function SiteOverview({ state }) {
+export default function SiteOverview({ state, animateFlow = true }) {
   const { compressors, wells, suctionHeaderPressure, scrubberPressure, salesValvePosition, wellUnloadActive } = state
   const nc = compressors.length
   const nw = wells.length
@@ -42,7 +42,7 @@ export default function SiteOverview({ state }) {
           [L.prodHdrX2, L.prodHdrY],
           [L.scrubLeft, L.prodHdrY],
           [L.scrubLeft, L.scrubCY],
-        ]} rate={0.6} color="#8B6914" />
+        ]} rate={0.6} color="#8B6914" animate={animateFlow} />
 
         {/* HP Scrubber */}
         <Scrubber x={L.scrubLeft} y={L.scrubCY - 35} pressure={scrubberPressure} level={scrubberLevel}
@@ -53,7 +53,7 @@ export default function SiteOverview({ state }) {
           [L.scrubLeft, L.scrubCY + 35],
           [L.scrubLeft, L.scrubCY + 60],
           [L.scrubLeft - 50, L.scrubCY + 60],
-        ]} rate={0.3} color="#3b82f6" />
+        ]} rate={0.3} color="#3b82f6" animate={animateFlow} />
         <text x={L.scrubLeft - 55} y={L.scrubCY + 57} textAnchor="end" fill="#3b82f6" fontSize={8} fontWeight="bold">WATER →</text>
         <text x={L.scrubLeft - 55} y={L.scrubCY + 67} textAnchor="end" fill="#444" fontSize={6}>DISPOSAL</text>
 
@@ -62,7 +62,7 @@ export default function SiteOverview({ state }) {
           [L.scrubLeft + 40, L.scrubCY + 35],
           [L.scrubLeft + 40, L.scrubCY + 60],
           [L.scrubLeft - 10, L.scrubCY + 60],
-        ]} rate={0.4} color="#8B6914" />
+        ]} rate={0.4} color="#8B6914" animate={animateFlow} />
         <text x={L.scrubLeft - 15} y={L.scrubCY + 57} textAnchor="end" fill="#8B6914" fontSize={8} fontWeight="bold">OIL →</text>
         <text x={L.scrubLeft - 15} y={L.scrubCY + 67} textAnchor="end" fill="#444" fontSize={6}>TANK BATTERY</text>
 
@@ -71,15 +71,15 @@ export default function SiteOverview({ state }) {
           [L.scrubLeft + 120, L.scrubCY],
           [L.gasX, L.scrubCY],
           [L.gasX, L.gasJuncY],
-        ]} rate={0.7} color="#22c55e" />
+        ]} rate={0.7} color="#22c55e" animate={animateFlow} />
         <text x={L.scrubLeft + 125} y={L.scrubCY - 6} fill="#22c55e" fontSize={8} fontWeight="bold">GAS OUT</text>
 
         {/* Gas junction: splits to Sales (right) and Recirc (down) */}
 
         {/* → Sales valve + Sales Line */}
-        <AnimPipe points={[[L.gasX, L.gasJuncY], [L.salesVlvX - 15, L.gasJuncY]]} rate={salesValvePosition / 100} color="#22c55e" />
+        <AnimPipe points={[[L.gasX, L.gasJuncY], [L.salesVlvX - 15, L.gasJuncY]]} rate={salesValvePosition / 100} color="#22c55e" animate={animateFlow} />
         <Valve x={L.salesVlvX} y={L.gasJuncY} openPct={salesValvePosition} label="SALES VLV" />
-        <AnimPipe points={[[L.salesVlvX + 15, L.gasJuncY], [L.salesBoxX, L.gasJuncY]]} rate={salesValvePosition / 100} color="#22c55e" />
+        <AnimPipe points={[[L.salesVlvX + 15, L.gasJuncY], [L.salesBoxX, L.gasJuncY]]} rate={salesValvePosition / 100} color="#22c55e" animate={animateFlow} />
         <rect x={L.salesBoxX} y={L.gasJuncY - 18} width={85} height={36} rx={5} fill="#0a1a0a" stroke="#22c55e" strokeWidth={1.5} />
         <text x={L.salesBoxX + 42} y={L.gasJuncY - 2} textAnchor="middle" fill="#22c55e" fontSize={10} fontWeight="bold">SALES LINE</text>
         <text x={L.salesBoxX + 42} y={L.gasJuncY + 12} textAnchor="middle" fill="#555" fontSize={7}>→ PIPELINE</text>
@@ -90,14 +90,14 @@ export default function SiteOverview({ state }) {
           [L.gasX, L.recircTurnY],
           [L.suctionHdrX2 + 10, L.recircTurnY],
           [L.suctionHdrX2 + 10, L.suctionHdrY],
-        ]} rate={0.6} color="#22c55e" />
+        ]} rate={0.6} color="#22c55e" animate={animateFlow} />
         <text x={L.gasX + 5} y={L.gasJuncY + 14} fill="#22c55e" fontSize={7} fontWeight="bold">↓ RECIRC</text>
         <text x={(L.gasX + L.suctionHdrX2) / 2} y={L.recircTurnY - 6} textAnchor="middle" fill="#22c55e" fontSize={9} fontWeight="bold">
           BUYBACK / RECIRC LINE
         </text>
 
         {/* ═══════════ TOP: PRODUCTION HEADER ═══════════ */}
-        <HdrPipe x1={L.prodHdrX1} y={L.prodHdrY} x2={L.prodHdrX2} label="PRODUCTION HEADER" color="#8B6914" />
+        <HdrPipe x1={L.prodHdrX1} y={L.prodHdrY} x2={L.prodHdrX2} label="PRODUCTION HEADER" color="#8B6914" animate={animateFlow} />
 
         {/* ═══════════ WELLS ═══════════ */}
         {wells.map((w, i) => {
@@ -106,7 +106,7 @@ export default function SiteOverview({ state }) {
           return (
             <g key={`w-${w.id}`}>
               {/* Production line: well UP to production header */}
-              <AnimPipe points={[[cx, L.wellY], [cx, L.prodHdrY]]} rate={w.productionBoe > 0 ? 0.6 : 0} color="#8B6914" />
+              <AnimPipe points={[[cx, L.wellY], [cx, L.prodHdrY]]} rate={w.productionBoe > 0 ? 0.6 : 0} color="#8B6914" animate={animateFlow} />
               {/* Well */}
               <WellBox x={cx - 45} y={L.wellY} well={w} alarmed={isAlarmed} pri={w.priority + 1} />
             </g>
@@ -121,17 +121,17 @@ export default function SiteOverview({ state }) {
           return (
             <g key={`inj-${w.id}`}>
               {/* Injection line from well bottom down to choke */}
-              <AnimPipe points={[[cx, L.wellY + 78], [cx, L.chokeY - 12]]} rate={fr} color="#22c55e" />
+              <AnimPipe points={[[cx, L.wellY + 78], [cx, L.chokeY - 12]]} rate={fr} color="#22c55e" animate={animateFlow} />
               <Valve x={cx} y={L.chokeY} openPct={w.chokeAO} label={`CHK ${i + 1}`} alarmed={isAlarmed} />
-              <AnimPipe points={[[cx, L.chokeY + 12], [cx, L.fmY - 14]]} rate={fr} color="#22c55e" />
+              <AnimPipe points={[[cx, L.chokeY + 12], [cx, L.fmY - 14]]} rate={fr} color="#22c55e" animate={animateFlow} />
               <FM x={cx} y={L.fmY} value={w.actualRate} />
-              <AnimPipe points={[[cx, L.fmY + 14], [cx, L.dischHdrY]]} rate={fr} color="#22c55e" />
+              <AnimPipe points={[[cx, L.fmY + 14], [cx, L.dischHdrY]]} rate={fr} color="#22c55e" animate={animateFlow} />
             </g>
           )
         })}
 
         {/* ═══════════ DISCHARGE HEADER ═══════════ */}
-        <HdrPipe x1={L.prodHdrX1} y={L.dischHdrY} x2={L.prodHdrX2} label="DISCHARGE HEADER" color="#22c55e" />
+        <HdrPipe x1={L.prodHdrX1} y={L.dischHdrY} x2={L.prodHdrX2} label="DISCHARGE HEADER" color="#22c55e" animate={animateFlow} />
 
         {/* ═══════════ COMPRESSORS ═══════════ */}
         {compressors.map((c, i) => {
@@ -142,25 +142,25 @@ export default function SiteOverview({ state }) {
           return (
             <g key={`c-${c.id}`}>
               {/* Compressor discharge UP to discharge header */}
-              <AnimPipe points={[[cx, L.compY], [cx, L.dischHdrY]]} rate={isRunning ? c.loadPct / 100 : 0} color="#22c55e" />
+              <AnimPipe points={[[cx, L.compY], [cx, L.dischHdrY]]} rate={isRunning ? c.loadPct / 100 : 0} color="#22c55e" animate={animateFlow} />
               {/* Compressor */}
               <CompBox x={cx - 50} y={L.compY} comp={c} alarmed={isAlarmed} />
               {/* Suction pipe from compressor DOWN to SCV */}
-              <AnimPipe points={[[cx, L.compY + 80], [cx, L.scvY - 12]]} rate={isRunning ? c.loadPct / 100 : 0} color="#f97316" />
+              <AnimPipe points={[[cx, L.compY + 80], [cx, L.scvY - 12]]} rate={isRunning ? c.loadPct / 100 : 0} color="#f97316" animate={animateFlow} />
               {/* Suction Control Valve */}
               <Valve x={cx} y={L.scvY} openPct={isRunning ? c.loadPct : 0} label={`SCV ${i + 1}`} alarmed={isAlarmed} />
               {/* SCV → Witch's Hat */}
-              <AnimPipe points={[[cx, L.scvY + 12], [cx, L.witchY - 12]]} rate={isRunning ? c.loadPct / 100 : 0} color="#f97316" />
+              <AnimPipe points={[[cx, L.scvY + 12], [cx, L.witchY - 12]]} rate={isRunning ? c.loadPct / 100 : 0} color="#f97316" animate={animateFlow} />
               {/* Witch's Hat */}
               <WitchHat x={cx} y={L.witchY} />
               {/* Witch's Hat → Suction Header */}
-              <AnimPipe points={[[cx, L.witchY + 12], [cx, L.suctionHdrY]]} rate={isRunning ? c.loadPct / 100 : 0} color="#f97316" />
+              <AnimPipe points={[[cx, L.witchY + 12], [cx, L.suctionHdrY]]} rate={isRunning ? c.loadPct / 100 : 0} color="#f97316" animate={animateFlow} />
             </g>
           )
         })}
 
         {/* ═══════════ BOTTOM: SUCTION HEADER ═══════════ */}
-        <HdrPipe x1={L.suctionHdrX1} y={L.suctionHdrY} x2={L.suctionHdrX2 + 10} label="SUCTION HEADER" color="#f97316" />
+        <HdrPipe x1={L.suctionHdrX1} y={L.suctionHdrY} x2={L.suctionHdrX2 + 10} label="SUCTION HEADER" color="#f97316" animate={animateFlow} />
         <text x={L.suctionHdrX1 - 4} y={L.suctionHdrY + 16} textAnchor="end" fill="#f97316" fontSize={11} fontWeight="bold">
           {suctionHeaderPressure.toFixed(0)} PSI
         </text>
@@ -174,11 +174,11 @@ export default function SiteOverview({ state }) {
         <g transform={`translate(15, ${L.H - 58})`}>
           <rect x={0} y={0} width={160} height={52} rx={4} fill="#0a0a14" stroke="#1a1a2a" strokeWidth={0.5} />
           <text x={80} y={13} textAnchor="middle" fill="#444" fontSize={8} fontWeight="bold" letterSpacing="1">LEGEND</text>
-          <line x1={10} y1={24} x2={38} y2={24} stroke="#22c55e" strokeWidth={2} className="flow-line-animated" style={{ '--flow-speed': '2s' }} strokeDasharray="6 4" />
+          <line x1={10} y1={24} x2={38} y2={24} stroke="#22c55e" strokeWidth={2} className={animateFlow ? 'flow-line-animated' : ''} style={animateFlow ? { '--flow-speed': '2s' } : undefined} strokeDasharray={animateFlow ? '6 4' : undefined} />
           <text x={44} y={27} fill="#777" fontSize={7}>Gas / Injection</text>
-          <line x1={10} y1={35} x2={38} y2={35} stroke="#8B6914" strokeWidth={2} className="flow-line-animated" style={{ '--flow-speed': '2s' }} strokeDasharray="6 4" />
+          <line x1={10} y1={35} x2={38} y2={35} stroke="#8B6914" strokeWidth={2} className={animateFlow ? 'flow-line-animated' : ''} style={animateFlow ? { '--flow-speed': '2s' } : undefined} strokeDasharray={animateFlow ? '6 4' : undefined} />
           <text x={44} y={38} fill="#777" fontSize={7}>Oil / Production</text>
-          <line x1={10} y1={46} x2={38} y2={46} stroke="#f97316" strokeWidth={2} className="flow-line-animated" style={{ '--flow-speed': '2s' }} strokeDasharray="6 4" />
+          <line x1={10} y1={46} x2={38} y2={46} stroke="#f97316" strokeWidth={2} className={animateFlow ? 'flow-line-animated' : ''} style={animateFlow ? { '--flow-speed': '2s' } : undefined} strokeDasharray={animateFlow ? '6 4' : undefined} />
           <text x={44} y={49} fill="#777" fontSize={7}>Suction Gas</text>
         </g>
       </svg>
@@ -244,18 +244,18 @@ function computeLayout(nc, nw) {
 
 // ═══════════ SVG COMPONENTS ═══════════
 
-function HdrPipe({ x1, y, x2, label, color }) {
+function HdrPipe({ x1, y, x2, label, color, animate = true }) {
   return (
     <g>
       <line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth={7} opacity={0.15} />
       <line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth={3}
-        strokeDasharray="8 5" className="flow-line-animated" style={{ '--flow-speed': '2s' }} />
+        strokeDasharray={animate ? '8 5' : undefined} className={animate ? 'flow-line-animated' : ''} style={animate ? { '--flow-speed': '2s' } : undefined} />
       <text x={x1 - 8} y={y - 7} textAnchor="end" fill={color} fontSize={9} fontWeight="bold" opacity={0.9}>{label}</text>
     </g>
   )
 }
 
-function AnimPipe({ points, rate, color }) {
+function AnimPipe({ points, rate, color, animate = true }) {
   if (!points || points.length < 2) return null
   const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0]} ${p[1]}`).join(' ')
   const on = rate > 0.01
@@ -263,8 +263,8 @@ function AnimPipe({ points, rate, color }) {
   const spd = on ? Math.max(0.5, 3 - rate * 2) : 0
   return <path d={d} fill="none" stroke={on ? color : '#151515'} strokeWidth={w}
     strokeLinecap="round" strokeLinejoin="round"
-    className={on ? 'flow-line-animated' : 'flow-line-static'}
-    style={on ? { '--flow-speed': `${spd}s` } : undefined} />
+    className={on ? (animate ? 'flow-line-animated' : '') : 'flow-line-static'}
+    style={on && animate ? { '--flow-speed': `${spd}s` } : undefined} />
 }
 
 function WellBox({ x, y, well, alarmed, pri }) {

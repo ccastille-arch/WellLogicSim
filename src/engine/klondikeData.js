@@ -36,11 +36,15 @@ export function parseKlondikeCSV(text) {
     const n = (key) => { const v = parseFloat(r[key]); return isNaN(v) ? null : v }
     const s = (key) => r[key] || null
 
-    const wells = [1, 2, 3, 4].map(i => ({
+    const wells = [1, 2, 3, 4].map(i => {
+      const desiredInjectionRateMmscfd = n(`Wellhead #${i} Calculated Desired Flow`)
+
+      return ({
       // Flow in MMSCFD from customer PLC (multiply by 1000 = MCFD for simulator)
       flowMmscfd: n(`Wellhead #${i} Injection Flow Rate From Customer PLC`),
-      // Setpoint in MMSCFD
-      setpointMmscfd: n(`Wellhead #${i} Setpoint From Customer PLC`),
+      // Preserve the raw PLC setpoint, but use the calculated desired flow as the
+      // effective target because some PLC setpoint registers are unused/stale.
+      rawSetpointMmscfd: n(`Wellhead #${i} Setpoint From Customer PLC`),
       // Static injection pressure (PSI)
       staticPressure: n(`Wellhead #${i} Injection Static Pressure From Customer PLC`),
       // Differential pressure across choke (PSI)
@@ -48,7 +52,10 @@ export function parseKlondikeCSV(text) {
       // Injection temperature (°F)
       temp: n(`Wellhead #${i} Injection Temp From Customer PLC`),
       // Calculated desired flow target from panel
-      calcDesiredFlow: n(`Wellhead #${i} Calculated Desired Flow`),
+      calcDesiredFlow: desiredInjectionRateMmscfd,
+      desiredInjectionRateMmscfd,
+      // Effective target used by dashboards/history
+      setpointMmscfd: desiredInjectionRateMmscfd,
       // Max flow rate configured
       maxFlowRate: n(`Wellhead #${i} Max Flow Rate`),
       // Analog Output (choke valve position, %)
@@ -57,7 +64,7 @@ export function parseKlondikeCSV(text) {
       runStatus: s(`WellHead #${i} Running Status`),
       // Yesterday's total flow
       yesterdayTotal: n(`Wellhead #${i} Yesterdays Total Flow`),
-    }))
+    })})
 
     return {
       timestamp: s('Timestamp'),

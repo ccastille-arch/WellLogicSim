@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { createInitialState, tick, getMetrics } from '../engine/simulation'
+import { createInitialState, tick, getMetrics, GAS_SUPPLY_UI_MAX } from '../engine/simulation'
+
+const isProducing = (compressor) =>
+  compressor.status === 'running' || compressor.status === 'locked_out_running'
+
+const getOnlineCapacity = (compressors) =>
+  compressors.filter(isProducing).reduce((sum, compressor) => sum + compressor.capacityMcfd, 0)
 
 export function useSimulation(config) {
   const [state, setState] = useState(() => createInitialState(config))
@@ -9,7 +15,7 @@ export function useSimulation(config) {
   useEffect(() => {
     setState(createInitialState(config))
     setRunning(true)
-  }, [config.compressorCount, config.wellCount, config.siteType])
+  }, [config])
 
   useEffect(() => {
     if (running) {
@@ -28,14 +34,45 @@ export function useSimulation(config) {
       const compressors = prev.compressors.map(c =>
         c.id === id ? { ...c, status } : c
       )
-      const onlineCapacity = compressors
-        .filter(c => c.status === 'running' || c.status === 'locked_out_running')
-        .reduce((sum, c) => sum + c.capacityMcfd, 0)
+      const prevOnlineCapacity = getOnlineCapacity(prev.compressors)
+      const onlineCapacity = getOnlineCapacity(compressors)
+      const wasAtCapacity = Math.abs(prev.totalAvailableGas - prevOnlineCapacity) < 1
+
       return {
         ...prev,
         compressors,
-        totalAvailableGas: Math.min(prev.totalAvailableGas, onlineCapacity),
+        totalAvailableGas:
+          onlineCapacity > prevOnlineCapacity && wasAtCapacity
+            ? onlineCapacity
+            : Math.min(prev.totalAvailableGas, onlineCapacity),
         maxGasCapacity: compressors.reduce((sum, c) => sum + c.capacityMcfd, 0),
+      }
+    })
+  }, [])
+
+  const setCompressorCapacity = useCallback((id, capacityMcfd) => {
+    setState(prev => {
+      const nextCapacity = Math.max(0, Number(capacityMcfd) || 0)
+      const prevOnlineCapacity = getOnlineCapacity(prev.compressors)
+      const compressors = prev.compressors.map(c =>
+        c.id === id ? { ...c, capacityMcfd: nextCapacity } : c
+      )
+      const onlineCapacity = getOnlineCapacity(compressors)
+      const maxGasCapacity = compressors.reduce((sum, c) => sum + c.capacityMcfd, 0)
+      const wasAtCapacity = Math.abs(prev.totalAvailableGas - prevOnlineCapacity) < 1
+
+      return {
+        ...prev,
+        compressors,
+        config: {
+          ...prev.config,
+          compressorMaxFlowRate: nextCapacity,
+        },
+        totalAvailableGas:
+          onlineCapacity > prevOnlineCapacity && wasAtCapacity
+            ? onlineCapacity
+            : Math.min(prev.totalAvailableGas, onlineCapacity),
+        maxGasCapacity,
       }
     })
   }, [])
@@ -69,7 +106,10 @@ export function useSimulation(config) {
   }, [])
 
   const setTotalAvailableGas = useCallback((gas) => {
-    setState(prev => ({ ...prev, totalAvailableGas: gas }))
+    setState(prev => ({
+      ...prev,
+      totalAvailableGas: Math.max(0, Math.min(Number(gas) || 0, GAS_SUPPLY_UI_MAX)),
+    }))
   }, [])
 
   const setHuntSequence = useCallback((enabled) => {
@@ -103,6 +143,11 @@ export function useSimulation(config) {
     setState(createInitialState(config))
   }, [config])
 
+  const applyConfig = useCallback((nextConfig) => {
+    setState(createInitialState(nextConfig))
+    setRunning(true)
+  }, [])
+
   const toggleRunning = useCallback(() => {
     setRunning(r => !r)
   }, [])
@@ -115,6 +160,7 @@ export function useSimulation(config) {
     running,
     toggleRunning,
     setCompressorStatus,
+    setCompressorCapacity,
     setCompressorMode,
     setWellDesiredRate,
     setWellPriorities,
@@ -124,5 +170,6 @@ export function useSimulation(config) {
     setChokeMode,
     setStateField,
     resetToDefaults,
+    applyConfig,
   }
 }

@@ -1,18 +1,14 @@
+import { WellLogicCompact } from './WellLogicBrand'
+
 export default function Header({ onReconfigure, tutorialMode, onTutorialToggle, showTutorial }) {
   return (
     <header className="flex items-center justify-between px-5 py-2.5 bg-sc-dark border-b border-sc-charcoal-light shrink-0"
       style={{ minHeight: 48 }}>
       <div className="flex items-center gap-4">
-        <span
-          className="text-lg tracking-tight"
-          style={{ fontFamily: "'Arial Black', Arial, sans-serif", fontStyle: 'italic', color: '#E8200C' }}
-        >
-          FieldTune™
-        </span>
-        <div className="w-px h-6 bg-sc-charcoal-light" />
+        <WellLogicCompact size={34} />
         <span className="text-sm text-sc-light tracking-wide"
           style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
-          WellLogic™ Simulator
+          Pad Logic Simulator
         </span>
       </div>
       <div className="flex items-center gap-3">

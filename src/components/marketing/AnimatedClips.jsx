@@ -1,57 +1,84 @@
-import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 
 const CLIPS = [
   {
     id: 'well-pad-optimizer',
-    title: 'FieldTune™ Well Panel — Well Pad Optimizer',
+    title: 'Pad Logicâ„¢ Well Panel â€” Well Pad Optimizer',
     duration: '2:30',
-    description: 'From reactive control to coordinated optimization. See why the FieldTune Well Panel is not just a choke controller — it is a Well Pad Optimizer.',
+    description: 'From reactive control to coordinated optimization. See why the Pad Logic Well Panel is not just a choke controller â€” it is a Well Pad Optimizer.',
     featured: true,
   },
   {
     id: 'what-is-welllogic',
-    title: 'WellLogic™ — What It Does On Your Pad',
+    title: 'Pad Logicâ„¢ â€” What It Does On Your Pad',
     duration: '45 sec',
-    description: 'Your pad, your equipment, your gas. See how WellLogic controls every choke, reads every meter, and keeps your top wells producing — automatically.',
+    description: 'Your pad, your equipment, your gas. See how Pad Logic controls every choke, reads every meter, and keeps your top wells producing â€” automatically.',
   },
   {
     id: 'trip-sidebyside',
-    title: 'Compressor Trip — Your Pad vs a WellLogic Pad',
+    title: 'Compressor Trip â€” Your Pad vs a Pad Logic Pad',
     duration: '40 sec',
-    description: 'Same compressor trips on two identical pads at the same time. One has WellLogic, one does not. Watch what happens to your production.',
+    description: 'Same compressor trips on two identical pads at the same time. One has Pad Logic, one does not. Watch what happens to your production.',
   },
 ]
 
 export default function AnimatedClips() {
   const [playing, setPlaying] = useState(null)
+  const [customAudio, setCustomAudio] = useState({})
+
+  useEffect(() => {
+    return () => {
+      Object.values(customAudio).forEach(audio => {
+        if (audio?.url) URL.revokeObjectURL(audio.url)
+      })
+    }
+  }, [customAudio])
+
+  const handleAudioUpload = (clipId, event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setCustomAudio(prev => {
+      if (prev[clipId]?.url) {
+        URL.revokeObjectURL(prev[clipId].url)
+      }
+
+      return {
+        ...prev,
+        [clipId]: {
+          name: file.name,
+          url: URL.createObjectURL(file),
+        },
+      }
+    })
+  }
 
   const stopPlaying = () => {
-    stopSpeaking()
     setPlaying(null)
   }
 
   return (
     <div className="p-4 sm:p-6 max-w-[1200px] mx-auto">
       <h2 className="text-lg text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>Product Videos</h2>
-      <p className="text-[12px] text-[#888] mb-6">Animated demonstrations showing FieldTune™ WellLogic in action.</p>
+      <p className="text-[12px] text-[#888] mb-6">Animated demonstrations showing Pad Logic in action.</p>
 
       <div className="space-y-6">
         {CLIPS.map(clip => (
           <div key={clip.id} className={`bg-[#111118] rounded-xl overflow-hidden border-2 ${clip.featured ? 'border-[#E8200C]/50' : 'border-[#222]'}`}>
             {clip.featured && (
               <div className="bg-[#E8200C] px-4 py-1.5 flex items-center gap-2">
-                <span className="text-white text-[10px] font-bold tracking-widest uppercase">Featured — New Release</span>
+                <span className="text-white text-[10px] font-bold tracking-widest uppercase">Featured â€” New Release</span>
                 <span className="text-white/60 text-[9px] ml-auto">{clip.duration}</span>
               </div>
             )}
-            {/* Video area — 16:9 */}
+            {/* Video area â€” 16:9 */}
             <div className="relative bg-[#060610] overflow-hidden" style={{ aspectRatio: '16/9' }}>
               {playing === clip.id ? (
                 <div className="w-full h-full relative">
-                  <ClipPlayer id={clip.id} onEnd={stopPlaying} />
+                  <ClipPlayer id={clip.id} audioUrl={customAudio[clip.id]?.url} onEnd={stopPlaying} />
                   <button onClick={stopPlaying}
                     className="absolute top-3 right-3 bg-[#111]/80 border border-[#444] rounded px-3 py-1 text-[10px] text-[#ccc] hover:text-white hover:bg-[#E8200C] z-10">
-                    ■ Stop
+                    â–  Stop
                   </button>
                 </div>
               ) : (
@@ -60,7 +87,7 @@ export default function AnimatedClips() {
                   <div className="text-[12px] text-[#888] mb-4 px-8 text-center">{clip.title}</div>
                   <button onClick={() => setPlaying(clip.id)}
                     className={`rounded-full border-2 flex items-center justify-center hover:bg-[#E8200C] transition-colors group ${clip.featured ? 'w-24 h-24 bg-[#E8200C]/30 border-[#E8200C]' : 'w-16 h-16 bg-[#E8200C]/20 border-[#E8200C]'}`}>
-                    <span className={`text-[#E8200C] group-hover:text-white ml-1 ${clip.featured ? 'text-4xl' : 'text-2xl'}`}>▶</span>
+                    <span className={`text-[#E8200C] group-hover:text-white ml-1 ${clip.featured ? 'text-4xl' : 'text-2xl'}`}>â–¶</span>
                   </button>
                   <span className="text-[10px] text-[#555] mt-3">{clip.duration}</span>
                 </div>
@@ -69,6 +96,25 @@ export default function AnimatedClips() {
             <div className="p-4">
               <h3 className={`text-white font-bold ${clip.featured ? 'text-[16px]' : 'text-[13px]'}`}>{clip.title}</h3>
               <p className="text-[11px] text-[#888] mt-1">{clip.description}</p>
+              <div className="mt-3 pt-3 border-t border-[#1a1a2a]">
+                <label className="block text-[9px] text-[#666] font-bold uppercase tracking-[0.2em] mb-2">
+                  Clip Audio Upload
+                </label>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onChange={(event) => handleAudioUpload(clip.id, event)}
+                  className="block w-full text-[10px] text-[#aaa] file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-[#E8200C] file:text-white file:font-bold hover:file:bg-[#c01a0a]"
+                />
+                {customAudio[clip.id] ? (
+                  <div className="mt-2">
+                    <div className="text-[10px] text-[#22c55e] font-bold mb-1">Loaded: {customAudio[clip.id].name}</div>
+                    <audio controls src={customAudio[clip.id].url} className="w-full" />
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-[#555] mt-2">No generated voice will be used. The clip will run silently until you upload narration.</div>
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -77,133 +123,114 @@ export default function AnimatedClips() {
   )
 }
 
-// ═══════════════════════════════════════
-// NARRATION ENGINE — OpenAI TTS via server proxy
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// NARRATION ENGINE â€” OpenAI TTS via server proxy
 // Falls back to browser TTS if server returns error (e.g. key not set)
-// ═══════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// In-memory audio cache so each line is only fetched once per session
-const audioCache = new Map()
+const DEFAULT_SILENT_FRAME_MS = 3500
+
 let currentAudio = null
 
-async function speak(text, onDone) {
-  stopSpeaking()
-
-  // Try OpenAI TTS first
-  try {
-    let url = audioCache.get(text)
-    if (!url) {
-      const res = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice: 'fable' }),
-      })
-      if (res.ok) {
-        const blob = await res.blob()
-        url = URL.createObjectURL(blob)
-        audioCache.set(text, url)
-      }
-    }
-    if (url) {
-      const audio = new Audio(url)
-      currentAudio = audio
-      audio.onended = () => { currentAudio = null; onDone?.() }
-      audio.onerror = () => { currentAudio = null; fallbackSpeak(text, onDone) }
-      audio.play()
-      return
-    }
-  } catch {}
-
-  // Fallback to browser TTS
-  fallbackSpeak(text, onDone)
-}
-
-function fallbackSpeak(text, onDone) {
-  if (!window.speechSynthesis) { onDone?.(); return }
-  window.speechSynthesis.cancel()
-  const utter = new SpeechSynthesisUtterance(text)
-  utter.rate = 0.95
-  utter.pitch = 0.85
-  const voices = window.speechSynthesis.getVoices()
-  const voice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Microsoft David') || v.name.includes('Aaron'))
-    || voices.find(v => v.lang === 'en-US') || voices[0]
-  if (voice) utter.voice = voice
-  utter.onend = () => onDone?.()
-  utter.onerror = () => onDone?.()
-  window.speechSynthesis.speak(utter)
+function speak(_text, onDone) {
+  setTimeout(() => onDone?.(), DEFAULT_SILENT_FRAME_MS)
 }
 
 function stopSpeaking() {
-  if (currentAudio) { currentAudio.pause(); currentAudio = null }
-  window.speechSynthesis?.cancel()
+  if (!currentAudio) return
+  currentAudio.pause()
+  currentAudio.currentTime = 0
+  currentAudio = null
 }
 
 // Narration scripts
 const NARRATION = {
   'well-pad-optimizer': [
-    'For decades… oilfield control systems have been good enough.',
+    'For decadesâ€¦ oilfield control systems have been good enough.',
     'But good enough comes at a cost.',
     'Surging systems. Inefficient flow. Constant correction.',
-    'Most sites operate like a relay race — each component reacting, then handing off. Never truly working together.',
-    'What if the system didn\'t just react… but coordinated?',
-    'The FieldTune Well Panel is not a choke controller.',
+    'Most sites operate like a relay race â€” each component reacting, then handing off. Never truly working together.',
+    'What if the system didn\'t just reactâ€¦ but coordinated?',
+    'The Pad Logic Well Panel is not a choke controller.',
     'It is a Well Pad Optimizer.',
     'It communicates across the entire pad.',
-    'Every component understands what\'s happening before… and after it.',
-    'Instead of reacting… each system adjusts in real time… as part of a unified strategy.',
+    'Every component understands what\'s happening beforeâ€¦ and after it.',
+    'Instead of reactingâ€¦ each system adjusts in real timeâ€¦ as part of a unified strategy.',
     'Traditional logic chases conditions.',
     'The Well Panel maintains them.',
     'No surging. No unnecessary recycle. No wasted energy.',
-    'Just controlled… continuous… optimized flow.',
+    'Just controlledâ€¦ continuousâ€¦ optimized flow.',
     'This is not incremental improvement.',
     'This is the next generation of oilfield control.',
-    'FieldTune. Well Pad Optimizer. Engineered for Uptime.',
+    'Pad Logic. Well Pad Optimizer. Engineered for Uptime.',
   ],
   'what-is-welllogic': [
     'Here is your pad. Four wells on gas lift, two compressors, recirculated gas off the scrubber.',
     'Gas comes off the vertical scrubber, hits the suction header, feeds your compressors.',
     'Compressors push it through the discharge header. From there it splits to each well.',
-    'Every well has a motor valve choke and a flow meter on the injection line. That is what WellLogic controls.',
-    'WellLogic reads every flow meter, every pressure transmitter, every compressor status. All real time. All Modbus.',
+    'Every well has a motor valve choke and a flow meter on the injection line. That is what Pad Logic controls.',
+    'Pad Logic reads every flow meter, every pressure transmitter, every compressor status. All real time. All Modbus.',
     'It sets your choke positions automatically. No pumper driving out. No manual adjustments.',
-    'Suction pressure drops? WellLogic adjusts compressor staging. Discharge spikes? It backs off before you trip.',
-    'Your number one well always gets gas first. Period. WellLogic enforces priority across every choke on the pad.',
+    'Suction pressure drops? Pad Logic adjusts compressor staging. Discharge spikes? It backs off before you trip.',
+    'Your number one well always gets gas first. Period. Pad Logic enforces priority across every choke on the pad.',
     'Well slugs out and scrubber pressure spikes? Sales valve opens. Compressors stay running. No pad shutdown.',
-    'Demand changes? WellLogic stages compressors up or down. No wasted fuel, no starved wells.',
+    'Demand changes? Pad Logic stages compressors up or down. No wasted fuel, no starved wells.',
     'This runs twenty four seven. Nights, weekends, holidays. Same response at two A M as two P M.',
-    'WellLogic by Service Compression. Your pad, optimized. All the time.',
+    'Pad Logic by Service Compression. Your pad, optimized. All the time.',
   ],
   'trip-sidebyside': [
-    'Two identical pads. Same wells, same compressors, same gas. One has WellLogic. One does not.',
+    'Two identical pads. Same wells, same compressors, same gas. One has Pad Logic. One does not.',
     'C 1 trips. High discharge temp. Both pads lose half their compression at the same time. Right now.',
     'Every well on both pads just lost injection pressure. Production is falling. Barrels are being lost.',
-    'Left side, your SCADA fires an alarm. Dispatcher calls the pumper. He is forty five minutes out. Right side, WellLogic already knows.',
-    'Left side, pumper is still driving. Every well still starving. Right side, WellLogic is closing chokes on the low priority wells, pushing all available gas to your top producers.',
+    'Left side, your SCADA fires an alarm. Dispatcher calls the pumper. He is forty five minutes out. Right side, Pad Logic already knows.',
+    'Left side, pumper is still driving. Every well still starving. Right side, Pad Logic is closing chokes on the low priority wells, pushing all available gas to your top producers.',
     'Left pad is still losing barrels across all four wells. Right pad, wells one and two are back at full target injection. Your best producers are protected.',
     'Pumper finally shows up on the left pad. Starts looking at the unit. Right pad has been stable for thirty plus minutes. Your top wells never stopped producing.',
-    'Left side, pumper calls the mechanic. Waits an hour. Right side, WellLogic has been running at full optimization this entire time. Zero intervention.',
-    'Mechanic fixes the unit. Now the pumper has to drive back out and reset every choke by hand. That is another trip, another hour. With WellLogic, that trip never happens. It is already done.',
+    'Left side, pumper calls the mechanic. Waits an hour. Right side, Pad Logic has been running at full optimization this entire time. Zero intervention.',
+    'Mechanic fixes the unit. Now the pumper has to drive back out and reset every choke by hand. That is another trip, another hour. With Pad Logic, that trip never happens. It is already done.',
   ],
 }
 
-// ═══════════════════════════════════════
-// VIDEO PLAYER — drives frame-by-frame animation + narration
-// ═══════════════════════════════════════
-function ClipPlayer({ id, onEnd }) {
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// VIDEO PLAYER â€” drives frame-by-frame animation + narration
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+function ClipPlayer({ id, audioUrl, onEnd }) {
   const [frame, setFrame] = useState(-1) // -1 = not started yet
   const [tick, setTick] = useState(0)
   const [speaking, setSpeaking] = useState(false)
   const intervalRef = useRef(null)
+  const audioRef = useRef(null)
+  const frameTimeoutRef = useRef(null)
   const frameRef = useRef(-1)
 
   const narrationLines = NARRATION[id] || []
   const totalFrames = narrationLines.length
 
-  // Start first frame narration
   useEffect(() => {
-    // Small delay then start frame 0
-    const t = setTimeout(() => advanceFrame(0), 500)
-    return () => { clearTimeout(t); stopSpeaking() }
+    if (!audioUrl) return undefined
+
+    const audio = new Audio(audioUrl)
+    audioRef.current = audio
+    currentAudio = audio
+    audio.play().catch(() => {})
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+        audioRef.current = null
+      }
+      currentAudio = null
+    }
+  }, [audioUrl])
+
+  useEffect(() => {
+    const startTimer = setTimeout(() => advanceFrame(0), 500)
+    return () => {
+      clearTimeout(startTimer)
+      stopSpeaking()
+      if (frameTimeoutRef.current) clearTimeout(frameTimeoutRef.current)
+    }
   }, [])
 
   // Tick for visual animations within a frame
@@ -226,8 +253,8 @@ function ClipPlayer({ id, onEnd }) {
     // Speak the narration for this frame, then advance to next when done
     speak(narrationLines[nextFrame], () => {
       setSpeaking(false)
-      // Quick pause between frames — keep it moving
-      setTimeout(() => advanceFrame(frameRef.current + 1), 400)
+      // Quick pause between frames â€” keep it moving
+      frameTimeoutRef.current = setTimeout(() => advanceFrame(frameRef.current + 1), 400)
     })
   }
 
@@ -239,9 +266,9 @@ function ClipPlayer({ id, onEnd }) {
   return null
 }
 
-// ═══════════════════════════════════════
-// VIDEO 1: What is WellLogic?
-// ═══════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// VIDEO 1: What is Pad Logic?
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function WhatIsWellLogicVideo({ frame, tick }) {
   const narration = [
     'This is a gas lift injection pad in West Texas.',
@@ -249,13 +276,13 @@ function WhatIsWellLogicVideo({ frame, tick }) {
     'Compressors push gas through a discharge header to each well.',
     'Each well has an injection choke valve controlling how much gas it receives.',
     'Flow meters measure the actual injection rate on every well.',
-    'WellLogic sits at the center — controlling every choke valve in real-time.',
+    'Pad Logic sits at the center â€” controlling every choke valve in real-time.',
     'It monitors suction pressure, discharge pressure, and every compressor.',
-    'When conditions change, WellLogic reacts in seconds — not hours.',
+    'When conditions change, Pad Logic reacts in seconds â€” not hours.',
     'It prioritizes your highest-value wells automatically.',
     'It detects well unloads and prevents shutdowns.',
-    'It stages compressors based on demand — no wasted fuel.',
-    'WellLogic — 24/7 automatic gas lift optimization.',
+    'It stages compressors based on demand â€” no wasted fuel.',
+    'Pad Logic â€” 24/7 automatic gas lift optimization.',
   ]
 
   const caption = narration[Math.min(frame, narration.length - 1)]
@@ -276,7 +303,7 @@ function WhatIsWellLogicVideo({ frame, tick }) {
 
           {/* Title bar */}
           <rect x="0" y="0" width="800" height="24" fill="#0c0c18" />
-          <text x="400" y="16" textAnchor="middle" fill="#333" fontSize="9" fontWeight="bold" letterSpacing="3">SITE OVERVIEW — PAD OPTIMIZATION</text>
+          <text x="400" y="16" textAnchor="middle" fill="#333" fontSize="9" fontWeight="bold" letterSpacing="3">SITE OVERVIEW â€” PAD OPTIMIZATION</text>
 
           {/* WELLS (top) */}
           {[0,1,2,3].map(i => {
@@ -355,12 +382,12 @@ function WhatIsWellLogicVideo({ frame, tick }) {
           <line x1="200" y1="290" x2="600" y2="290" stroke="#f97316" strokeWidth={4} opacity={0.3} />
           <text x="190" y="288" textAnchor="end" fill="#f97316" fontSize="7" fontWeight="bold">SUCTION HDR</text>
 
-          {/* WellLogic box — center highlight */}
+          {/* Pad Logic box â€” center highlight */}
           <rect x={330} y={310} width={140} height={35} rx={6} fill="#0a0a16"
             stroke={highlightWellLogic || highlightAll ? '#E8200C' : '#333'}
             strokeWidth={highlightWellLogic || highlightAll ? 2.5 : 1} />
           {(highlightWellLogic || highlightAll) && <rect x={330} y={310} width={140} height={35} rx={6} fill="#E8200C" opacity={0.1} />}
-          <text x={400} y={326} textAnchor="middle" fill="#E8200C" fontSize="10" fontWeight="bold">WellLogic™</text>
+          <text x={400} y={326} textAnchor="middle" fill="#E8200C" fontSize="10" fontWeight="bold">Pad Logicâ„¢</text>
           <text x={400} y={338} textAnchor="middle" fill="#888" fontSize="7">Pad Optimization Controller</text>
 
           {/* Scrubber (right) */}
@@ -383,19 +410,19 @@ function WhatIsWellLogicVideo({ frame, tick }) {
   )
 }
 
-// ═══════════════════════════════════════
-// VIDEO 2: Compressor Trip — Side by Side
-// ═══════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// VIDEO 2: Compressor Trip â€” Side by Side
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function TripSideBySideVideo({ frame, tick }) {
   const narration = [
     'Both pads are running normally. 4 wells, 2 compressors, full injection.',
-    '⚡ COMPRESSOR C1 TRIPS — both pads lose a compressor at the same time.',
+    'âš¡ COMPRESSOR C1 TRIPS â€” both pads lose a compressor at the same time.',
     'All wells immediately lose injection pressure on both pads.',
-    'LEFT: Manual pad — SCADA alarm fires. Dispatching operator. RIGHT: WellLogic detecting shortfall.',
-    'LEFT: Operator driving to pad (45 min). Production still down. RIGHT: WellLogic rebalancing chokes.',
+    'LEFT: Manual pad â€” SCADA alarm fires. Dispatching operator. RIGHT: Pad Logic detecting shortfall.',
+    'LEFT: Operator driving to pad (45 min). Production still down. RIGHT: Pad Logic rebalancing chokes.',
     'LEFT: Still waiting. All wells suffering. RIGHT: Priority wells W1 and W2 back at target.',
-    'LEFT: Operator arrives. Starts diagnosing. RIGHT: WellLogic stable. Top wells producing.',
-    'LEFT: Calls mechanic. Waits 60 min. RIGHT: WellLogic been stable for over an hour already.',
+    'LEFT: Operator arrives. Starts diagnosing. RIGHT: Pad Logic stable. Top wells producing.',
+    'LEFT: Calls mechanic. Waits 60 min. RIGHT: Pad Logic been stable for over an hour already.',
     'LEFT: Mechanic fixes comp. Operator drives BACK to readjust chokes. RIGHT: Already handled.',
   ]
 
@@ -423,28 +450,28 @@ function TripSideBySideVideo({ frame, tick }) {
         {/* LEFT: Manual */}
         <div className="flex-1 border-r border-[#333] relative">
           <div className="absolute top-2 left-0 right-0 text-center">
-            <span className="bg-[#E8200C]/20 text-[#E8200C] px-3 py-1 rounded text-[10px] font-bold">❌ WITHOUT WELLLOGIC — MANUAL</span>
+            <span className="bg-[#E8200C]/20 text-[#E8200C] px-3 py-1 rounded text-[10px] font-bold">âŒ WITHOUT PAD LOGIC â€” MANUAL</span>
           </div>
           <MiniPad wells={manualWells} c1Status={manualC1} c2Status="running" showWellLogic={false} />
           {frame >= 3 && frame < 8 && (
             <div className="absolute bottom-8 left-4 right-4 bg-[#1a0808] rounded p-2 border border-[#E8200C]/30">
               <div className="text-[9px] text-[#E8200C]">
-                {frame < 5 ? '🚗 Operator driving to pad...' : frame < 7 ? '🔍 Diagnosing / waiting for mechanic...' : '🔧 Mechanic fixing / Operator returning to readjust chokes...'}
+                {frame < 5 ? 'ðŸš— Operator driving to pad...' : frame < 7 ? 'ðŸ” Diagnosing / waiting for mechanic...' : 'ðŸ”§ Mechanic fixing / Operator returning to readjust chokes...'}
               </div>
             </div>
           )}
         </div>
 
-        {/* RIGHT: WellLogic */}
+        {/* RIGHT: Pad Logic */}
         <div className="flex-1 relative">
           <div className="absolute top-2 left-0 right-0 text-center">
-            <span className="bg-[#22c55e]/20 text-[#22c55e] px-3 py-1 rounded text-[10px] font-bold">✅ WITH WELLLOGIC — AUTOMATIC</span>
+            <span className="bg-[#22c55e]/20 text-[#22c55e] px-3 py-1 rounded text-[10px] font-bold">âœ… WITH PAD LOGIC â€” AUTOMATIC</span>
           </div>
           <MiniPad wells={wlWells} c1Status={wlC1} c2Status="running" showWellLogic={true} />
           {frame >= 3 && (
             <div className="absolute bottom-8 left-4 right-4 bg-[#081a08] rounded p-2 border border-[#22c55e]/30">
               <div className="text-[9px] text-[#22c55e]">
-                {frame < 4 ? '⚡ WellLogic rebalancing chokes by priority...' : '✅ Priority wells at target. No operator needed.'}
+                {frame < 4 ? 'âš¡ Pad Logic rebalancing chokes by priority...' : 'âœ… Priority wells at target. No operator needed.'}
               </div>
             </div>
           )}
@@ -511,11 +538,11 @@ function MiniPad({ wells, c1Status, c2Status, showWellLogic }) {
       {/* Suction header */}
       <line x1="80" y1="165" x2="320" y2="165" stroke="#f97316" strokeWidth={3} opacity={0.3} />
 
-      {/* WellLogic box (only on right side) */}
+      {/* Pad Logic box (only on right side) */}
       {showWellLogic && (
         <g>
           <rect x={150} y={180} width={100} height={25} rx={4} fill="#0a0a16" stroke="#E8200C" strokeWidth={1.5} />
-          <text x={200} y={195} textAnchor="middle" fill="#E8200C" fontSize="8" fontWeight="bold">WellLogic™</text>
+          <text x={200} y={195} textAnchor="middle" fill="#E8200C" fontSize="8" fontWeight="bold">Pad Logicâ„¢</text>
           <line x1={200} y1={180} x2={200} y2={170} stroke="#E8200C" strokeWidth={0.5} strokeDasharray="2 2" />
         </g>
       )}
@@ -523,9 +550,9 @@ function MiniPad({ wells, c1Status, c2Status, showWellLogic }) {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════
-// VIDEO 3: FieldTune™ Well Pad Optimizer — Cinematic
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// VIDEO 3: Pad Logicâ„¢ Well Pad Optimizer â€” Cinematic
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function WellPadOptimizerVideo({ frame, tick }) {
 
   // Scene selector
@@ -541,20 +568,20 @@ function WellPadOptimizerVideo({ frame, tick }) {
                   'endframe'
 
   const caption = [
-    'For decades… oilfield control systems have been good enough.',
+    'For decadesâ€¦ oilfield control systems have been good enough.',
     'But good enough comes at a cost.',
     'Surging systems. Inefficient flow. Constant correction.',
-    'Most sites operate like a relay race — each component reacting, then handing off. Never truly working together.',
-    'What if the system didn\'t just react… but coordinated?',
-    'The FieldTune Well Panel is not a choke controller.',
+    'Most sites operate like a relay race â€” each component reacting, then handing off. Never truly working together.',
+    'What if the system didn\'t just reactâ€¦ but coordinated?',
+    'The Pad Logic Well Panel is not a choke controller.',
     'It is a Well Pad Optimizer.',
     'It communicates across the entire pad.',
-    'Every component understands what\'s happening before… and after it.',
-    'Instead of reacting… each system adjusts in real time… as part of a unified strategy.',
+    'Every component understands what\'s happening beforeâ€¦ and after it.',
+    'Instead of reactingâ€¦ each system adjusts in real timeâ€¦ as part of a unified strategy.',
     'Traditional logic chases conditions.',
     'The Well Panel maintains them.',
     'No surging. No unnecessary recycle. No wasted energy.',
-    'Just controlled… continuous… optimized flow.',
+    'Just controlledâ€¦ continuousâ€¦ optimized flow.',
     'This is not incremental improvement.',
     'This is the next generation of oilfield control.',
     '',
@@ -571,7 +598,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
       <div className="flex-1 relative overflow-hidden">
         <svg viewBox="0 0 800 320" className="w-full h-full" preserveAspectRatio="xMidYMid meet" style={{ fontFamily: 'Arial, sans-serif' }}>
 
-          {/* ── OPEN: West Texas establishing shot ── */}
+          {/* â”€â”€ OPEN: West Texas establishing shot â”€â”€ */}
           {scene === 'open' && <>
             {/* Sky gradient */}
             <defs>
@@ -630,7 +657,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
             {/* Title overlay */}
             <text x="400" y="100" textAnchor="middle" fill="white" fontSize="22" fontWeight="900"
               fontFamily="'Arial Black', sans-serif" fontStyle="italic" opacity={frame === 0 ? 0.9 : 0.4}>
-              FieldTune™
+              Pad Logicâ„¢
             </text>
             <text x="400" y="124" textAnchor="middle" fill="white" fontSize="13" fontWeight="700"
               fontFamily="'Arial Black', sans-serif" letterSpacing="4" opacity={frame === 0 ? 0.7 : 0.3}>
@@ -638,10 +665,10 @@ function WellPadOptimizerVideo({ frame, tick }) {
             </text>
           </>}
 
-          {/* ── PROBLEM: Reactive / chaotic pad ── */}
+          {/* â”€â”€ PROBLEM: Reactive / chaotic pad â”€â”€ */}
           {scene === 'problem' && <>
             <rect width="800" height="320" fill="#080810" />
-            <text x="400" y="22" textAnchor="middle" fill="#555" fontSize="8" letterSpacing="3">PAD STATUS — UNMANAGED</text>
+            <text x="400" y="22" textAnchor="middle" fill="#555" fontSize="8" letterSpacing="3">PAD STATUS â€” UNMANAGED</text>
             {/* 4 wells with erratic readings */}
             {[0,1,2,3].map(i => {
               const x = 80 + i * 170
@@ -676,7 +703,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
                 </g>
               )
             })}
-            {/* Discharge header — wavy/chaotic */}
+            {/* Discharge header â€” wavy/chaotic */}
             <path d={`M 60 155 Q 160 ${frame>=2?148:155} 260 155 Q 360 ${frame>=2?162:155} 460 155 Q 560 ${frame>=2?149:155} 660 155`}
               stroke={frame>=2 ? '#E8200C' : '#22c55e'} strokeWidth="3" fill="none" opacity="0.4" />
             <text x="50" y="153" textAnchor="end" fill="#E8200C" fontSize="7" fontWeight="bold">DISCH</text>
@@ -699,18 +726,18 @@ function WellPadOptimizerVideo({ frame, tick }) {
             )}
             {frame >= 2 && blink && (
               <text x="400" y="292" textAnchor="middle" fill="#E8200C" fontSize="9" fontWeight="bold" letterSpacing="2">
-                ⚠  SURGE DETECTED — W2 BELOW SETPOINT — DISCHARGE HIGH — MANUAL INTERVENTION REQUIRED  ⚠
+                âš   SURGE DETECTED â€” W2 BELOW SETPOINT â€” DISCHARGE HIGH â€” MANUAL INTERVENTION REQUIRED  âš 
               </text>
             )}
           </>}
 
-          {/* ── SHIFT: Minimalist question ── */}
+          {/* â”€â”€ SHIFT: Minimalist question â”€â”€ */}
           {scene === 'shift' && <>
             <rect width="800" height="320" fill="#050508" />
             <line x1="200" y1="160" x2="600" y2="160" stroke="#E8200C" strokeWidth="0.5" opacity="0.3" />
             <text x="400" y="148" textAnchor="middle" fill="#888" fontSize="13" letterSpacing="2"
               fontFamily="'Georgia', serif" fontStyle="italic">
-              What if the system didn't react…
+              What if the system didn't reactâ€¦
             </text>
             <text x="400" y="178" textAnchor="middle" fill="white" fontSize="15" fontWeight="700"
               fontFamily="'Arial Black', sans-serif" letterSpacing="2">
@@ -718,7 +745,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
             </text>
           </>}
 
-          {/* ── SOLUTION: FieldTune panel close-up ── */}
+          {/* â”€â”€ SOLUTION: Pad Logic panel close-up â”€â”€ */}
           {scene === 'solution' && <>
             <rect width="800" height="320" fill="#0a0a10" />
             {/* Panel enclosure */}
@@ -727,11 +754,11 @@ function WellPadOptimizerVideo({ frame, tick }) {
             {/* Panel nameplate */}
             <rect x="300" y="55" width="200" height="24" rx="2" fill="#1a1a28" stroke="#333" strokeWidth="1" />
             <text x="400" y="71" textAnchor="middle" fill="#E8200C" fontSize="10" fontWeight="bold"
-              fontFamily="'Arial Black', sans-serif" fontStyle="italic">FieldTune™</text>
+              fontFamily="'Arial Black', sans-serif" fontStyle="italic">Pad Logicâ„¢</text>
             {/* Screen */}
             <rect x="270" y="88" width="170" height="100" rx="3" fill="#060612" stroke="#444" strokeWidth="1" />
             {/* SCADA display on screen */}
-            <text x="355" y="102" textAnchor="middle" fill="#22c55e" fontSize="7" letterSpacing="1">PAD STATUS — OPTIMIZED</text>
+            <text x="355" y="102" textAnchor="middle" fill="#22c55e" fontSize="7" letterSpacing="1">PAD STATUS â€” OPTIMIZED</text>
             {[0,1,2,3].map(i => (
               <g key={i}>
                 <text x="280" y={118+i*18} fill="#888" fontSize="7">W{i+1}</text>
@@ -756,7 +783,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
             {[0,1,2,3].map(i => (
               <circle key={i} cx={280+i*20} cy="205" r="5" fill="#22c55e" opacity={blink && i===1 ? 0.4 : 0.9} />
             ))}
-            <text x="400" y="220" textAnchor="middle" fill="#444" fontSize="6" letterSpacing="2">WELLLOGIC CONTROL SYSTEM</text>
+            <text x="400" y="220" textAnchor="middle" fill="#444" fontSize="6" letterSpacing="2">PAD LOGIC CONTROL SYSTEM</text>
             {/* Label */}
             <text x="400" y="275" textAnchor="middle" fill={frame===6 ? 'white' : '#888'} fontSize={frame===6 ? 16 : 11}
               fontWeight="900" fontFamily="'Arial Black', sans-serif" letterSpacing="3">
@@ -764,7 +791,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
             </text>
           </>}
 
-          {/* ── CORE: Communication network across pad ── */}
+          {/* â”€â”€ CORE: Communication network across pad â”€â”€ */}
           {scene === 'core' && <>
             <rect width="800" height="320" fill="#080810" />
             <text x="400" y="20" textAnchor="middle" fill="#333" fontSize="8" letterSpacing="3">UNIFIED PAD COMMUNICATION</text>
@@ -772,9 +799,9 @@ function WellPadOptimizerVideo({ frame, tick }) {
             <rect x="325" y="135" width="150" height="50" rx="8" fill="#0f0f1e" stroke="#E8200C" strokeWidth="2" />
             <rect x="325" y="135" width="150" height="50" rx="8" fill="#E8200C" opacity="0.07" />
             <text x="400" y="157" textAnchor="middle" fill="#E8200C" fontSize="11" fontWeight="bold"
-              fontFamily="'Arial Black', sans-serif" fontStyle="italic">FieldTune™</text>
+              fontFamily="'Arial Black', sans-serif" fontStyle="italic">Pad Logicâ„¢</text>
             <text x="400" y="173" textAnchor="middle" fill="#888" fontSize="7" letterSpacing="2">WELL PAD OPTIMIZER</text>
-            {/* Connected nodes — wells */}
+            {/* Connected nodes â€” wells */}
             {[0,1,2,3].map(i => {
               const wx = 70 + i*60, wy = 40
               const active = frame >= 7
@@ -819,17 +846,17 @@ function WellPadOptimizerVideo({ frame, tick }) {
             {/* Annotation */}
             {frame >= 9 && (
               <text x="400" y="310" textAnchor="middle" fill="#22c55e" fontSize="9" letterSpacing="1">
-                Unified Strategy — Every Component In Sync
+                Unified Strategy â€” Every Component In Sync
               </text>
             )}
           </>}
 
-          {/* ── CONTRAST: Chase vs. Maintain ── */}
+          {/* â”€â”€ CONTRAST: Chase vs. Maintain â”€â”€ */}
           {scene === 'contrast' && <>
             <rect width="800" height="320" fill="#080810" />
             {/* Divider */}
             <line x1="400" y1="0" x2="400" y2="320" stroke="#333" strokeWidth="1" />
-            {/* LEFT: Traditional — chasing */}
+            {/* LEFT: Traditional â€” chasing */}
             <text x="200" y="25" textAnchor="middle" fill="#E8200C" fontSize="9" fontWeight="bold" letterSpacing="2">TRADITIONAL LOGIC</text>
             {/* Jagged pressure trace */}
             <polyline points={`40,80 80,${110+Math.sin(tick)*8} 120,65 160,${95+Math.cos(tick)*10} 200,75 240,${105+Math.sin(tick+1)*7} 280,62 320,${90+Math.cos(tick+2)*9} 360,80`}
@@ -839,7 +866,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
             <line x1="40" y1="80" x2="360" y2="80" stroke="#888" strokeWidth="1" strokeDasharray="4 3" opacity="0.4" />
             <text x="45" y="77" fill="#666" fontSize="6">SETPOINT</text>
             {/* Shows operator actions */}
-            <text x="200" y="155" textAnchor="middle" fill="#555" fontSize="7">Valve adjusted → Overshoots → Readjust → Repeats</text>
+            <text x="200" y="155" textAnchor="middle" fill="#555" fontSize="7">Valve adjusted â†’ Overshoots â†’ Readjust â†’ Repeats</text>
             {/* Choke positions erratic */}
             {[0,1,2,3].map(i => {
               const h = [55,30,70,40][i]
@@ -854,8 +881,8 @@ function WellPadOptimizerVideo({ frame, tick }) {
             })}
             <text x="200" y="300" textAnchor="middle" fill="#E8200C" fontSize="7">Uneven. Reactive. Wasteful.</text>
 
-            {/* RIGHT: FieldTune — maintaining */}
-            <text x="600" y="25" textAnchor="middle" fill="#22c55e" fontSize="9" fontWeight="bold" letterSpacing="2">FIELDTUNE WELL PANEL</text>
+            {/* RIGHT: Pad Logic â€” maintaining */}
+            <text x="600" y="25" textAnchor="middle" fill="#22c55e" fontSize="9" fontWeight="bold" letterSpacing="2">PAD LOGIC WELL PANEL</text>
             {/* Smooth flat trace */}
             <polyline points="440,80 480,79 520,80 560,80 600,79 640,80 680,80 720,79 760,80"
               stroke="#22c55e" strokeWidth="2.5" fill="none" opacity="0.9" />
@@ -877,10 +904,10 @@ function WellPadOptimizerVideo({ frame, tick }) {
             <text x="600" y="300" textAnchor="middle" fill="#22c55e" fontSize="7">Balanced. Proactive. Efficient.</text>
           </>}
 
-          {/* ── IMPACT: Stable optimized pad ── */}
+          {/* â”€â”€ IMPACT: Stable optimized pad â”€â”€ */}
           {scene === 'impact' && <>
             <rect width="800" height="320" fill="#060610" />
-            <text x="400" y="20" textAnchor="middle" fill="#333" fontSize="8" letterSpacing="3">OPTIMIZED PAD — ALL SYSTEMS NOMINAL</text>
+            <text x="400" y="20" textAnchor="middle" fill="#333" fontSize="8" letterSpacing="3">OPTIMIZED PAD â€” ALL SYSTEMS NOMINAL</text>
             {/* 4 wells all green */}
             {[0,1,2,3].map(i => {
               const x = 80 + i*170
@@ -892,7 +919,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
                   <rect x={x+2} y="40" width="26" height="8" rx="1" fill="#0a1a0a" stroke="#22c55e" strokeWidth="1" />
                   <rect x={x+10} y="33" width="10" height="9" fill="#0a1a0a" stroke="#22c55e" strokeWidth="1" />
                   <rect x={x+12} y="73" width="6" height="18" fill="#22c55e" opacity="0.5" />
-                  {/* Choke — open, steady */}
+                  {/* Choke â€” open, steady */}
                   <polygon points={`${x+13},96 ${x+17},91 ${x+21},96 ${x+17},101`} fill="#22c55e" />
                   <circle cx={x+17} cy="114" r="7" fill="#0a1a0a" stroke="#22c55e" strokeWidth="1.5" />
                   <text x={x+17} y="117" textAnchor="middle" fill="#22c55e" fontSize="5" fontWeight="bold">FM</text>
@@ -903,9 +930,9 @@ function WellPadOptimizerVideo({ frame, tick }) {
                 </g>
               )
             })}
-            {/* Discharge header — smooth */}
+            {/* Discharge header â€” smooth */}
             <line x1="60" y1="160" x2="740" y2="160" stroke="#22c55e" strokeWidth="4" opacity="0.3" />
-            {/* Compressors — running steady */}
+            {/* Compressors â€” running steady */}
             {[0,1].map(i => {
               const x = 220 + i*280
               return (
@@ -917,7 +944,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
                   <text x={x+22} y="213" fill="white" fontSize="9" fontWeight="bold">C{i+1}</text>
                   <text x={x+65} y="213" textAnchor="end" fill="#22c55e" fontSize="6">RUN</text>
                   <text x={x+7} y="226" fill="#888" fontSize="6">Load 76%  Stable</text>
-                  <text x={x+7} y="236" fill="#22c55e" fontSize="6">✓ On setpoint</text>
+                  <text x={x+7} y="236" fill="#22c55e" fontSize="6">âœ“ On setpoint</text>
                 </g>
               )
             })}
@@ -926,14 +953,14 @@ function WellPadOptimizerVideo({ frame, tick }) {
               <g>
                 {[{x:120,t:'No Surging',c:'#22c55e'},{x:300,t:'No Recycle',c:'#22c55e'},{x:480,t:'No Waste',c:'#22c55e'},{x:650,t:'Max Flow',c:'#22c55e'}].map((item,i) => (
                   <g key={i}>
-                    <text x={item.x} y="285" textAnchor="middle" fill={item.c} fontSize="9" fontWeight="bold">✓ {item.t}</text>
+                    <text x={item.x} y="285" textAnchor="middle" fill={item.c} fontSize="9" fontWeight="bold">âœ“ {item.t}</text>
                   </g>
                 ))}
               </g>
             )}
           </>}
 
-          {/* ── CLOSE ── */}
+          {/* â”€â”€ CLOSE â”€â”€ */}
           {scene === 'close' && <>
             <rect width="800" height="320" fill="#050508" />
             <line x1="150" y1="160" x2="650" y2="160" stroke="#E8200C" strokeWidth="0.5" opacity="0.2" />
@@ -949,13 +976,13 @@ function WellPadOptimizerVideo({ frame, tick }) {
             )}
           </>}
 
-          {/* ── END FRAME ── */}
+          {/* â”€â”€ END FRAME â”€â”€ */}
           {scene === 'endframe' && <>
             <rect width="800" height="320" fill="#050508" />
             {/* Red accent line */}
             <line x1="250" y1="175" x2="550" y2="175" stroke="#E8200C" strokeWidth="2" />
             <text x="400" y="138" textAnchor="middle" fill="#E8200C" fontSize="30" fontWeight="900"
-              fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="2">FieldTune™</text>
+              fontFamily="'Arial Black', sans-serif" fontStyle="italic" letterSpacing="2">Pad Logicâ„¢</text>
             <text x="400" y="163" textAnchor="middle" fill="white" fontSize="14" fontWeight="700"
               fontFamily="'Arial Black', sans-serif" letterSpacing="4">WELL PAD OPTIMIZER</text>
             <line x1="280" y1="178" x2="520" y2="178" stroke="#E8200C" strokeWidth="1" opacity="0.4" />
@@ -970,7 +997,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
       {/* Cinematic letterbox bottom */}
       <div className="h-[6%] bg-black shrink-0" />
 
-      {/* Caption — cinematic subtitle style */}
+      {/* Caption â€” cinematic subtitle style */}
       {caption && (
         <div className="absolute bottom-[6%] left-0 right-0 text-center px-12 pointer-events-none">
           <span className="bg-black/70 text-white text-[13px] px-4 py-1.5 rounded font-medium"
@@ -982,3 +1009,5 @@ function WellPadOptimizerVideo({ frame, tick }) {
     </div>
   )
 }
+
+

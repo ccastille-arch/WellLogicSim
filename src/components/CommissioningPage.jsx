@@ -2,7 +2,7 @@
 // All configurable parameters from the Pad Optimization Panel Program spec
 // Organized by document section with live calculated values shown
 
-export default function CommissioningPage({ state, onFieldChange }) {
+export default function CommissioningPage({ state, onFieldChange, onCompressorCapacity }) {
   return (
     <div className="flex-1 overflow-auto bg-[#0e0e14] p-5">
       <div className="max-w-[850px] mx-auto">
@@ -12,6 +12,35 @@ export default function CommissioningPage({ state, onFieldChange }) {
         <p className="text-[11px] text-[#888] mb-6">
           Pad Optimization Panel configuration. All values are written to ASC compressor controllers via Modbus.
         </p>
+
+        <Section number="" title="Site Equipment Configuration">
+          <div className="grid grid-cols-2 gap-3">
+            <ParamInput
+              label="Compressor Max Flow Rate"
+              value={state.compressors[0]?.capacityMcfd ?? 0}
+              unit="MCFD per compressor"
+              onChange={v => state.compressors.forEach(c => onCompressorCapacity?.(c.id, v))}
+              min={100}
+              max={4000}
+              step={50}
+              description="Updates every compressor's max flow rate in the running simulator"
+            />
+          </div>
+          <div className="mt-3 bg-[#12121a] rounded border border-[#2a2a3a] p-3">
+            <div className="text-[9px] text-[#f97316] uppercase tracking-wider font-bold mb-2">LIVE CAPACITY</div>
+            <div className="text-[11px] text-[#ccc]">
+              Online compressors: <span className="text-white font-bold">
+                {state.compressors.filter(c => c.status === 'running' || c.status === 'locked_out_running').length}
+              </span>
+            </div>
+            <div className="text-[11px] text-[#ccc]">
+              Total available gas: <span className="text-white font-bold">{state.totalAvailableGas.toFixed(0)} MCFD</span>
+            </div>
+            <div className="text-[11px] text-[#ccc]">
+              Installed compressor capacity: <span className="text-white font-bold">{state.maxGasCapacity.toFixed(0)} MCFD</span>
+            </div>
+          </div>
+        </Section>
 
         {/* ═══════ Section 1: Suction Header Target Pressure ═══════ */}
         <Section number="1" title="Suction Header Target Pressure">
@@ -272,7 +301,9 @@ function Section({ number, title, children }) {
   return (
     <div className="mb-6 bg-[#111118] rounded-lg border border-[#222233] p-4">
       <div className="flex items-baseline gap-2 mb-2">
-        <span className="text-[10px] text-[#E8200C] font-bold bg-[#E8200C]/10 px-2 py-0.5 rounded">§{number}</span>
+        {number ? (
+          <span className="text-[10px] text-[#E8200C] font-bold bg-[#E8200C]/10 px-2 py-0.5 rounded">§{number}</span>
+        ) : null}
         <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
           {title}
         </h2>

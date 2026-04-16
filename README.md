@@ -1,16 +1,42 @@
-# React + Vite
+# WellLogic
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+WellLogic uses PostgreSQL as the source of truth for users, sessions, roles, settings, quotes, and activity.
 
-Currently, two official plugins are available:
+## Persistent storage
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The app now supports a writable data directory for Railway volumes and local backups.
 
-## React Compiler
+- Production default: `/data`
+- Override with: `DATA_DIR=/your/mount/path`
+- Railway volume env fallback: `RAILWAY_VOLUME_MOUNT_PATH`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+When storage is writable, the server will:
 
-## Expanding the ESLint configuration
+- create `backups/` and `uploads/` under the data directory
+- write a JSON backup snapshot on startup
+- keep scheduled backups every `BACKUP_INTERVAL_MINUTES` minutes
+- retain the newest `BACKUP_RETENTION` backup files
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Useful env vars:
+
+- `DATA_DIR=/data`
+- `BACKUP_INTERVAL_MINUTES=360`
+- `BACKUP_RETENTION=20`
+
+## Railway volume setup
+
+1. In Railway, open the `WellLogicSim` service.
+2. Add a Volume.
+3. Mount it at `/data`.
+4. Redeploy.
+
+After deploy, check:
+
+- `GET /api/health`
+- `GET /api/storage/status` with an authenticated admin/settings-capable user
+
+You can also trigger a manual snapshot with:
+
+- `POST /api/storage/backup`
+
+That endpoint requires the `manage:settings` permission.

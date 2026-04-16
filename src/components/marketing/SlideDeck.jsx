@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 
 const SLIDES = [
   { bg: '#0a0a14', content: TitleSlide },
@@ -22,7 +22,7 @@ export default function SlideDeck() {
     <div className="p-6 max-w-[1000px] mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>Presentation Deck</h2>
-        <span className="text-[11px] text-[#888]">Slide {slide + 1} of {SLIDES.length} — Use arrow keys or click buttons</span>
+        <span className="text-[11px] text-[#888]">Slide {slide + 1} of {SLIDES.length} â€” Use arrow keys or click buttons</span>
       </div>
 
       {/* Slide */}
@@ -35,7 +35,7 @@ export default function SlideDeck() {
       <div className="flex items-center justify-between mt-4">
         <button onClick={() => setSlide(s => Math.max(0, s - 1))} disabled={slide === 0}
           className="px-4 py-2 text-[11px] font-bold text-[#888] border border-[#333] rounded hover:text-white disabled:opacity-30">
-          ← Previous
+          â† Previous
         </button>
         <div className="flex gap-1.5">
           {SLIDES.map((_, i) => (
@@ -45,7 +45,7 @@ export default function SlideDeck() {
         </div>
         <button onClick={() => setSlide(s => Math.min(SLIDES.length - 1, s + 1))} disabled={slide === SLIDES.length - 1}
           className="px-4 py-2 text-[11px] font-bold bg-[#E8200C] text-white rounded hover:bg-[#c01a0a] disabled:opacity-30">
-          Next →
+          Next â†’
         </button>
       </div>
     </div>
@@ -59,8 +59,8 @@ function S({ children, className = '' }) {
 function TitleSlide() {
   return (
     <S>
-      <div className="text-3xl tracking-tight mb-2" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>FieldTune™</div>
-      <div className="text-5xl text-white font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>WellLogic™</div>
+      <div className="text-3xl tracking-tight mb-2" style={{ fontFamily: "'Arial Black'", color: '#E8200C' }}>Service Compression</div>
+      <div className="text-5xl text-white font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>Pad Logicâ„¢</div>
       <div className="text-lg text-[#888]">Automated Gas Lift Injection Optimization</div>
       <div className="mt-8 w-32 h-0.5 bg-[#E8200C]" />
       <div className="mt-4 text-sm text-[#555]">Service Compression</div>
@@ -75,10 +75,10 @@ function ProblemSlide() {
       <div className="text-3xl text-white font-bold mb-6" style={{ fontFamily: "'Arial Black'" }}>Your Wells Can't Wait</div>
       <div className="grid grid-cols-2 gap-x-12 gap-y-4 text-[14px]">
         {[
-          ['⏱ 2-4 Hour Response', 'When a compressor trips, production bleeds until someone drives out.'],
-          ['🌙 Unmanned at Night', 'Events at 2AM sit unaddressed for hours. Revenue lost while you sleep.'],
-          ['⚙️ Manual Choke Adjustment', 'Operator drives out, adjusts chokes, drives home. Then drives back when mechanic finishes.'],
-          ['📉 No Prioritization', 'All wells lose gas equally. Your best producers suffer alongside your worst.'],
+          ['â± 2-4 Hour Response', 'When a compressor trips, production bleeds until someone drives out.'],
+          ['ðŸŒ™ Unmanned at Night', 'Events at 2AM sit unaddressed for hours. Revenue lost while you sleep.'],
+          ['âš™ï¸ Manual Choke Adjustment', 'Operator drives out, adjusts chokes, drives home. Then drives back when mechanic finishes.'],
+          ['ðŸ“‰ No Prioritization', 'All wells lose gas equally. Your best producers suffer alongside your worst.'],
         ].map(([title, desc], i) => (
           <div key={i}>
             <div className="text-white font-bold mb-1">{title}</div>
@@ -115,13 +115,13 @@ function SolutionSlide() {
   return (
     <S>
       <div className="text-[#22c55e] text-sm font-bold uppercase tracking-wider mb-2">The Solution</div>
-      <div className="text-3xl text-white font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>WellLogic™ Handles It</div>
+      <div className="text-3xl text-white font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>Pad Logicâ„¢ Handles It</div>
       <div className="text-lg text-[#888] mb-8">Automatic. Instant. 24/7.</div>
       <div className="grid grid-cols-3 gap-6 text-center">
         {[
           ['30 sec', 'Response Time', 'Detects and rebalances injection in seconds, not hours.'],
           ['85%', 'Production Saved', 'Of what would otherwise be lost during every event.'],
-          ['$0', 'Operator Trips', 'For choke adjustment. WellLogic handles it remotely.'],
+          ['$0', 'Operator Trips', 'For choke adjustment. Pad Logic handles it remotely.'],
         ].map(([value, title, desc], i) => (
           <div key={i}>
             <div className="text-3xl text-[#22c55e] font-bold" style={{ fontFamily: "'Arial Black'" }}>{value}</div>
@@ -138,14 +138,14 @@ function HowItWorksSlide() {
   return (
     <S className="items-start px-16">
       <div className="text-[#4fc3f7] text-sm font-bold uppercase tracking-wider mb-2">How It Works</div>
-      <div className="text-2xl text-white font-bold mb-6" style={{ fontFamily: "'Arial Black'" }}>The WellLogic Control Loop</div>
+      <div className="text-2xl text-white font-bold mb-6" style={{ fontFamily: "'Arial Black'" }}>The Pad Logic Control Loop</div>
       <div className="flex items-center gap-3 text-[12px] flex-wrap justify-center">
-        {['Wells Produce', '→', 'HP Scrubber', '→', 'Gas Recirculates', '→', 'Suction Header', '→', 'Compressors', '→', 'Discharge Header', '→', 'Choke Valves', '→', 'Back to Wells'].map((item, i) => (
-          <span key={i} className={item === '→' ? 'text-[#E8200C] text-lg' : 'bg-[#1a1a2a] px-3 py-1.5 rounded text-white font-bold'}>{item}</span>
+        {['Wells Produce', 'â†’', 'HP Scrubber', 'â†’', 'Gas Recirculates', 'â†’', 'Suction Header', 'â†’', 'Compressors', 'â†’', 'Discharge Header', 'â†’', 'Choke Valves', 'â†’', 'Back to Wells'].map((item, i) => (
+          <span key={i} className={item === 'â†’' ? 'text-[#E8200C] text-lg' : 'bg-[#1a1a2a] px-3 py-1.5 rounded text-white font-bold'}>{item}</span>
         ))}
       </div>
       <div className="mt-6 text-[13px] text-[#888] text-center max-w-[600px]">
-        WellLogic controls the <span className="text-[#E8200C] font-bold">choke valves</span> — the injection point for each well.
+        Pad Logic controls the <span className="text-[#E8200C] font-bold">choke valves</span> â€” the injection point for each well.
         It monitors every pressure, flow, and compressor status in real-time and makes decisions in milliseconds.
       </div>
     </S>
@@ -171,7 +171,7 @@ function PrioritySlide() {
       </div>
       <div className="text-[13px] text-[#888] text-center max-w-[500px]">
         When gas is limited, your <span className="text-[#22c55e] font-bold">highest-value wells get gas first</span>.
-        Lower-priority wells are curtailed automatically — no operator needed.
+        Lower-priority wells are curtailed automatically â€” no operator needed.
       </div>
     </S>
   )
@@ -184,26 +184,26 @@ function TripResponseSlide() {
       <div className="text-2xl text-white font-bold mb-6" style={{ fontFamily: "'Arial Black'" }}>Compressor Trip Response</div>
       <div className="grid grid-cols-2 gap-8 max-w-[700px]">
         <div className="bg-[#1a0808] rounded-lg p-4 border border-[#E8200C]/30">
-          <div className="text-[#E8200C] font-bold text-sm mb-2">❌ Without WellLogic</div>
+          <div className="text-[#E8200C] font-bold text-sm mb-2">âŒ Without Pad Logic</div>
           <div className="text-[12px] text-[#888] space-y-1">
-            <div>• SCADA alarm fires</div>
-            <div>• Dispatch operator (45-90 min)</div>
-            <div>• Diagnose issue (15 min)</div>
-            <div>• Call mechanic (60 min wait)</div>
-            <div>• Repair compressor (30 min)</div>
-            <div className="text-[#E8200C] font-bold">• Operator drives BACK (45-90 min)</div>
-            <div className="text-[#E8200C] font-bold">• Readjust all chokes (20 min)</div>
+            <div>â€¢ SCADA alarm fires</div>
+            <div>â€¢ Dispatch operator (45-90 min)</div>
+            <div>â€¢ Diagnose issue (15 min)</div>
+            <div>â€¢ Call mechanic (60 min wait)</div>
+            <div>â€¢ Repair compressor (30 min)</div>
+            <div className="text-[#E8200C] font-bold">â€¢ Operator drives BACK (45-90 min)</div>
+            <div className="text-[#E8200C] font-bold">â€¢ Readjust all chokes (20 min)</div>
             <div className="text-white font-bold mt-2">Total: 3.5-5.5 hours</div>
           </div>
         </div>
         <div className="bg-[#081a08] rounded-lg p-4 border border-[#22c55e]/30">
-          <div className="text-[#22c55e] font-bold text-sm mb-2">✅ With WellLogic</div>
+          <div className="text-[#22c55e] font-bold text-sm mb-2">âœ… With Pad Logic</div>
           <div className="text-[12px] text-[#888] space-y-1">
-            <div>• Detects shortfall (instant)</div>
-            <div>• Rebalances chokes (30-60 sec)</div>
-            <div>• Priority wells protected</div>
-            <div>• Mechanic dispatched for comp only</div>
-            <div>• No return trip for chokes needed</div>
+            <div>â€¢ Detects shortfall (instant)</div>
+            <div>â€¢ Rebalances chokes (30-60 sec)</div>
+            <div>â€¢ Priority wells protected</div>
+            <div>â€¢ Mechanic dispatched for comp only</div>
+            <div>â€¢ No return trip for chokes needed</div>
             <div className="text-[#22c55e] font-bold mt-2">Total: 30-60 seconds</div>
             <div className="text-[#22c55e] font-bold">Zero choke adjustment trips</div>
           </div>
@@ -220,11 +220,11 @@ function UnloadSlide() {
       <div className="text-2xl text-white font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>Well Unload Detection</div>
       <div className="text-[14px] text-[#888] text-center max-w-[600px] mb-6">
         Gas slugs and liquid unloads cause rapid pressure spikes that can shut down your entire pad.
-        WellLogic detects them <span className="text-white font-bold">before they become a problem</span>.
+        Pad Logic detects them <span className="text-white font-bold">before they become a problem</span>.
       </div>
       <div className="flex gap-3 items-center text-[12px]">
-        {['Pressure Spike', '→', 'WellLogic Detects', '→', 'Sales Valve Opens', '→', 'Pressure Relieved', '→', 'Shutdown Prevented'].map((item, i) => (
-          <span key={i} className={item === '→' ? 'text-[#eab308]' : 'bg-[#1a1a2a] px-3 py-2 rounded text-white font-bold'}>{item}</span>
+        {['Pressure Spike', 'â†’', 'Pad Logic Detects', 'â†’', 'Sales Valve Opens', 'â†’', 'Pressure Relieved', 'â†’', 'Shutdown Prevented'].map((item, i) => (
+          <span key={i} className={item === 'â†’' ? 'text-[#eab308]' : 'bg-[#1a1a2a] px-3 py-2 rounded text-white font-bold'}>{item}</span>
         ))}
       </div>
     </S>
@@ -236,7 +236,7 @@ function ROISlide() {
     <S>
       <div className="text-[#4fc3f7] text-sm font-bold uppercase tracking-wider mb-2">Return on Investment</div>
       <div className="text-3xl text-white font-bold mb-6" style={{ fontFamily: "'Arial Black'" }}>Typical Annual Savings</div>
-      <div className="text-6xl text-[#22c55e] font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>$400K – $900K</div>
+      <div className="text-6xl text-[#22c55e] font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>$400K â€“ $900K</div>
       <div className="text-lg text-[#888] mb-6">Per pad, per year</div>
       <div className="flex gap-6 text-center text-[12px]">
         {[
@@ -266,7 +266,7 @@ function TimelineSlide() {
           { week: 'Wk 3-5', label: 'Panel Build', desc: 'Assembly, wiring, factory test' },
           { week: 'Wk 6', label: 'Ship', desc: 'Direct to your pad' },
           { week: 'Wk 7-8', label: 'Commission', desc: '1-2 days on-site setup' },
-          { week: 'Day 1', label: 'LIVE', desc: 'WellLogic running 24/7' },
+          { week: 'Day 1', label: 'LIVE', desc: 'Pad Logic running 24/7' },
         ].map((step, i) => (
           <div key={i} className="flex items-center gap-2">
             <div className="text-center">
@@ -288,16 +288,18 @@ function CTASlide() {
   return (
     <S>
       <div className="text-4xl text-white font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>Ready to Get Started?</div>
-      <div className="text-lg text-[#888] mb-8">Let's put WellLogic on your pad.</div>
+      <div className="text-lg text-[#888] mb-8">Let's put Pad Logic on your pad.</div>
       <div className="bg-[#111120] rounded-xl border border-[#E8200C]/30 px-10 py-6 text-center">
-        <div className="text-2xl tracking-tight mb-1" style={{ fontFamily: "'Arial Black'", fontStyle: 'italic', color: '#E8200C' }}>FieldTune™</div>
+        <div className="text-2xl tracking-tight mb-1" style={{ fontFamily: "'Arial Black'", color: '#E8200C' }}>Pad Logicâ„¢</div>
         <div className="text-xl text-white font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>Service Compression</div>
         <div className="text-[13px] text-[#888] space-y-1">
-          <div>Cody Castille — Director of Product Development</div>
+          <div>Cody Castille â€” Director of Product Development</div>
           <div className="text-white">servicecompression.com</div>
         </div>
       </div>
-      <div className="mt-6 text-[11px] text-[#555]">WellLogic™ and FieldTune™ are trademarks of Service Compression.</div>
+      <div className="mt-6 text-[11px] text-[#555]">Pad Logicâ„¢ is a Service Compression product.</div>
     </S>
   )
 }
+
+

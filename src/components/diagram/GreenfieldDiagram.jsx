@@ -1,11 +1,11 @@
-import CompressorNode from './CompressorNode'
+﻿import CompressorNode from './CompressorNode'
 import WellNode from './WellNode'
 import ValveIcon from './ValveIcon'
 import EquipmentNode from './EquipmentNode'
 import FlowLine from './FlowLine'
 
 // Greenfield layout:
-// Gas Source → WellLogic Panel → Compressors → Injection Header → Chokes → Wells → Production Header → Scrubber
+// Gas Source â†’ WellLogic Panel â†’ Compressors â†’ Injection Header â†’ Chokes â†’ Wells â†’ Production Header â†’ Scrubber
 
 export default function GreenfieldDiagram({ state }) {
   const { compressors, wells, totalAvailableGas, maxGasCapacity } = state
@@ -60,14 +60,14 @@ export default function GreenfieldDiagram({ state }) {
 
       {/* === FLOW LINES === */}
 
-      {/* Gas Source → WellLogic Panel */}
+      {/* Gas Source â†’ WellLogic Panel */}
       <FlowLine
         points={[[svgW / 2, gasSourceY + 30], [svgW / 2, wellLogicY]]}
         flowRate={gasFlow}
         color="#22c55e"
       />
 
-      {/* WellLogic Panel → each compressor */}
+      {/* WellLogic Panel â†’ each compressor */}
       {compressors.map((c, i) => {
         const cx = compStartX + i * compSpacing + compW / 2
         const flow = c.status === 'running' ? gasFlow : 0
@@ -81,7 +81,7 @@ export default function GreenfieldDiagram({ state }) {
         )
       })}
 
-      {/* Each compressor → injection header */}
+      {/* Each compressor â†’ injection header */}
       {compressors.map((c, i) => {
         const cx = compStartX + i * compSpacing + compW / 2
         const flow = c.status === 'running' ? c.loadPct / 100 : 0
@@ -108,7 +108,7 @@ export default function GreenfieldDiagram({ state }) {
         INJ HDR
       </text>
 
-      {/* Injection Header → valve → each well */}
+      {/* Injection Header â†’ valve â†’ each well */}
       {wells.map((w, i) => {
         const wx = wellStartX + i * wellSpacing + wellW / 2
         const flow = totalDesired > 0 ? w.actualRate / (w.desiredRate || 1) : 0
@@ -124,7 +124,7 @@ export default function GreenfieldDiagram({ state }) {
         )
       })}
 
-      {/* Valve → Well */}
+      {/* Valve â†’ Well */}
       {wells.map((w, i) => {
         const wx = wellStartX + i * wellSpacing + wellW / 2
         const flow = totalDesired > 0 ? w.actualRate / (w.desiredRate || 1) : 0
@@ -138,7 +138,7 @@ export default function GreenfieldDiagram({ state }) {
         )
       })}
 
-      {/* Each well → production header */}
+      {/* Each well â†’ production header */}
       {wells.map((w, i) => {
         const wx = wellStartX + i * wellSpacing + wellW / 2
         const flow = w.productionBoe > 0 ? w.productionBoe / (w.baseProduction || 1) : 0
@@ -166,7 +166,7 @@ export default function GreenfieldDiagram({ state }) {
         PROD HDR
       </text>
 
-      {/* Production Header → Scrubber */}
+      {/* Production Header â†’ Scrubber */}
       <FlowLine
         points={[[svgW / 2, prodHeaderY + 6], [svgW / 2, scrubberY]]}
         flowRate={0.6}
@@ -187,7 +187,7 @@ export default function GreenfieldDiagram({ state }) {
       <EquipmentNode
         x={svgW / 2 - 60} y={wellLogicY}
         width={120} height={32}
-        label="WellLogic™"
+        label="Pad Logic"
         sublabel="Gas Lift Controller"
         color="#E8200C"
       />
@@ -240,8 +240,9 @@ export default function GreenfieldDiagram({ state }) {
 
       {/* Labels */}
       <text x={margin} y={svgH - 10} fill="#333" fontSize={9} fontFamily="Arial">
-        GREENFIELD — Standard WellLogic™ Deployment
+        GREENFIELD â€” Standard Pad Logic Deployment
       </text>
     </svg>
   )
 }
+

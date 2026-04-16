@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
+import { GAS_SUPPLY_UI_MAX } from '../engine/simulation'
 
 export default function Sidebar({
   state,
@@ -25,7 +26,7 @@ export default function Sidebar({
           <input
             type="range"
             min={0}
-            max={maxGasCapacity}
+            max={GAS_SUPPLY_UI_MAX}
             step={10}
             value={totalAvailableGas}
             onChange={e => onTotalGas(Number(e.target.value))}
@@ -33,7 +34,7 @@ export default function Sidebar({
           />
           <div className="flex justify-between text-[10px] text-sc-gray">
             <span>0</span>
-            <span>{maxGasCapacity} MCFD</span>
+            <span>{GAS_SUPPLY_UI_MAX.toLocaleString()} MCFD</span>
           </div>
         </Section>
 
@@ -209,7 +210,7 @@ function WellRateSlider({ well, onChange }) {
       <input
         type="range"
         min={0}
-        max={400}
+        max={1600}
         step={10}
         value={well.desiredRate}
         onChange={e => onChange(well.id, Number(e.target.value))}

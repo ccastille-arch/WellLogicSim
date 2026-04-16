@@ -70,12 +70,17 @@ export default function Simulator({ config, tutorialMode, onTutorialEnd, autoPre
           ) : view === 'values' ? (
             <ValuesPage state={sim.state} />
           ) : view === 'startup' ? (
-            <CommissioningPage state={sim.state} onFieldChange={sim.setStateField} />
+            <CommissioningPage
+              state={sim.state}
+              onFieldChange={sim.setStateField}
+              onCompressorCapacity={sim.setCompressorCapacity}
+            />
           ) : (view === 'compressors' || view === 'global' || view === 'channels') ? (
             <CompressorControlPage
               state={sim.state}
               onCompressorStatus={sim.setCompressorStatus}
               onCompressorMode={sim.setCompressorMode}
+              onCompressorCapacity={sim.setCompressorCapacity}
             />
           ) : null}
         </div>
@@ -370,7 +375,7 @@ function buildRegisterList(state) {
   return regs
 }
 
-function CompressorControlPage({ state, onCompressorStatus, onCompressorMode }) {
+function CompressorControlPage({ state, onCompressorStatus, onCompressorMode, onCompressorCapacity }) {
   return (
     <div className="flex-1 p-4 overflow-auto bg-[#1e1e22]">
       <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
@@ -398,6 +403,21 @@ function CompressorControlPage({ state, onCompressorStatus, onCompressorMode }) 
               <div><span className="text-[#888]">Discharge: </span><span className="text-white font-bold">{c.dischargePsi.toFixed(0)} PSI</span></div>
               <div><span className="text-[#888]">Flow: </span><span className="text-white font-bold">{c.actualThroughput.toFixed(0)} MCFD</span></div>
               <div><span className="text-[#888]">Suction SP: </span><span className="text-white font-bold">{c.speedAutoSuctionSP.toFixed(0)} PSI</span></div>
+            </div>
+            <div className="mb-3">
+              <label className="block text-[10px] text-[#888] uppercase tracking-wider mb-1">Max Flow Rate</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={100}
+                  max={4000}
+                  step={50}
+                  value={c.capacityMcfd}
+                  onChange={(event) => onCompressorCapacity?.(c.id, Number(event.target.value))}
+                  className="w-24 bg-[#1a1a2a] border border-[#333] rounded px-2 py-1.5 text-white text-sm font-bold text-right outline-none focus:border-[#4fc3f7]"
+                />
+                <span className="text-[10px] text-[#888]">MCFD</span>
+              </div>
             </div>
             {/* Mode selector — document section 8 */}
             <div className="flex gap-2 mb-3">

@@ -1,12 +1,12 @@
-import CompressorNode from './CompressorNode'
+﻿import CompressorNode from './CompressorNode'
 import WellNode from './WellNode'
 import ValveIcon from './ValveIcon'
 import EquipmentNode from './EquipmentNode'
 import FlowLine from './FlowLine'
 
 // Brownfield layout:
-// Wells → Prod Header → Scrubber → (Oil Tank + Gas) → Suction Controllers → Compressors → Inj Header → Wells
-// Also: excess gas → Sales Line
+// Wells â†’ Prod Header â†’ Scrubber â†’ (Oil Tank + Gas) â†’ Suction Controllers â†’ Compressors â†’ Inj Header â†’ Wells
+// Also: excess gas â†’ Sales Line
 
 export default function BrownfieldDiagram({ state }) {
   const { compressors, wells, totalAvailableGas, maxGasCapacity } = state
@@ -17,7 +17,7 @@ export default function BrownfieldDiagram({ state }) {
   const svgH = 620
   const margin = 30
 
-  // Vertical positions — left to right flow with recycle
+  // Vertical positions â€” left to right flow with recycle
   const wellY = 40
   const prodHeaderY = 120
   const scrubberY = 170
@@ -63,7 +63,7 @@ export default function BrownfieldDiagram({ state }) {
 
       {/* === FLOW LINES === */}
 
-      {/* Wells (top) → Production Header */}
+      {/* Wells (top) â†’ Production Header */}
       {wells.map((w, i) => {
         const wx = wellStartX + i * wellSpacing + wellW / 2
         const flow = w.productionBoe > 0 ? w.productionBoe / (w.baseProduction || 1) : 0
@@ -87,21 +87,21 @@ export default function BrownfieldDiagram({ state }) {
         PROD HDR
       </text>
 
-      {/* Production Header → Scrubber */}
+      {/* Production Header â†’ Scrubber */}
       <FlowLine
         points={[[scrubberCX, prodHeaderY + 6], [scrubberCX, scrubberY]]}
         flowRate={0.6}
         color="#8B6914"
       />
 
-      {/* Scrubber → Oil Tank */}
+      {/* Scrubber â†’ Oil Tank */}
       <FlowLine
         points={[[scrubberCX + 55, scrubberY + 15], [oilTankX, scrubberY + 15], [oilTankX, scrubberY + 30]]}
         flowRate={0.5}
         color="#8B6914"
       />
 
-      {/* Scrubber → Gas path (down to suction controllers) */}
+      {/* Scrubber â†’ Gas path (down to suction controllers) */}
       <FlowLine
         points={[[scrubberCX, scrubberY + 30], [scrubberCX, gasPathY + 6]]}
         flowRate={gasFlow}
@@ -118,14 +118,14 @@ export default function BrownfieldDiagram({ state }) {
         GAS
       </text>
 
-      {/* Gas → Sales Line */}
+      {/* Gas â†’ Sales Line */}
       <FlowLine
         points={[[salesLineX, gasPathY + 6], [salesLineX, gasPathY - 20]]}
         flowRate={0.3}
         color="#22c55e"
       />
 
-      {/* Gas → each compressor via suction controllers */}
+      {/* Gas â†’ each compressor via suction controllers */}
       {compressors.map((c, i) => {
         const cx = compStartX + i * compSpacing + compW / 2
         const flow = c.status === 'running' ? c.loadPct / 100 : 0
@@ -139,7 +139,7 @@ export default function BrownfieldDiagram({ state }) {
         )
       })}
 
-      {/* Suction controller → compressor */}
+      {/* Suction controller â†’ compressor */}
       {compressors.map((c, i) => {
         const cx = compStartX + i * compSpacing + compW / 2
         const flow = c.status === 'running' ? c.loadPct / 100 : 0
@@ -153,7 +153,7 @@ export default function BrownfieldDiagram({ state }) {
         )
       })}
 
-      {/* Compressor → injection header */}
+      {/* Compressor â†’ injection header */}
       {compressors.map((c, i) => {
         const cx = compStartX + i * compSpacing + compW / 2
         const flow = c.status === 'running' ? c.loadPct / 100 : 0
@@ -177,7 +177,7 @@ export default function BrownfieldDiagram({ state }) {
         INJ HDR
       </text>
 
-      {/* Injection Header → Wells (bottom connection — injection into well) */}
+      {/* Injection Header â†’ Wells (bottom connection â€” injection into well) */}
       {wells.map((w, i) => {
         const wx = wellStartX + i * wellSpacing + wellW / 2
         const flow = totalDesired > 0 ? w.actualRate / (w.desiredRate || 1) : 0
@@ -192,7 +192,7 @@ export default function BrownfieldDiagram({ state }) {
         )
       })}
 
-      {/* Well bottom → well top recycle indicators (dashed vertical) */}
+      {/* Well bottom â†’ well top recycle indicators (dashed vertical) */}
       {wells.map((w, i) => {
         const wx = wellStartX + i * wellSpacing + wellW / 2 + 20
         return (
@@ -207,7 +207,7 @@ export default function BrownfieldDiagram({ state }) {
 
       {/* === EQUIPMENT NODES === */}
 
-      {/* Wells (top — production) */}
+      {/* Wells (top â€” production) */}
       {wells.map((w, i) => (
         <WellNode
           key={w.id}
@@ -249,7 +249,7 @@ export default function BrownfieldDiagram({ state }) {
       <EquipmentNode
         x={wellLogicX} y={suctionValveY - 8}
         width={110} height={32}
-        label="WellLogic™"
+        label="Pad Logic"
         sublabel="Suction Controller Mgmt"
         color="#E8200C"
       />
@@ -297,8 +297,9 @@ export default function BrownfieldDiagram({ state }) {
 
       {/* Label */}
       <text x={margin} y={svgH - 10} fill="#333" fontSize={9} fontFamily="Arial">
-        BROWNFIELD — Recycled Gas with Suction Controller Prioritization
+        BROWNFIELD â€” Recycled Gas with Suction Controller Prioritization
       </text>
     </svg>
   )
 }
+

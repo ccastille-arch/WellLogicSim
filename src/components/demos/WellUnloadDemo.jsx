@@ -1,4 +1,4 @@
-import DemoPage from './DemoPage'
+﻿import DemoPage from './DemoPage'
 
 export default function WellUnloadDemo({ sim }) {
   const triggerUnload = (severity) => {
@@ -9,15 +9,15 @@ export default function WellUnloadDemo({ sim }) {
   }
 
   const triggers = [
-    { label: 'Minor Well Slug', description: 'Small liquid slug hits scrubber — slight pressure bump', icon: '💧',
+    { label: 'Minor Well Slug', description: 'Small liquid slug hits scrubber â€” slight pressure bump', icon: 'ðŸ’§',
       onClick: () => triggerUnload('minor') },
-    { label: 'Moderate Well Unload', description: 'Gas breakthrough — typical unload event', icon: '⚡',
+    { label: 'Moderate Well Unload', description: 'Gas breakthrough â€” typical unload event', icon: 'âš¡',
       onClick: () => triggerUnload('moderate'),
       active: sim.state.wellUnloadActive && sim.state.scrubberPressure < sim.state.suctionTarget + 35 },
-    { label: 'Severe Well Unload', description: 'Massive gas slug — sales valve fully opens to protect system', icon: '💥',
+    { label: 'Severe Well Unload', description: 'Massive gas slug â€” sales valve fully opens to protect system', icon: 'ðŸ’¥',
       onClick: () => triggerUnload('severe'),
       active: sim.state.wellUnloadActive && sim.state.scrubberPressure >= sim.state.suctionTarget + 35 },
-    { label: 'Repeated Slugging', description: 'Multiple unloads every 8 seconds — problematic well', icon: '🔁',
+    { label: 'Repeated Slugging', description: 'Multiple unloads every 8 seconds â€” problematic well', icon: 'ðŸ”',
       onClick: () => {
         let count = 0
         const interval = setInterval(() => {
@@ -27,19 +27,19 @@ export default function WellUnloadDemo({ sim }) {
         }, 8000)
         triggerUnload('moderate')
       }},
-    { label: 'Sales Line Backed Up', description: 'Sales line pressure rises — valve can\'t relieve enough', icon: '🚫',
+    { label: 'Sales Line Backed Up', description: 'Sales line pressure rises â€” valve can\'t relieve enough', icon: 'ðŸš«',
       onClick: () => {
         sim.setStateField('scrubberPressure', sim.state.suctionTarget + 35)
         sim.setStateField('wellUnloadActive', true)
         sim.setStateField('salesValvePosition', 100)
         sim.setStateField('suctionHeaderPressure', sim.state.suctionTarget + sim.state.suctionHighRange + 5)
       }},
-    { label: 'Well Loaded Up (Liquid)', description: 'Well stops flowing gas — fills with liquid. Flow drops to zero.', icon: '🛢️',
+    { label: 'Well Loaded Up (Liquid)', description: 'Well stops flowing gas â€” fills with liquid. Flow drops to zero.', icon: 'ðŸ›¢ï¸',
       onClick: () => {
         const lastWell = [...sim.state.wells].sort((a, b) => b.priority - a.priority)[0]
         if (lastWell) sim.setWellDesiredRate(lastWell.id, 0)
       }},
-    { label: 'Well Kicks Back On', description: 'Loaded well unloads and comes back — sudden gas burst', icon: '🌋',
+    { label: 'Well Kicks Back On', description: 'Loaded well unloads and comes back â€” sudden gas burst', icon: 'ðŸŒ‹',
       onClick: () => {
         const offWell = sim.state.wells.find(w => w.desiredRate === 0)
         if (offWell) {
@@ -47,7 +47,7 @@ export default function WellUnloadDemo({ sim }) {
           triggerUnload('severe')
         }
       }},
-    { label: 'Reset to Normal', icon: '↩️',
+    { label: 'Reset to Normal', icon: 'â†©ï¸',
       onClick: () => {
         sim.setStateField('wellUnloadActive', false)
         sim.setStateField('scrubberPressure', sim.state.suctionTarget + 5)
@@ -70,7 +70,8 @@ export default function WellUnloadDemo({ sim }) {
 
   return (
     <DemoPage sim={sim} title="Well Unload & Slugging Events"
-      pitch="WellLogic detects well unloads and liquid slugs instantly — rapid pressure spikes that can shut down your entire site. The system automatically relieves pressure through the sales valve and keeps compressors running safely."
+      pitch="Pad Logic detects well unloads and liquid slugs instantly â€” rapid pressure spikes that can shut down your entire site. The system automatically relieves pressure through the sales valve and keeps compressors running safely."
       triggers={triggers} metrics={metrics} />
   )
 }
+
