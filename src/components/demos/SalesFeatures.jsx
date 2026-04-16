@@ -159,6 +159,49 @@ function MiniStat({ label, value, sub, color }) {
   )
 }
 
+function clampPct(value) {
+  return Math.max(0, Math.min(100, value))
+}
+
+function getEffectivePadCapacity(simState) {
+  const compressors = simState?.compressors || []
+  const totalAvailableGas = simState?.totalAvailableGas || 0
+  const onlineCapacity = compressors
+    .filter(c => c.status === 'running' || c.status === 'locked_out_running')
+    .reduce((sum, c) => sum + (c.capacityMcfd || 0), 0)
+
+  return Math.min(totalAvailableGas, onlineCapacity)
+}
+
+function getAutoProductionPct(wells) {
+  const totalPotential = wells.reduce((sum, w) => sum + (w.baseProduction || w.productionBoe || 0), 0)
+  const totalActual = wells.reduce((sum, w) => sum + (w.productionBoe || 0), 0)
+  return totalPotential > 0 ? clampPct((totalActual / totalPotential) * 100) : 100
+}
+
+function getManualProductionPct(simState) {
+  const wells = simState?.wells || []
+  if (!wells.length) return 100
+
+  const activeWells = wells.filter(w => (w.desiredRate || 0) > 0)
+  if (!activeWells.length) return 100
+
+  const effectiveGas = getEffectivePadCapacity(simState)
+  const equalShareRate = effectiveGas / activeWells.length
+  const totalPotential = activeWells.reduce((sum, w) => sum + (w.baseProduction || w.productionBoe || 0), 0)
+
+  const estimatedManualProduction = activeWells.reduce((sum, w) => {
+    const desiredRate = Math.max(w.desiredRate || 0, 1)
+    const shareFraction = Math.min(1, equalShareRate / desiredRate)
+    // When every well is starved equally, production degrades harder than a
+    // prioritized pad because no well gets fully protected.
+    const productionFraction = Math.pow(shareFraction, 1.15)
+    return sum + (w.baseProduction || w.productionBoe || 0) * productionFraction
+  }, 0)
+
+  return totalPotential > 0 ? clampPct((estimatedManualProduction / totalPotential) * 100) : 100
+}
+
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // 2. PRODUCTION RECOVERY COMPARISON
 // Shows the full manual workflow vs Pad Logic automatic response
@@ -172,8 +215,9 @@ export function BeforeAfterOverlay({ sim, customerData }) {
   const intervalRef = useRef(null)
 
   const wells = sim?.state?.wells || []
-  const accuracy = wells.reduce((s, w) => s + (w.isAtTarget ? 1 : 0), 0) / Math.max(wells.length, 1) * 100
-  const isDisturbance = accuracy < 85
+  const autoProdPct = getAutoProductionPct(wells)
+  const manualProdPct = getManualProductionPct(sim?.state)
+  const isDisturbance = autoProdPct < 95
 
   // Manual timeline (scaled for demo â€” real times shown in labels)
   const driveTime1 = (customerData?.dayResponseMin || 45) // min â€” first dispatch
@@ -219,7 +263,6 @@ export function BeforeAfterOverlay({ sim, customerData }) {
   if (!isDisturbance && manualState.elapsed === 0) return null
 
   const { elapsed, phase } = manualState
-  const manualProdPct = phase === 'restored' ? 95 : phase === 'readjusting_chokes' ? 60 : phase === 'mechanic_fixing' ? 25 : Math.max(10, 100 - elapsed * 3)
 
   const phaseLabels = {
     alarm: `SCADA alarm fired - dispatching operator (${driveTime1} min drive)`,
@@ -274,26 +317,26 @@ export function BeforeAfterOverlay({ sim, customerData }) {
         <div className="bg-[#081a08] rounded p-2 border border-[#22c55e]/20">
           <div className="text-[9px] text-[#22c55e] font-bold mb-1">WITH PAD LOGIC - Automatic</div>
           <div className="w-full bg-[#020] rounded h-3 overflow-hidden">
-            <div className="h-full bg-[#22c55e] transition-all duration-1000" style={{ width: `${accuracy}%` }} />
+            <div className="h-full bg-[#22c55e] transition-all duration-1000" style={{ width: `${autoProdPct}%` }} />
           </div>
-          <div className="text-[10px] text-[#22c55e] font-bold mt-1">{accuracy.toFixed(0)}% production</div>
+          <div className="text-[10px] text-[#22c55e] font-bold mt-1">{autoProdPct.toFixed(0)}% production</div>
           <div className="text-[8px] text-[#ccc] mt-1 leading-relaxed">
-            {accuracy >= 95
+            {autoProdPct >= 95
               ? 'Priority wells at full injection. Low-priority wells curtailed to protect top producers.'
-              : accuracy >= 70
+              : autoProdPct >= 70
               ? 'Rebalancing in progress - closing chokes on low-priority wells, protecting top producers.'
               : 'Disturbance detected - reallocating gas by well priority...'}
           </div>
           <div className="mt-1.5 space-y-0.5">
             <div className="text-[7px] text-[#22c55e] flex items-center gap-1"><span>OK</span><span>Detects shortfall (instant)</span></div>
-            <div className={`text-[7px] flex items-center gap-1 ${accuracy >= 50 ? 'text-[#22c55e]' : 'text-white'}`}>
-              <span>{accuracy >= 50 ? 'OK' : 'NOW'}</span><span>Rebalances chokes (30-60 sec)</span>
+            <div className={`text-[7px] flex items-center gap-1 ${autoProdPct >= 50 ? 'text-[#22c55e]' : 'text-white'}`}>
+              <span>{autoProdPct >= 50 ? 'OK' : 'NOW'}</span><span>Rebalances chokes (30-60 sec)</span>
             </div>
-            <div className={`text-[7px] flex items-center gap-1 ${accuracy >= 90 ? 'text-[#22c55e]' : 'text-[#444]'}`}>
-              <span>{accuracy >= 90 ? 'OK' : 'WAIT'}</span><span>Priority wells at target</span>
+            <div className={`text-[7px] flex items-center gap-1 ${autoProdPct >= 90 ? 'text-[#22c55e]' : 'text-[#444]'}`}>
+              <span>{autoProdPct >= 90 ? 'OK' : 'WAIT'}</span><span>Priority wells at target</span>
             </div>
-            <div className={`text-[7px] flex items-center gap-1 ${accuracy >= 95 ? 'text-[#22c55e]' : 'text-[#444]'}`}>
-              <span>{accuracy >= 95 ? 'OK' : 'WAIT'}</span><span>Stable - no operator needed</span>
+            <div className={`text-[7px] flex items-center gap-1 ${autoProdPct >= 95 ? 'text-[#22c55e]' : 'text-[#444]'}`}>
+              <span>{autoProdPct >= 95 ? 'OK' : 'WAIT'}</span><span>Stable - no operator needed</span>
             </div>
           </div>
         </div>

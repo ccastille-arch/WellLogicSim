@@ -35,13 +35,32 @@ export function parseKlondikeCSV(text) {
   return rows.map(r => {
     const n = (key) => { const v = parseFloat(r[key]); return isNaN(v) ? null : v }
     const s = (key) => r[key] || null
+    const inferRunStatus = (wellIdx, flowMmscfd) => {
+      const directStatus =
+        s(`WellHead #${wellIdx} Running Status`) ||
+        s(`Wellhead #${wellIdx} Running Status`)
+
+      if (directStatus) return directStatus
+
+      const runningPct = n(`Wellhead #${wellIdx} Flow Running Status Percent`)
+      if (runningPct != null) {
+        return runningPct > 0 ? 'Online' : 'Offline'
+      }
+
+      if (flowMmscfd != null) {
+        return flowMmscfd > 0.05 ? 'Online' : 'Offline'
+      }
+
+      return null
+    }
 
     const wells = [1, 2, 3, 4].map(i => {
       const desiredInjectionRateMmscfd = n(`Wellhead #${i} Calculated Desired Flow`)
+      const flowMmscfd = n(`Wellhead #${i} Injection Flow Rate From Customer PLC`)
 
       return ({
       // Flow in MMSCFD from customer PLC (multiply by 1000 = MCFD for simulator)
-      flowMmscfd: n(`Wellhead #${i} Injection Flow Rate From Customer PLC`),
+      flowMmscfd,
       // Preserve the raw PLC setpoint, but use the calculated desired flow as the
       // effective target because some PLC setpoint registers are unused/stale.
       rawSetpointMmscfd: n(`Wellhead #${i} Setpoint From Customer PLC`),
@@ -61,7 +80,7 @@ export function parseKlondikeCSV(text) {
       // Analog Output (choke valve position, %)
       analogOutput: n(`Well #${i} Analog Output ${i}`),
       // Run status
-      runStatus: s(`WellHead #${i} Running Status`),
+      runStatus: inferRunStatus(i, flowMmscfd),
       // Yesterday's total flow
       yesterdayTotal: n(`Wellhead #${i} Yesterdays Total Flow`),
     })})

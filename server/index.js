@@ -25,6 +25,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api', (req, res, next) => {
   if (req.path === '/health') return next()
+  if (req.path.startsWith('/mlink/')) return next()
   if (!dbReady) return res.status(503).json({ error: 'Database initializing - please retry in a moment' })
   next()
 })
@@ -68,10 +69,13 @@ app.get('/api/mlink/device', async (req, res) => {
   if (!deviceId) return res.status(400).json({ error: 'deviceId required' })
   try {
     const r = await fetch(`${MLINK_BASE}/LatestDeviceData?deviceId=${deviceId}&code=${key}`)
-    if (!r.ok) return res.status(r.status).json({ error: 'MLINK error' })
+    if (!r.ok) {
+      const body = await r.text().catch(() => '')
+      return res.status(r.status).json({ error: 'MLINK error', status: r.status, details: body.slice(0, 500) })
+    }
     res.json(await r.json())
-  } catch {
-    res.status(502).json({ error: 'MLINK unreachable' })
+  } catch (err) {
+    res.status(502).json({ error: 'MLINK unreachable', details: err.message })
   }
 })
 
@@ -82,10 +86,13 @@ app.get('/api/mlink/runreport', async (req, res) => {
   if (!deviceId) return res.status(400).json({ error: 'deviceId required' })
   try {
     const r = await fetch(`${MLINK_BASE}/RunReport?deviceId=${deviceId}&startTs=${startTs}&endTs=${endTs}&code=${key}`)
-    if (!r.ok) return res.status(r.status).json({ error: 'MLINK error' })
+    if (!r.ok) {
+      const body = await r.text().catch(() => '')
+      return res.status(r.status).json({ error: 'MLINK error', status: r.status, details: body.slice(0, 500) })
+    }
     res.json(await r.json())
-  } catch {
-    res.status(502).json({ error: 'MLINK unreachable' })
+  } catch (err) {
+    res.status(502).json({ error: 'MLINK unreachable', details: err.message })
   }
 })
 

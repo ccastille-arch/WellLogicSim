@@ -1,16 +1,17 @@
 ﻿import { useState, useEffect, useCallback } from 'react'
 import { useKlondikeData } from '../engine/klondikeData'
 import { useAuth } from './auth/AuthProvider'
+import {
+  getVisibleCompressorRegisters,
+  LIVE_DATA_DEVICES,
+  formatLiveRegisterValue,
+  getVisibleLiveRegisters,
+  loadAwiRegisterCatalog,
+  parseLiveDatapoints,
+} from '../engine/liveRegisters'
 
 // MLINK Live Dashboard - data fetched via server-side proxy (key never in browser)
 // ALL customer names, site names, and device IDs are stripped. Generic labels only.
-
-// Device IDs - not shown to user
-const DEVICES = {
-  panel: '2504-504495',
-  compA: '2504-505561',
-  compB: '2504-505472',
-}
 
 async function fetchDevice(deviceId) {
   try {
@@ -28,16 +29,6 @@ async function fetchRunReport(deviceId, startTs, endTs) {
   } catch { return null }
 }
 
-function parseDatapoints(data) {
-  if (!data?.datapoints) return {}
-  const result = {}
-  for (const dp of data.datapoints) {
-    const key = dp.alias || dp.desc
-    result[key] = { value: dp.value, units: dp.units, desc: dp.desc }
-  }
-  return result
-}
-
 function getTimestamp(data, idx = 0) {
   if (!data?.timestamps?.[idx]) return null
   return new Date(data.timestamps[idx] * 1000)
@@ -50,6 +41,13 @@ const LIVE_WELL_FLOW_KEYS = [
   ['Well 4 Injection Gas Flow Rate', 'Well #4 Flow Rate'],
 ]
 
+const LIVE_WELL_YESTERDAY_KEYS = [
+  ['Wellhead #1 Yesterdays Total Flow', 'Well 1 Yesterdays Total Flow'],
+  ['Wellhead #2 Yesterdays Total Flow', 'Well 2 Yesterdays Total Flow'],
+  ['Wellhead #3 Yesterdays Total Flow', 'Well 3 Yesterdays Total Flow'],
+  ['Wellhead #4 Yesterdays Total Flow', 'Well 4 Yesterdays Total Flow'],
+]
+
 function getFirstDatapoint(dataMap, keys) {
   for (const key of keys) {
     if (dataMap[key] != null) return dataMap[key]
@@ -58,26 +56,33 @@ function getFirstDatapoint(dataMap, keys) {
 }
 
 export default function MLinkDashboard({ onBack }) {
+  const { settings } = useAuth()
   const [panelData, setPanelData] = useState(null)
   const [compAData, setCompAData] = useState(null)
   const [compBData, setCompBData] = useState(null)
+  const [registerCatalog, setRegisterCatalog] = useState([])
   const [runReports, setRunReports] = useState({ compA: undefined, compB: undefined })
   const [runReportsLoading, setRunReportsLoading] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [liveError, setLiveError] = useState('')
   const [lastRefresh, setLastRefresh] = useState(null)
   const [tab, setTab] = useState('live') // live | history | klondike
   const klondike = useKlondikeData()
 
   const refresh = useCallback(async () => {
     setLoading(true)
+    setLiveError('')
     const [p, a, b] = await Promise.all([
-      fetchDevice(DEVICES.panel),
-      fetchDevice(DEVICES.compA),
-      fetchDevice(DEVICES.compB),
+      fetchDevice(LIVE_DATA_DEVICES.panel),
+      fetchDevice(LIVE_DATA_DEVICES.compA),
+      fetchDevice(LIVE_DATA_DEVICES.compB),
     ])
     setPanelData(p)
     setCompAData(a)
     setCompBData(b)
+    if (!p && !a && !b) {
+      setLiveError('No live MLINK data is coming back right now. Check the MLINK proxy route, Railway environment variables, and field comms.')
+    }
     setLastRefresh(new Date())
     setLoading(false)
   }, [])
@@ -91,14 +96,18 @@ export default function MLinkDashboard({ onBack }) {
     const startTs = endTs - 86399
 
     const [rA, rB] = await Promise.allSettled([
-      fetchRunReport(DEVICES.compA, startTs, endTs),
-      fetchRunReport(DEVICES.compB, startTs, endTs),
+      fetchRunReport(LIVE_DATA_DEVICES.compA, startTs, endTs),
+      fetchRunReport(LIVE_DATA_DEVICES.compB, startTs, endTs),
     ])
     setRunReports({
       compA: rA.status === 'fulfilled' ? rA.value : null,
       compB: rB.status === 'fulfilled' ? rB.value : null,
     })
     setRunReportsLoading(false)
+  }, [])
+
+  useEffect(() => {
+    loadAwiRegisterCatalog().then(setRegisterCatalog).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -115,11 +124,23 @@ export default function MLinkDashboard({ onBack }) {
     loadRunReports()
   }, [tab, loadRunReports, runReports.compA, runReports.compB])
 
-  const panel = parseDatapoints(panelData)
-  const compA = parseDatapoints(compAData)
-  const compB = parseDatapoints(compBData)
+  const panel = parseLiveDatapoints(panelData)
+  const compA = parseLiveDatapoints(compAData)
+  const compB = parseLiveDatapoints(compBData)
   const panelTime = getTimestamp(panelData)
   const compATime = getTimestamp(compAData)
+  const latestHistoryRow = klondike.data?.[klondike.data.length - 1]
+  const visibleRegisters = getVisibleLiveRegisters(panel, registerCatalog, settings?.liveDataRegisterVisibility || {})
+  const visibleCompressorARegisters = getVisibleCompressorRegisters(compA, settings?.liveDataCompressorVisibility || {})
+  const visibleCompressorBRegisters = getVisibleCompressorRegisters(compB, settings?.liveDataCompressorVisibility || {})
+  const padRegisters = visibleRegisters.filter(meta => meta.groupId === 'pad')
+  const additionalWellRegisters = LIVE_WELL_FLOW_KEYS.map((_, index) =>
+    visibleRegisters.filter(meta => (
+      meta.groupId === `well-${index + 1}`
+      && !meta.label.endsWith('Injection Gas Flow Rate')
+      && !meta.label.endsWith('Yesterdays Flow')
+    )),
+  )
 
   return (
     <div className="flex-1 flex flex-col bg-[#080810] overflow-hidden">
@@ -163,6 +184,12 @@ export default function MLinkDashboard({ onBack }) {
               <div className="text-center py-20 text-[#888]">Connecting to field unit...</div>
             ) : (
               <>
+                {liveError && (
+                  <div className="mb-4 rounded-lg border border-[#5a1d1d] bg-[#1f0c0c] px-4 py-3 text-[11px] text-[#fca5a5]">
+                    {liveError}
+                  </div>
+                )}
+
                 {/* Panel status */}
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-3 h-3 rounded-full bg-[#22c55e] shadow-lg shadow-[#22c55e]/50" />
@@ -181,18 +208,40 @@ export default function MLinkDashboard({ onBack }) {
                   <div className="grid grid-cols-4 gap-4">
                     {LIVE_WELL_FLOW_KEYS.map((keys, i) => {
                       const dp = getFirstDatapoint(panel, keys)
-                      const val = dp ? parseFloat(dp.value) : 0
+                      const val = dp ? parseFloat(dp.value) : null
+                      const yesterdayDp = getFirstDatapoint(panel, LIVE_WELL_YESTERDAY_KEYS[i])
+                      const yesterdayVal = yesterdayDp ? parseFloat(yesterdayDp.value) : latestHistoryRow?.wells?.[i]?.yesterdayTotal
                       const maxFlow = 1.2
+                      const widthPct = val != null && !Number.isNaN(val) ? Math.max(0, Math.min(100, (val / maxFlow) * 100)) : 0
                       return (
                         <div key={i} className="bg-[#0a0a14] rounded-lg border border-[#2a2a3a] p-4 text-center">
                           <div className="text-[10px] text-[#888] mb-1">Well {i + 1}</div>
                           <div className="text-2xl text-[#22c55e] font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>
-                            {val.toFixed(3)}
+                            {val != null && !Number.isNaN(val) ? val.toFixed(3) : '--'}
                           </div>
                           <div className="text-[9px] text-[#888]">MMSCFD</div>
                           <div className="w-full bg-[#1a1a2a] rounded h-2 mt-2 overflow-hidden">
-                            <div className="h-full bg-[#22c55e] rounded transition-all" style={{ width: `${(val / maxFlow) * 100}%` }} />
+                            <div className="h-full bg-[#22c55e] rounded transition-all" style={{ width: `${widthPct}%` }} />
                           </div>
+                          <div className="mt-3 pt-2 border-t border-[#1a1a2a]">
+                            <div className="text-[8px] text-[#666] uppercase tracking-wider">Yesterday Flow</div>
+                            <div className="text-[12px] text-white font-bold mt-0.5" style={{ fontFamily: "'Arial Black'" }}>
+                              {yesterdayVal != null && !Number.isNaN(yesterdayVal) ? yesterdayVal.toFixed(3) : '--'}
+                            </div>
+                            <div className="text-[8px] text-[#666]">MMSCFD</div>
+                          </div>
+                          {additionalWellRegisters[i].length > 0 && (
+                            <div className="mt-3 pt-2 border-t border-[#1a1a2a] space-y-1.5 text-left">
+                              {additionalWellRegisters[i].map(meta => (
+                                <LiveRegisterRow
+                                  key={meta.id}
+                                  label={meta.label}
+                                  value={formatLiveRegisterValue(meta, meta.datapoint)}
+                                  unit={meta.datapoint.units}
+                                />
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )
                     })}
@@ -209,10 +258,31 @@ export default function MLinkDashboard({ onBack }) {
                   </div>
                 </div>
 
+                {padRegisters.length > 0 && (
+                  <div className="bg-[#111118] rounded-xl border border-[#222] p-5 mb-4">
+                    <h2 className="text-sm text-white font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>
+                      Pad / Header Registers
+                    </h2>
+                    <div className="grid grid-cols-3 gap-3">
+                      {padRegisters.map(meta => (
+                        <div key={meta.id} className="bg-[#0a0a14] rounded-lg border border-[#2a2a3a] p-3">
+                          <div className="text-[9px] text-[#888] uppercase tracking-wider">{meta.label}</div>
+                          <div className="text-[16px] text-white font-bold mt-1" style={{ fontFamily: "'Arial Black'" }}>
+                            {formatLiveRegisterValue(meta, meta.datapoint)}
+                          </div>
+                          <div className="text-[8px] text-[#666] mt-0.5">
+                            {meta.datapoint.units || `Register ${meta.register}`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Compressors */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
-                  <CompressorCard label="Compressor A" data={compA} time={compATime} />
-                  <CompressorCard label="Compressor B" data={compB} time={getTimestamp(compBData)} />
+                  <CompressorCard label="Compressor A" data={compA} time={compATime} registers={visibleCompressorARegisters} />
+                  <CompressorCard label="Compressor B" data={compB} time={getTimestamp(compBData)} registers={visibleCompressorBRegisters} />
                 </div>
               </>
             )}
@@ -241,16 +311,10 @@ export default function MLinkDashboard({ onBack }) {
   )
 }
 
-function CompressorCard({ label, data, time }) {
-  const rpm = data['Driver Speed']
-  const suction = data['Suction Pressure']
-  const discharge = data['Discharge Pressure']
-  const dischTemp = data['Discharge Temperature']
-  const engOil = data['Engine Oil Pressure']
-  const compOil = data['Compressor Oil Pressure']
-  const voltage = data['System Voltage']
-
-  const isRunning = rpm && parseFloat(rpm.value) > 100
+function CompressorCard({ label, data, time, registers }) {
+  const rpm = data['Compressor Speed'] || data['Driver Speed']
+  const shutdown = data['Skid - Shutdown']
+  const isRunning = rpm && parseFloat(rpm.value) > 100 && !(shutdown && String(shutdown.value).toLowerCase().includes('shutdown'))
 
   return (
     <div className="bg-[#111118] rounded-xl border border-[#222] p-5">
@@ -262,17 +326,59 @@ function CompressorCard({ label, data, time }) {
         </span>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <DataPoint label="Engine Speed" value={rpm?.value} unit="RPM" />
-        <DataPoint label="Suction Pressure" value={suction?.value} unit="PSI" color={suction && parseFloat(suction.value) < 30 ? '#eab308' : '#22c55e'} />
-        <DataPoint label="Discharge Pressure" value={discharge?.value} unit="PSI" color={discharge && parseFloat(discharge.value) > 900 ? '#E8200C' : '#22c55e'} />
-        <DataPoint label="Discharge Temp" value={dischTemp?.value} unit="deg F" color={dischTemp && parseFloat(dischTemp.value) > 275 ? '#E8200C' : '#22c55e'} />
-        <DataPoint label="Engine Oil" value={engOil?.value} unit="PSI" />
-        <DataPoint label="Compressor Oil" value={compOil?.value} unit="PSI" />
-        {voltage && <DataPoint label="System Voltage" value={voltage.value} unit="VDC" />}
+        {registers.map(meta => (
+          <DataPoint
+            key={meta.id}
+            label={meta.label}
+            value={formatLiveRegisterValue(meta, meta.datapoint)}
+            unit={meta.datapoint.units || getCompressorUnit(meta.label)}
+            color={getCompressorColor(meta.label, meta.datapoint.value)}
+          />
+        ))}
       </div>
       {time && <div className="text-[8px] text-[#444] mt-2 text-right">Updated: {time.toLocaleString()}</div>}
     </div>
   )
+}
+
+function LiveRegisterRow({ label, value, unit }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="text-[8px] text-[#777] leading-tight">{label}</div>
+      <div className="text-right">
+        <div className="text-[10px] text-white font-bold">{value}</div>
+        {unit && <div className="text-[8px] text-[#666]">{unit}</div>}
+      </div>
+    </div>
+  )
+}
+
+function getCompressorUnit(label) {
+  if (/temperature/i.test(label)) return 'deg F'
+  if (/speed/i.test(label)) return 'RPM'
+  if (/pressure|prs|dp/i.test(label)) return 'PSI'
+  if (/flow/i.test(label)) return 'MMSCFD'
+  return ''
+}
+
+function getCompressorColor(label, value) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return '#fff'
+
+  if (/stage 3 discharge prs/i.test(label)) {
+    return numeric > 900 ? '#E8200C' : '#22c55e'
+  }
+  if (/stage 1 suction prs/i.test(label)) {
+    return numeric < 30 ? '#eab308' : '#22c55e'
+  }
+  if (/3rd stage discharge temperature/i.test(label)) {
+    return numeric > 275 ? '#E8200C' : '#22c55e'
+  }
+  if (/skid - shutdown/i.test(label)) {
+    return numeric > 0 ? '#E8200C' : '#22c55e'
+  }
+
+  return '#fff'
 }
 
 function DataPoint({ label, value, unit, color }) {

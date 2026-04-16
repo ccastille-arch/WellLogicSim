@@ -44,18 +44,18 @@ const DEFAULT_STARTUP_ASSIST_DURATION = 18
 
 // Default tuning parameters — can be overridden at runtime via admin panel
 export const DEFAULT_TUNING = {
-  chokeMoveRate: 0.04,        // Choke valve travel speed per tick
-  flowResponseRate: 0.06,     // Flow establishment through piping per tick
-  productionLag: 0.03,        // Well production inertia per tick
-  compressorRamp: 0.08,       // Compressor RPM/load change rate per tick
-  pressureResponse: 0.10,     // Pressure change rate per tick
-  rebalanceRate: 0.02,        // WellLogic allocation correction speed per tick
-  disturbanceThreshold: 20,   // MCFD capacity change to trigger disturbance
-  salesValveOpenRate: 0.15,   // Sales valve opening speed per tick
-  salesValveCloseRate: 0.05,  // Sales valve closing speed per tick
-  compressorSpindownRate: 0.06, // Compressor spindown speed per tick
-  tickInterval: 500,          // Milliseconds per simulation tick
-  unloadChance: 0.015,        // Random unload event probability per tick
+  chokeMoveRate: 0.255,         // 50% between 0.01 and 0.50
+  flowResponseRate: 0.255,      // 50% between 0.01 and 0.50
+  productionLag: 0.1525,        // 50% between 0.005 and 0.30
+  compressorRamp: 0.26,         // 50% between 0.02 and 0.50
+  pressureResponse: 0.26,       // 50% between 0.02 and 0.50
+  rebalanceRate: 0.1525,        // 50% between 0.005 and 0.30
+  disturbanceThreshold: 52.5,   // 50% between 5 and 100
+  salesValveOpenRate: 0.26,     // 50% between 0.02 and 0.50
+  salesValveCloseRate: 0.155,   // 50% between 0.01 and 0.30
+  compressorSpindownRate: 0.16, // 50% between 0.02 and 0.30
+  tickInterval: 1050,           // 50% between 100 and 2000 ms
+  unloadChance: 0.05,           // 50% between 0 and 0.10
 }
 
 export function createInitialState(config) {

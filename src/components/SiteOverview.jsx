@@ -15,7 +15,7 @@ import { useMemo } from 'react'
 //
 // RIGHT SIDE:   Gas from scrubber → Sales Line + Recirc/Buyback feeding back to suction header
 
-export default function SiteOverview({ state, animateFlow = true }) {
+export default function SiteOverview({ state, animateFlow = true, verticalOffset = 0 }) {
   const { compressors, wells, suctionHeaderPressure, scrubberPressure, salesValvePosition, wellUnloadActive } = state
   const nc = compressors.length
   const nw = wells.length
@@ -34,6 +34,7 @@ export default function SiteOverview({ state, animateFlow = true }) {
           </pattern>
         </defs>
         <rect width={L.W} height={L.H} fill="url(#ov-grid)" />
+        <g transform={`translate(0 ${verticalOffset})`}>
 
         {/* ═══════════ RIGHT SIDE: SCRUBBER + SALES + RECIRC ═══════════ */}
 
@@ -169,6 +170,8 @@ export default function SiteOverview({ state, animateFlow = true }) {
         <text x={15} y={18} fill="#333" fontSize={10} fontWeight="bold" letterSpacing="3">
           SITE OVERVIEW — PAD OPTIMIZATION
         </text>
+
+        </g>
 
         {/* Legend */}
         <g transform={`translate(15, ${L.H - 58})`}>
