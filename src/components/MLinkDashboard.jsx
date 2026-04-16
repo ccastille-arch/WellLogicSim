@@ -460,7 +460,7 @@ function LivePerformanceHero({ metrics, wells, timestamp }) {
             {timestamp && <span className="text-[10px] text-[#6b7280]">Snapshot {timestamp.toLocaleString()}</span>}
           </div>
           <div className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#ff6b57]">
-            Does Your SCADA Do This?
+            Does your SCADA do this?
           </div>
           <h2 className="text-[30px] font-black leading-none text-white" style={{ fontFamily: "'Arial Black'" }}>
             {headline}
