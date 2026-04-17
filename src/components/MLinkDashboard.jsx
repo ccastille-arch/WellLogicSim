@@ -51,18 +51,48 @@ function getTimestamp(data, idx = 0) {
   return new Date(data.timestamps[idx] * 1000)
 }
 
+// Per-well injection-flow label aliases. Order: most-specific canonical
+// register name first (matches the AWI catalog), then the shorter
+// variants Murphy occasionally publishes. Covers the handful of
+// label-casing and spelling differences we've seen across Centurion /
+// Ariel catalogs without relying on findRegisterDatapoint's fuzzy
+// expansion (which getFirstDatapoint doesn't call).
 const LIVE_WELL_FLOW_KEYS = [
-  ['Well 1 Injection Gas Flow Rate', 'Well #1 Flow Rate'],
-  ['Well 2 Injection Gas Flow Rate', 'Well #2 Flow Rate'],
-  ['Well 3 Injection Gas Flow Rate', 'Well #3 Flow Rate'],
-  ['Well 4 Injection Gas Flow Rate', 'Well #4 Flow Rate'],
+  [
+    'Wellhead #1 Injection Flow Rate From Customer PLC',
+    'Well 1 Injection Gas Flow Rate',
+    'Well #1 Flow Rate',
+    'Wellhead #1 Injection Gas Flow Rate',
+    'Well 1 Flow Rate',
+  ],
+  [
+    'Wellhead #2 Injection Flow Rate From Customer PLC',
+    'Well 2 Injection Gas Flow Rate',
+    'Well #2 Flow Rate',
+    'Wellhead #2 Injection Gas Flow Rate',
+    'Well 2 Flow Rate',
+  ],
+  [
+    'Wellhead #3 Injection Flow Rate From Customer PLC',
+    'Well 3 Injection Gas Flow Rate',
+    'Well #3 Flow Rate',
+    'Wellhead #3 Injection Gas Flow Rate',
+    'Well 3 Flow Rate',
+  ],
+  [
+    'Wellhead #4 Injection Flow Rate From Customer PLC',
+    'Well 4 Injection Gas Flow Rate',
+    'Well #4 Flow Rate',
+    'Wellhead #4 Injection Gas Flow Rate',
+    'Well 4 Flow Rate',
+  ],
 ]
 
 const LIVE_WELL_YESTERDAY_KEYS = [
-  ['Wellhead #1 Yesterdays Total Flow', 'Well 1 Yesterdays Total Flow'],
-  ['Wellhead #2 Yesterdays Total Flow', 'Well 2 Yesterdays Total Flow'],
-  ['Wellhead #3 Yesterdays Total Flow', 'Well 3 Yesterdays Total Flow'],
-  ['Wellhead #4 Yesterdays Total Flow', 'Well 4 Yesterdays Total Flow'],
+  ['Wellhead #1 Yesterdays Total Flow', "Wellhead #1 Yesterday's Total Flow", 'Well 1 Yesterdays Total Flow'],
+  ['Wellhead #2 Yesterdays Total Flow', "Wellhead #2 Yesterday's Total Flow", 'Well 2 Yesterdays Total Flow'],
+  ['Wellhead #3 Yesterdays Total Flow', "Wellhead #3 Yesterday's Total Flow", 'Well 3 Yesterdays Total Flow'],
+  ['Wellhead #4 Yesterdays Total Flow', "Wellhead #4 Yesterday's Total Flow", 'Well 4 Yesterdays Total Flow'],
 ]
 
 const COMPRESSOR_DESIRED_FLOW_KEYS = [
@@ -513,16 +543,19 @@ export default function MLinkDashboard({ onBack }) {
                   <div className="grid grid-cols-4 gap-4">
                     {LIVE_WELL_FLOW_KEYS.map((keys, i) => {
                       const dp = getFirstDatapoint(panel, keys)
-                      const val = dp ? parseFloat(dp.value) : null
+                      // parseLiveNumeric is NaN-safe; rejects "nan" /
+                      // "" / "null" strings that parseFloat would turn
+                      // into NaN and pollute downstream math.
+                      const val = parseLiveNumeric(dp?.value)
                       const yesterdayDp = getFirstDatapoint(panel, LIVE_WELL_YESTERDAY_KEYS[i])
-                      const yesterdayVal = yesterdayDp ? parseFloat(yesterdayDp.value) : latestHistoryRow?.wells?.[i]?.yesterdayTotal
+                      const yesterdayVal = parseLiveNumeric(yesterdayDp?.value) ?? latestHistoryRow?.wells?.[i]?.yesterdayTotal
                       const maxFlow = 1.2
-                      const widthPct = val != null && !Number.isNaN(val) ? Math.max(0, Math.min(100, (val / maxFlow) * 100)) : 0
+                      const widthPct = val != null ? Math.max(0, Math.min(100, (val / maxFlow) * 100)) : 0
                       return (
                         <div key={i} className="bg-[#03172A] rounded-lg border border-[#2a2a3a] p-4 text-center">
                           <div className="text-[10px] text-[#888] mb-1">Well {i + 1}</div>
                           <div className="text-2xl text-[#22c55e] font-bold mb-2" style={{ fontFamily: "'Montserrat'" }}>
-                            {val != null && !Number.isNaN(val) ? val.toFixed(3) : '--'}
+                            {val != null ? val.toFixed(3) : '--'}
                           </div>
                           <div className="text-[9px] text-[#888]">MMSCFD</div>
                           <div className="w-full bg-[#293C5B] rounded h-2 mt-2 overflow-hidden">
@@ -531,7 +564,7 @@ export default function MLinkDashboard({ onBack }) {
                           <div className="mt-3 pt-2 border-t border-[#293C5B]">
                             <div className="text-[8px] text-[#666] uppercase tracking-wider">Yesterday Flow</div>
                             <div className="text-[12px] text-white font-bold mt-0.5" style={{ fontFamily: "'Montserrat'" }}>
-                              {yesterdayVal != null && !Number.isNaN(yesterdayVal) ? yesterdayVal.toFixed(3) : '--'}
+                              {yesterdayVal != null && Number.isFinite(yesterdayVal) ? yesterdayVal.toFixed(3) : '--'}
                             </div>
                             <div className="text-[8px] text-[#666]">MMSCFD</div>
                           </div>
@@ -556,8 +589,11 @@ export default function MLinkDashboard({ onBack }) {
                     <span className="text-white font-bold text-[14px]" style={{ fontFamily: "'Montserrat'" }}>
                       {LIVE_WELL_FLOW_KEYS
                         .reduce((sum, keys) => {
-                          const dp = getFirstDatapoint(panel, keys)
-                          return sum + (dp ? parseFloat(dp.value) : 0)
+                          // NaN-safe sum — parseLiveNumeric returns
+                          // null for unparseable strings, which would
+                          // otherwise cascade into a NaN total.
+                          const n = parseLiveNumeric(getFirstDatapoint(panel, keys)?.value)
+                          return sum + (n ?? 0)
                         }, 0).toFixed(3)} MMSCFD
                     </span>
                   </div>
@@ -621,9 +657,46 @@ export default function MLinkDashboard({ onBack }) {
 }
 
 function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers }) {
-  const rpm = data['Compressor Speed'] || data['Driver Speed']
-  const shutdown = data['Skid - Shutdown']
-  const isRunning = rpm && parseFloat(rpm.value) > 100 && !(shutdown && String(shutdown.value).toLowerCase().includes('shutdown'))
+  // RPM detection — try the known labels first, then fuzzy-scan any
+  // key containing "speed" / "rpm" that has a numeric value. Needed
+  // because Centurion / Ariel / Cat catalogs publish speed under
+  // different aliases (Compressor Speed, Driver Speed, Engine Speed,
+  // Rotor Speed RPM, …) and we shouldn't silently read STOPPED
+  // because the unit happens to use a different label.
+  const rpm =
+    data['Compressor Speed']
+    || data['Driver Speed']
+    || data['Engine Speed']
+    || data['Rotor Speed']
+    || (() => {
+      for (const [key, dp] of Object.entries(data || {})) {
+        if (!/speed|rpm/i.test(key)) continue
+        const n = parseLiveNumeric(dp?.value)
+        if (n != null && n > 0) return dp
+      }
+      return null
+    })()
+
+  // Same for shutdown — exact match first, then any key containing
+  // "shutdown" / "ESD" / "alarm" with a non-zero / "true" / "shutdown"
+  // value.
+  const shutdown =
+    data['Skid - Shutdown']
+    || data['Panel ESD']
+    || (() => {
+      for (const [key, dp] of Object.entries(data || {})) {
+        if (!/shutdown|\besd\b|alarm/i.test(key)) continue
+        if (dp?.value != null) return dp
+      }
+      return null
+    })()
+
+  const rpmValue = parseLiveNumeric(rpm?.value)
+  const shutdownStr = String(shutdown?.value ?? '').toLowerCase()
+  const shutdownActive = shutdownStr.includes('shutdown')
+    || shutdownStr === '1'
+    || shutdownStr === 'true'
+  const isRunning = rpmValue != null && rpmValue > 100 && !shutdownActive
   // Exclude both the historical 'Flow Rate PID PV' label and the real
   // 'Flow Rate' register (register 400656 on CAN CCP) from the general
   // register list — whichever one the live feed actually provides is
