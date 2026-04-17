@@ -170,12 +170,8 @@ export default function MLinkDashboard({ onBack }) {
       && !meta.label.endsWith('Yesterdays Flow')
     )),
   )
-  const compressorDesiredDatapoints = COMPRESSOR_DESIRED_FLOW_KEYS.map((keys, index) =>
-    resolvePreferredDatapoint(panel, [
-      ...keys,
-      `Compressor ${index + 1} Desire Flow SP For PID Murphy`,
-      `Compressor ${index + 1} Desired Flow SP For PID Murphy`,
-    ]),
+  const compressorDesiredDatapoints = [compA, compB].map((compressorData, index) =>
+    findCompressorDesiredFlow(compressorData, panel, index),
   )
   const compressorActualFlowDatapoints = [compA, compB].map((compressorData) =>
     findCompressorActualFlow(compressorData),
@@ -429,8 +425,15 @@ function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers 
   // register list — whichever one the live feed actually provides is
   // already shown as the dedicated Actual Flow display above.
   const visibleRegisters = registers.filter(meta => meta.label !== 'Flow Rate PID PV' && meta.label !== 'Flow Rate')
-  const desiredFlowValue = formatFlowValue(desiredFlow?.value)
-  const actualFlowValue = formatFlowValue(actualFlow?.value)
+
+  // Flow parsing goes through parseLiveNumeric so we treat the same
+  // strings ("nan", "", "null") as missing that isValidLiveRegisterValue
+  // rejects. Never render a "blank" box — always show either a real
+  // number or the explicit "No Data" sentinel plus a source hint so
+  // presenters know what label is driving (or failing to drive) the
+  // reading.
+  const desiredNumeric = parseLiveNumeric(desiredFlow?.value)
+  const actualNumeric = parseLiveNumeric(actualFlow?.value)
 
   return (
     <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-5">
@@ -442,19 +445,21 @@ function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers 
         </span>
       </div>
       <div className="grid grid-cols-2 gap-2 mb-3">
-        <DataPoint
+        <FlowDataPoint
           label="Desired Flow"
-          value={desiredFlowValue}
-          unit={desiredFlow?.units || 'MMSCFD'}
+          numeric={desiredNumeric}
+          units={desiredFlow?.units || 'MMSCFD'}
           color="#4fc3f7"
-          compact
+          source={desiredFlow?.keyUsed}
+          missingReason="No desired-flow register found in panel or compressor payload."
         />
-        <DataPoint
+        <FlowDataPoint
           label="Actual Flow"
-          value={actualFlowValue}
-          unit={actualFlow?.units || 'MMSCFD'}
+          numeric={actualNumeric}
+          units={actualFlow?.units || 'MMSCFD'}
           color={getCompressorColor('Flow Rate PID PV', actualFlow?.value)}
-          compact
+          source={actualFlow?.keyUsed}
+          missingReason="No flow-rate register found in compressor payload."
         />
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -651,6 +656,61 @@ function DataPoint({ label, value, unit, color, compact = false }) {
   )
 }
 
+/**
+ * FlowDataPoint — dedicated card for Desired / Actual compressor flow.
+ *
+ * Ensures we never render a "blank box": when the numeric read
+ * succeeds we show the formatted value + units; when it fails we show
+ * "No Data" + a short reason line + the source label (if any) that
+ * would have been used. The presenter sees exactly why a number is
+ * missing rather than staring at a mysterious dash, which is what the
+ * prior rendering did.
+ */
+function FlowDataPoint({ label, numeric, units, color, source, missingReason }) {
+  const hasData = numeric != null && Number.isFinite(numeric)
+  return (
+    <div className="bg-[#03172A] rounded border border-[#2a2a3a] p-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[8px] text-[#888] uppercase tracking-wider">{label}</span>
+        {hasData && source && (
+          <span
+            className="text-[7px] text-[#556579] truncate ml-2"
+            title={`Source: ${source}`}
+            style={{ maxWidth: '60%' }}
+          >
+            src: {source}
+          </span>
+        )}
+      </div>
+      {hasData ? (
+        <div className="flex items-baseline gap-1 mt-0.5">
+          <span
+            className="text-[16px] font-bold"
+            style={{ color: color || '#fff', fontFamily: "'Montserrat'" }}
+          >
+            {numeric.toFixed(3)}
+          </span>
+          <span className="text-[8px] text-[#666]">{units}</span>
+        </div>
+      ) : (
+        <div className="mt-1">
+          <div
+            className="text-[11px] font-bold"
+            style={{ color: '#FF8E94', fontFamily: "'Montserrat'" }}
+          >
+            No Data
+          </div>
+          {missingReason && (
+            <div className="text-[8px] text-[#6a7a8c] leading-tight mt-0.5">
+              {missingReason}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function parseLiveNumeric(value) {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric : null
@@ -708,6 +768,10 @@ function resolvePreferredDatapoint(dataMap, labels) {
 function findCompressorActualFlow(compressorData) {
   if (!compressorData) return null
 
+  // Explicit labels we've confirmed in the field. 'Flow Rate' first is
+  // the authoritative name on the Centurion C5 via CAN CCP at register
+  // 400656 (per the 04/16 field note). Earlier *_PID_PV variants are
+  // historical aliases kept as fallbacks for older device catalogs.
   const explicit = resolvePreferredDatapoint(compressorData, [
     'Flow Rate',
     'Flow Rate PID PV',
@@ -720,7 +784,11 @@ function findCompressorActualFlow(compressorData) {
     'Gas Flow Rate',
     'Flow',
   ])
-  if (explicit) return explicit
+  if (explicit) {
+    // Tag the source so the UI can show "src: <label>" for auditability
+    // without a guessing game when a different register won the match.
+    return { ...explicit, keyUsed: explicit.keyUsed || 'Flow Rate' }
+  }
 
   // Fuzzy scan — anything containing "flow" + "rate" (any order, any
   // separators) with a usable numeric value. Case-insensitive. This is
@@ -746,6 +814,95 @@ function findCompressorActualFlow(compressorData) {
     }
   }
   if (bestKey) return { ...compressorData[bestKey], keyUsed: bestKey }
+
+  return null
+}
+
+/**
+ * Compressor DESIRED (setpoint) flow resolver — mirrors the
+ * actual-flow function, but searches the panel device first (where the
+ * Murphy PID setpoints have historically lived) and falls back to the
+ * compressor device (where newer Centurion / Ariel units expose their
+ * own flow SP). Three tiers:
+ *
+ *   1. Panel explicit labels — Compressor #N Desire/Desired Flow SP,
+ *      legacy `For PID Murphy` variants, bare "Desired Flow" labels.
+ *   2. Compressor-device explicit labels — "Flow Rate SP", "Flow
+ *      Setpoint", "Desired Flow", "Capacity SP", etc.
+ *   3. Fuzzy regex scan across BOTH payloads for any numeric datapoint
+ *      whose key matches /flow.*sp|flow.*setpoint|desired.*flow|
+ *      setpoint.*flow|target.*flow/. Keeps us working across device
+ *      catalogs we haven't seen yet.
+ *
+ * Returns null only when none of the three tiers find a numeric hit —
+ * the UI then renders "No Data" rather than a blank box and the Flow
+ * Match helper lists the available flow/rate/sp keys so we can wire
+ * the right one next time without another round trip.
+ */
+function findCompressorDesiredFlow(compressorData, panelData, compressorIndex) {
+  const compN = compressorIndex + 1
+
+  // Tier 1: panel device — authoritative for Murphy-era PID setpoints.
+  if (panelData) {
+    const panelExplicit = resolvePreferredDatapoint(panelData, [
+      `Compressor #${compN} Desire Flow SP For PID Murphy`,
+      `Compressor #${compN} Desired Flow SP For PID Murphy`,
+      `Compressor ${compN} Desire Flow SP For PID Murphy`,
+      `Compressor ${compN} Desired Flow SP For PID Murphy`,
+      `Compressor #${compN} Flow SP`,
+      `Compressor ${compN} Flow SP`,
+      `Compressor #${compN} Desired Flow`,
+      `Compressor ${compN} Desired Flow`,
+      `Compressor #${compN} Flow Setpoint`,
+      `Comp${compN} Flow SP`,
+      `Comp ${compN} Flow SP`,
+    ])
+    if (panelExplicit) return panelExplicit
+  }
+
+  // Tier 2: compressor device — SP lives on the unit itself.
+  if (compressorData) {
+    const compExplicit = resolvePreferredDatapoint(compressorData, [
+      'Flow Rate SP',
+      'Flow Rate Setpoint',
+      'Flow Rate - SP',
+      'Flow Setpoint',
+      'Flow SP',
+      'Desired Flow',
+      'Desired Flow Rate',
+      'Desired Gas Flow',
+      'Target Flow',
+      'Target Flow Rate',
+      'Capacity SP',
+      'Capacity Setpoint',
+      'Gas Flow SP',
+    ])
+    if (compExplicit) return compExplicit
+  }
+
+  // Tier 3: fuzzy regex over BOTH payloads. Order: panel first so a
+  // panel-side setpoint wins over a device-side secondary label.
+  const isDesiredFlowLabel = (key) => (
+    /flow\s*rate\s*sp\b/i.test(key)
+    || /flow\s*rate\s*setpoint/i.test(key)
+    || /flow\s*sp\b/i.test(key)
+    || /flow\s*setpoint/i.test(key)
+    || /desired\s*flow/i.test(key)
+    || /setpoint.*flow/i.test(key)
+    || /target\s*flow/i.test(key)
+    || /flow.*desired/i.test(key)
+  )
+  for (const data of [panelData, compressorData]) {
+    if (!data) continue
+    for (const [key, dp] of Object.entries(data)) {
+      if (!isDesiredFlowLabel(key)) continue
+      if (dp?.value == null) continue
+      const n = parseLiveNumeric(dp.value)
+      if (n != null && Number.isFinite(n) && n >= 0) {
+        return { ...dp, keyUsed: key }
+      }
+    }
+  }
 
   return null
 }
