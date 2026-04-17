@@ -350,6 +350,13 @@ function buildCandidateLabels(label) {
   }
 
   if (label === 'Flow Rate PID PV') {
+    // The CAN CCP live payload from Centurion C5 compressors names
+    // this register plain 'Flow Rate' (register 400656). Keep it as a
+    // first-class alias so any consumer that queries the canonical
+    // 'Flow Rate PID PV' still resolves when the live feed only has
+    // 'Flow Rate'. Without this, the Compressor Flow Match KPI and any
+    // downstream read of compressor actual flow fall through to null.
+    candidates.add('Flow Rate')
     candidates.add('Flow Rate PV')
     candidates.add('Flow PID PV')
     candidates.add('Compressor Flow Rate PID PV')

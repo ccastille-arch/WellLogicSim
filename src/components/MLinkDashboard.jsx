@@ -179,6 +179,13 @@ export default function MLinkDashboard({ onBack }) {
   )
   const compressorActualFlowDatapoints = [compA, compB].map((compressorData) =>
     resolvePreferredDatapoint(compressorData, [
+      // The Centurion C5 over CAN CCP publishes the actual compressor
+      // flow as plain 'Flow Rate' (register 400656). That's the real
+      // field name — the *_PID_PV variants are historical aliases that
+      // don't match the live MLink payload, so 'Flow Rate' must come
+      // first or the Compressor Flow Match card (and CompressorCard
+      // actual-flow display) will go blank.
+      'Flow Rate',
       'Flow Rate PID PV',
       'Flow Rate PV',
       'Flow PID PV',
@@ -404,9 +411,6 @@ export default function MLinkDashboard({ onBack }) {
               <RunReportCard label="Compressor B" report={runReports.compB} loading={runReportsLoading} />
             </div>
             <WellAchievementSection klondike={klondike} />
-            <p className="text-[9px] text-[#555] mt-4 text-center">
-              Compressor run reports cover yesterday's 24-hour window. Well achievement uses 30-day field data.
-            </p>
           </div>
         ) : (
           /* 30-Day Klondike Field Data Tab */
@@ -421,7 +425,11 @@ function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers 
   const rpm = data['Compressor Speed'] || data['Driver Speed']
   const shutdown = data['Skid - Shutdown']
   const isRunning = rpm && parseFloat(rpm.value) > 100 && !(shutdown && String(shutdown.value).toLowerCase().includes('shutdown'))
-  const visibleRegisters = registers.filter(meta => meta.label !== 'Flow Rate PID PV')
+  // Exclude both the historical 'Flow Rate PID PV' label and the real
+  // 'Flow Rate' register (register 400656 on CAN CCP) from the general
+  // register list — whichever one the live feed actually provides is
+  // already shown as the dedicated Actual Flow display above.
+  const visibleRegisters = registers.filter(meta => meta.label !== 'Flow Rate PID PV' && meta.label !== 'Flow Rate')
   const desiredFlowValue = formatFlowValue(desiredFlow?.value)
   const actualFlowValue = formatFlowValue(actualFlow?.value)
 
