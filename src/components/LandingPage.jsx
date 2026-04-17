@@ -105,6 +105,7 @@ export default function LandingPage({ onNavigate }) {
         <button
           onClick={() => onNavigate('livedata')}
           className="w-full mb-5 sm:mb-7 transition-all group text-left relative"
+          data-wl-live-strobe="true"
           style={{
             padding: 0,
             border: '2px solid #D32028',
@@ -112,15 +113,31 @@ export default function LandingPage({ onNavigate }) {
             overflow: 'hidden',
             background: 'linear-gradient(135deg, #0F3C64 0%, #05233E 60%, #03172A 100%)',
             cursor: 'pointer',
-            animation: 'wlLiveGlow 2.2s ease-in-out infinite',
+            // Double-flash strobe — two quick red pops at the start of
+            // each cycle followed by ~1.4 s of quiet. Reads at a
+            // glance as "attention" without the anxious feel of a
+            // continuous pulse.
+            animation: 'wlLiveStrobe 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
           }}
           onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
         >
           <style>{`
-            @keyframes wlLiveGlow {
-              0%, 100% { box-shadow: 0 0 0 0 rgba(211, 32, 40, 0.55); }
-              50%      { box-shadow: 0 0 44px 4px rgba(211, 32, 40, 0.55); }
+            @keyframes wlLiveStrobe {
+              0%, 100%  { box-shadow: 0 0 0 0 rgba(211, 32, 40, 0.30); }
+              8%        { box-shadow: 0 0 52px 8px rgba(211, 32, 40, 0.95); }
+              16%       { box-shadow: 0 0 6px 0 rgba(211, 32, 40, 0.25); }
+              26%       { box-shadow: 0 0 52px 8px rgba(211, 32, 40, 0.95); }
+              34%       { box-shadow: 0 0 0 0 rgba(211, 32, 40, 0.20); }
+            }
+            /* Respect vestibular-sensitive users: drop to a gentle
+               steady glow instead of the strobe when they've enabled
+               reduced motion at the OS/browser level. */
+            @media (prefers-reduced-motion: reduce) {
+              [data-wl-live-strobe="true"] {
+                animation: none !important;
+                box-shadow: 0 0 28px 2px rgba(211, 32, 40, 0.45) !important;
+              }
             }
           `}</style>
           {/* Telemetry-style dot grid on the right for texture */}
