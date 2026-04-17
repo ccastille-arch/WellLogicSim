@@ -91,28 +91,40 @@ export default function MLinkDashboard({ onBack }) {
   const [tab, setTab] = useState('live') // live | history | klondike
   const klondike = useKlondikeData()
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
-    setLiveError('')
-    const [panelResult, compAResult, compBResult] = await Promise.all([
-      fetchDevice(LIVE_DATA_DEVICES.panel),
-      fetchDevice(LIVE_DATA_DEVICES.compA),
-      fetchDevice(LIVE_DATA_DEVICES.compB),
-    ])
-    setPanelData(panelResult.data)
-    setCompAData(compAResult.data)
-    setCompBData(compBResult.data)
+  // Guard against overlapping fetches when the interval fires faster
+  // than the network can return. With 2-second polling on a slow
+  // connection we can't let requests pile up — keep the newest one
+  // in-flight and skip the tick until it completes.
+  const inFlightRef = useRef(false)
 
-    const errors = [panelResult.error, compAResult.error, compBResult.error].filter(Boolean)
-    if (!panelResult.data && !compAResult.data && !compBResult.data) {
-      setLiveError(
-        errors.length > 0
-          ? `No live MLINK data is coming back right now. ${errors.join(' | ')}`
-          : 'No live MLINK data is coming back right now. Check the MLINK proxy route, Railway environment variables, and field comms.',
-      )
+  const refresh = useCallback(async ({ silent = false } = {}) => {
+    if (inFlightRef.current) return
+    inFlightRef.current = true
+    if (!silent) setLoading(true)
+    setLiveError('')
+    try {
+      const [panelResult, compAResult, compBResult] = await Promise.all([
+        fetchDevice(LIVE_DATA_DEVICES.panel),
+        fetchDevice(LIVE_DATA_DEVICES.compA),
+        fetchDevice(LIVE_DATA_DEVICES.compB),
+      ])
+      setPanelData(panelResult.data)
+      setCompAData(compAResult.data)
+      setCompBData(compBResult.data)
+
+      const errors = [panelResult.error, compAResult.error, compBResult.error].filter(Boolean)
+      if (!panelResult.data && !compAResult.data && !compBResult.data) {
+        setLiveError(
+          errors.length > 0
+            ? `No live MLINK data is coming back right now. ${errors.join(' | ')}`
+            : 'No live MLINK data is coming back right now. Check the MLINK proxy route, Railway environment variables, and field comms.',
+        )
+      }
+      setLastRefresh(new Date())
+    } finally {
+      setLoading(false)
+      inFlightRef.current = false
     }
-    setLastRefresh(new Date())
-    setLoading(false)
   }, [])
 
   const loadRunReports = useCallback(async () => {
@@ -141,8 +153,19 @@ export default function MLinkDashboard({ onBack }) {
   useEffect(() => {
     if (tab !== 'live') return undefined
 
+    // First fetch is "visible" (shows the loading spinner). Every
+    // subsequent tick is silent so the dashboard never flickers into
+    // a loading state during normal operation — only the Last-update
+    // clock and the flowing numbers tell the presenter data is live.
+    //
+    // Cadence: 2 seconds. Matches the 2-sec MLink pull rate we've
+    // asked Murphy to configure on the Klondike panel so new samples
+    // hit the UI as they land. The server-side history scheduler
+    // stays at 15 min (MLINK_POLL_INTERVAL_MINUTES) to keep the
+    // Railway volume size reasonable — only the live-view polling
+    // runs fast.
     refresh()
-    const interval = setInterval(refresh, 15 * 60 * 1000)
+    const interval = setInterval(() => refresh({ silent: true }), 2000)
     return () => clearInterval(interval)
   }, [tab, refresh])
 
@@ -319,31 +342,32 @@ export default function MLinkDashboard({ onBack }) {
                visual proof the feed is alive. */}
           <div className="flex items-center gap-4">
             <LiveClock />
+            {/* Auto-refresh chip — shows when the last tick landed.
+                 No manual button any more: the page streams every 2 s
+                 automatically, matching the 2-sec MLink pull rate. */}
             {lastRefresh && (
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase' }}>
-                MLink · {lastRefresh.toLocaleTimeString()}
+              <span
+                className="inline-flex items-center gap-2"
+                style={{
+                  fontSize: 10,
+                  color: 'rgba(255,255,255,0.7)',
+                  letterSpacing: 1.6,
+                  textTransform: 'uppercase',
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 600,
+                }}
+              >
+                <span
+                  style={{
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: '#49D0E2',
+                    animation: 'scPulse 2s ease-in-out infinite',
+                    display: 'inline-block',
+                  }}
+                />
+                Auto · {lastRefresh.toLocaleTimeString()}
               </span>
             )}
-            <button
-              onClick={refresh}
-              disabled={loading}
-              className="disabled:opacity-50"
-              style={{
-                padding: '8px 14px',
-                fontFamily: "'Montserrat', sans-serif",
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: 2,
-                textTransform: 'uppercase',
-                color: '#FFFFFF',
-                background: 'transparent',
-                border: '1px solid rgba(73, 208, 226, 0.45)',
-                borderRadius: 2,
-                cursor: loading ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {loading ? 'Loading…' : 'Refresh'}
-            </button>
             <button
               onClick={onBack}
               style={{
