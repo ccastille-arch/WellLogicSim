@@ -329,9 +329,17 @@ export default function MLinkDashboard({ onBack }) {
   // <label>" note. When no label matched, the card lists a sample of
   // the actually-available keys so the engineer can add the right one.
   const compressorFlowSources = compressorActualFlowDatapoints.map((dp) => dp?.keyUsed || null)
-  const compressorSampleKeys = [compA, compB].map((data) => (
-    data ? Object.keys(data).filter(k => /flow|rate|pv/i.test(k)).slice(0, 6) : []
-  ))
+  const compressorSampleKeys = [compA, compB].map((data) => {
+    if (!data) return []
+    // Prefer keys that look flow/rate related; if none match, fall
+    // back to the first 8 raw keys so the presenter / engineer at
+    // least sees SOMETHING about what's in the payload (instead of
+    // the misleading "Compressor data not loaded yet" message when
+    // data IS loaded but just under unexpected labels).
+    const flowish = Object.keys(data).filter(k => /flow|rate|pv|sp\b|desired|setpoint/i.test(k))
+    if (flowish.length > 0) return flowish.slice(0, 6)
+    return Object.keys(data).slice(0, 8)
+  })
 
   // Diagnostic for the Live Injection Match helper. When desired
   // flows don't resolve from the panel, list panel labels that look
@@ -750,6 +758,19 @@ function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers 
           />
         ))}
       </div>
+      {/* Diagnostic footer — if BOTH flow tiles showed No Data, list
+           the first N actual keys present in the compressor payload
+           so we can see what Murphy is publishing and pin the right
+           labels in code. Keeps the presenter view clean when data
+           is flowing. */}
+      {(desiredNumeric == null || actualNumeric == null) && data && Object.keys(data).length > 0 && (
+        <div className="mt-2 rounded border border-[#334155] bg-[#0c1a2a] p-2 text-[8px] leading-snug text-[#6b7a8f]">
+          <span className="font-bold text-[#94a3b8]">Payload keys</span>
+          {' '}({Object.keys(data).length} total):{' '}
+          {Object.keys(data).slice(0, 10).join(' · ')}
+          {Object.keys(data).length > 10 ? ' …' : ''}
+        </div>
+      )}
       {time && <div className="text-[8px] text-[#444] mt-2 text-right">Updated: {time.toLocaleString()}</div>}
     </div>
   )

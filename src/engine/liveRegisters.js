@@ -220,8 +220,28 @@ export function parseLiveDatapoints(data) {
   if (!data?.datapoints) return {}
   const result = {}
   for (const dp of data.datapoints) {
-    const key = dp.alias || dp.desc
-    result[key] = { value: dp.value, units: dp.units, desc: dp.desc }
+    // Murphy's MLink API publishes the human-readable label under any
+    // of `alias`, `desc`, `dataSourceName`, `Name`, or `name`
+    // depending on device firmware / catalog version. The prior
+    // implementation only checked alias+desc, which silently
+    // collapsed every datapoint under a single `undefined` key on
+    // payloads that use dataSourceName — exactly the symptom behind
+    // the compressor flow / desired-flow reading "No Data" even
+    // though the device was online (RPM happened to have `alias`
+    // populated, so isRunning worked, but everything else collapsed).
+    const key = dp.alias || dp.desc || dp.dataSourceName || dp.Name || dp.name
+    if (!key) continue
+    // Normalize value extraction too — some payload shapes nest the
+    // most-recent reading in `values[0]` rather than exposing it as
+    // `value` directly. Match the server-side parser in
+    // server/mlinkHistory.js so frontend + backend agree on what's
+    // in the payload.
+    const value = dp.value ?? (Array.isArray(dp.values) ? dp.values[0] : undefined)
+    result[key] = {
+      value,
+      units: dp.units || dp.unit,
+      desc: dp.desc || dp.dataSourceName,
+    }
   }
   return result
 }
