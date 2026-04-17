@@ -103,9 +103,21 @@ function AppContent() {
         return <MarketingHub onClose={() => setPage('home')} />
 
       case 'autopilot': {
-        // Auto-pilot needs a running simulation
+        // Auto-pilot needs a running simulation. The "Normal
+        // Operations" narration tile says "everything is running
+        // perfectly" — that claim only holds if the supply side has
+        // headroom over the demand side. Default well setpoints sum
+        // to 1000+750+800+800 = 3350 MCFD; a pair of default 1600
+        // MCFD compressors only covers 3200, so the lowest-priority
+        // well starves by ~150 MCFD and the screen contradicts the
+        // script. Bumping per-compressor capacity to 1800 gives
+        // 3600 MCFD supply and ~250 MCFD of headroom so every well
+        // genuinely hits target during Normal Operations. Later
+        // scripted actions (tripping a compressor, cutting gas to
+        // 50 %) still create the shortfall the narrative needs.
         const apConfig = config || {
           compressorCount: 2, wellCount: 4, siteType: 'greenfield', salesMode: true,
+          compressorMaxFlowRate: 1800,
           suctionTarget: 80, suctionHighRange: 20, suctionLowRange: 40, staggerOffset: 2,
           dischargeShutdownPressure: 600, dischargeSlowdownOffset: 50,
           maxTempAtPlate: 165, coolerOutletSP: 200, secondStageSuctionCoolerSP: 200,
