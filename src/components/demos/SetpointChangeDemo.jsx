@@ -565,22 +565,61 @@ export default function SetpointChangeDemo() {
               <div className="rounded-sm border border-[#eee] bg-[#fafafa] p-3">
                 <div className="font-semibold">{desiredRegisterForWell(draft.wellId).label}</div>
                 <div className="mt-1 font-mono text-[11px] text-[#777]">Register {desiredRegisterForWell(draft.wellId).register}</div>
-                <div className="mt-2">
+                {/* Editable setpoint box — matches the reference "Edit
+                    Setpoint" modal (click, type new value, Save). The
+                    slider approach was scrapped because it's not how
+                    real customer MLink writes happen; operators type
+                    a number and confirm. */}
+                <div className="mt-3">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#c40000]">
+                    Setpoint: {desiredRegisterForWell(draft.wellId).label}
+                  </div>
                   <input
-                    type="range"
+                    type="number"
                     min={300}
                     max={1200}
-                    step={5}
+                    step={1}
                     value={draft.desiredFlow}
-                    onChange={(event) => setDraft((current) => ({ ...current, desiredFlow: Number(event.target.value) }))}
-                    className="w-full accent-red-700"
+                    onChange={(event) => {
+                      // Allow an empty string while the user is clearing
+                      // the box; commit numeric on blur / save.
+                      const raw = event.target.value
+                      if (raw === '') {
+                        setDraft((current) => ({ ...current, desiredFlow: '' }))
+                        return
+                      }
+                      const parsed = Number(raw)
+                      setDraft((current) => ({
+                        ...current,
+                        desiredFlow: Number.isFinite(parsed) ? parsed : current.desiredFlow,
+                      }))
+                    }}
+                    onBlur={(event) => {
+                      // Clamp + coerce to integer on blur so a bad
+                      // value can't survive past the field.
+                      const raw = Number(event.target.value)
+                      if (!Number.isFinite(raw)) {
+                        setDraft((current) => ({ ...current, desiredFlow: 300 }))
+                        return
+                      }
+                      const clamped = Math.max(300, Math.min(1200, Math.round(raw)))
+                      setDraft((current) => ({ ...current, desiredFlow: clamped }))
+                    }}
+                    className="mt-2 block w-full border-0 border-b-2 border-[#c40000] bg-transparent px-0 py-1 text-[22px] font-black text-[#222] outline-none focus:border-[#c40000]"
+                    style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
+                    inputMode="numeric"
+                    aria-label={`${desiredRegisterForWell(draft.wellId).label} in MCFD`}
                   />
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-[11px] text-[#777]">300 MCFD</span>
-                    <span className="text-[18px] font-black text-[#222]" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
-                      {draft.desiredFlow} MCFD
-                    </span>
-                    <span className="text-[11px] text-[#777]">1200 MCFD</span>
+                  <div className="mt-2 text-[11px] leading-snug text-[#666]">
+                    Value must be between <span className="font-bold text-[#1565c0]">300</span> and <span className="font-bold text-[#1565c0]">1200</span> MCFD.
+                    {(() => {
+                      const v = Number(draft.desiredFlow)
+                      if (!Number.isFinite(v)) return null
+                      if (v < 300 || v > 1200) {
+                        return <span className="ml-1 font-bold text-[#c40000]">Out of range.</span>
+                      }
+                      return null
+                    })()}
                   </div>
                 </div>
               </div>
@@ -609,9 +648,26 @@ export default function SetpointChangeDemo() {
               <button onClick={cancelEditor} className="rounded-sm border border-[#d0d0d0] px-4 py-2 text-[12px] font-bold text-[#555]">
                 Cancel
               </button>
-              <button onClick={reviewWrite} className="rounded-sm border border-[#c40000] bg-[#c40000] px-4 py-2 text-[12px] font-bold text-white">
-                Review Write
-              </button>
+              {/* Disable Review when the typed setpoint is out of the
+                  allowed 300–1200 MCFD range — matches the greyed-Save
+                  pattern on the reference Edit Setpoint modal. */}
+              {(() => {
+                const v = Number(draft.desiredFlow)
+                const invalid = !Number.isFinite(v) || v < 300 || v > 1200
+                return (
+                  <button
+                    onClick={reviewWrite}
+                    disabled={invalid}
+                    className={`rounded-sm border px-4 py-2 text-[12px] font-bold text-white ${
+                      invalid
+                        ? 'cursor-not-allowed border-[#e4a0a0] bg-[#e4a0a0]'
+                        : 'border-[#c40000] bg-[#c40000]'
+                    }`}
+                  >
+                    Review Write
+                  </button>
+                )
+              })()}
             </div>
           </div>
         </div>
