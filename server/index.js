@@ -5,6 +5,12 @@ import { dirname, join } from 'path'
 import { initSchema } from './db.js'
 import { seedDefaults } from './seed.js'
 import { ensureStorageReady, getStorageStatus, startBackupScheduler, writeBackupSnapshot } from './storage.js'
+import {
+  getMlinkHistoryStatus,
+  readMlinkHistory,
+  startMlinkHistoryScheduler,
+  triggerMlinkHistoryTickNow,
+} from './mlinkHistory.js'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
 import roleRoutes from './routes/roles.js'
@@ -96,6 +102,35 @@ app.get('/api/mlink/runreport', async (req, res) => {
   }
 })
 
+// Persisted MLink history — rows appended by the background scheduler
+// (server/mlinkHistory.js) every MLINK_POLL_INTERVAL_MINUTES. Served
+// back out as a normalized JSON array so the Field Data history tab
+// can merge them with its CSV baseline. `days` query param clamps to
+// an observation window; omit to get every retained row.
+app.get('/api/mlink/history', async (req, res) => {
+  const days = req.query.days != null ? parseInt(req.query.days, 10) : null
+  try {
+    const rows = await readMlinkHistory({ days: days && days > 0 ? days : undefined })
+    res.setHeader('Cache-Control', 'public, max-age=30')
+    res.json({ rows, status: await getMlinkHistoryStatus() })
+  } catch (err) {
+    res.status(500).json({ error: 'history read failed', details: err.message })
+  }
+})
+
+// Diagnostic — trigger an out-of-band poll tick and report status.
+// Left unauthenticated for parity with the other /api/mlink/* reads;
+// the MLink API key stays server-side and this handler only writes
+// one deduped row per panel-reported timestamp.
+app.post('/api/mlink/history/tick', async (_req, res) => {
+  try {
+    const status = await triggerMlinkHistoryTickNow()
+    res.status(201).json(status)
+  } catch (err) {
+    res.status(500).json({ error: 'tick failed', details: err.message })
+  }
+})
+
 const distPath = join(__dirname, '..', 'dist')
 app.use(express.static(distPath))
 app.get(/(.*)/, (req, res) => {
@@ -111,6 +146,11 @@ app.listen(PORT, () => {
       else console.warn(`Storage unavailable at ${status.dataDir}: ${status.error || 'not writable'}`)
     })
     .catch(err => console.warn(`Storage init failed: ${err.message}`))
+  // MLink history scheduler is independent of the DB — it writes to
+  // the Railway volume regardless of PostgreSQL state, so we start it
+  // right away. The scheduler idles harmlessly if MLINK_API_KEY isn't
+  // set, so we can always kick it.
+  startMlinkHistoryScheduler()
   connectWithRetry()
 })
 

@@ -224,6 +224,24 @@ export default function AutoPilot({ sim, onExit }) {
     if (!sim.running) sim.toggleRunning()
   }
 
+  // Replay every SCRIPT action from index 0 up to and including
+  // `targetStep`. The narration's actions are cumulative side-effects
+  // on the sim (trip a compressor, drop gas supply, etc.), so manual
+  // navigation has to rebuild the sim state from scratch — otherwise a
+  // Prev click leaves the sim in a later state than the tile it
+  // jumped back to, and a Next click starting from a paused earlier
+  // state would only run one action without any of its predecessors.
+  const replayToStep = (targetStep) => {
+    if (typeof sim.resetToDefaults !== 'function') return
+    sim.resetToDefaults()
+    for (let i = 0; i <= targetStep && i < SCRIPT.length; i += 1) {
+      const s = SCRIPT[i]
+      if (s?.action) {
+        try { s.action(sim) } catch { /* ignore action errors during replay */ }
+      }
+    }
+  }
+
   const start = () => {
     startUploadedAudio()
     resumeSim()
@@ -242,21 +260,30 @@ export default function AutoPilot({ sim, onExit }) {
     if (step >= 0 && currentStep) scheduleAdvance(step, currentStep.duration)
   }
   const next = () => {
+    const target = Math.min(step + 1, SCRIPT.length - 1)
     clearTimeout(timerRef.current)
     stopUploadedAudio()
     // Manual navigation pauses the sim so the visible state lines up
-    // with the narration tile the presenter jumped to. Presenter can
-    // click Resume to let it continue.
+    // with the narration tile the presenter jumped to. Presenter then
+    // clicks Resume to let the sim continue ticking.
     setPaused(true)
     pauseSim()
-    advanceStep(Math.min(step + 1, SCRIPT.length - 1))
+    // Rebuild the sim state by replaying ALL prior actions plus the
+    // target's — skips scheduleAdvance (no auto-advance while paused).
+    replayToStep(target)
+    setStep(target)
   }
   const prev = () => {
+    const target = Math.max(step - 1, 0)
     clearTimeout(timerRef.current)
     stopUploadedAudio()
     setPaused(true)
     pauseSim()
-    advanceStep(Math.max(step - 1, 0))
+    // Rewind by resetting + replaying actions 0..target. This is the
+    // only deterministic way to "go back a step" since the SCRIPT
+    // actions aren't individually reversible.
+    replayToStep(target)
+    setStep(target)
   }
 
   const handleAudioUpload = (event) => {

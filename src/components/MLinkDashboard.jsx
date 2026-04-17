@@ -1061,7 +1061,12 @@ function KlondikeHistoryTab({ klondike }) {
       {view === 'overview' ? (
         <KlondikeOverview row={row} prev={prev} windowData={windowData} />
       ) : view.startsWith('comp') ? (
-        <KlondikeCompressorDetail row={row} compressorIdx={parseInt(view.replace('comp',''), 10) - 1} windowData={windowData} />
+        <KlondikeCompressorDetail
+          row={row}
+          compressorIdx={parseInt(view.replace('comp',''), 10) - 1}
+          windowData={windowData}
+          daysOfData={daysOfData}
+        />
       ) : (
         <KlondikeWellDetail row={row} prev={prev} wellIdx={parseInt(view.replace('well','')) - 1} windowData={windowData} />
       )}
@@ -1204,10 +1209,35 @@ function KlondikeWellDetail({ row, prev, wellIdx, windowData }) {
   )
 }
 
-function KlondikeCompressorDetail({ row, compressorIdx, windowData }) {
+function KlondikeCompressorDetail({ row, compressorIdx, windowData, daysOfData = 0 }) {
   const desiredFlow = compressorIdx === 0 ? row.comp1DesiredFlow : row.comp2DesiredFlow
   const runStatus = compressorIdx === 0 ? row.comp1Status : row.comp2Status
   const compressorNumber = compressorIdx + 1
+
+  // Pull the per-compressor register snapshot the server is appending
+  // to the Railway volume every MLINK_POLL_INTERVAL_MINUTES. CSV-only
+  // rows don't carry this field, so registers may be undefined on
+  // older samples — the helpers below fall back to "--" gracefully.
+  const compRegisters = row.compressors?.[compressorIdx]?.registers || {}
+  const regValue = (label) => {
+    const v = compRegisters[label]
+    return v == null ? null : (typeof v === 'number' ? v : parseFloat(v))
+  }
+  const regSpark = (label) => windowData.map(r => {
+    const raw = r.compressors?.[compressorIdx]?.registers?.[label]
+    if (raw == null) return 0
+    const n = typeof raw === 'number' ? raw : parseFloat(raw)
+    return Number.isFinite(n) ? n : 0
+  })
+
+  // How many of the windowed samples actually carry compressor-register
+  // data? Drives the per-row coverage cell ("In N-day live history"
+  // vs "No snapshot yet") and the section heading's day count.
+  const registerCoverageSamples = windowData.filter(r => r.compressors?.[compressorIdx]?.registers).length
+  const registerCoverageDays = registerCoverageSamples > 0
+    // 15-min samples → 96 per day. Round up so a partial day shows 1.
+    ? Math.max(1, Math.round(registerCoverageSamples / 96))
+    : 0
 
   const params = [
     {
@@ -1265,13 +1295,18 @@ function KlondikeCompressorDetail({ row, compressorIdx, windowData }) {
       <div className="bg-[#0F3C64] rounded-lg border border-[#222] overflow-hidden">
         <div className="px-4 py-2 border-b border-[#293C5B] bg-[#0c0c18]">
           <span className="text-[10px] text-white font-bold uppercase tracking-wider">
-            Compressor {compressorNumber} 30-Day History Coverage
+            Compressor {compressorNumber}{daysOfData > 0 ? ` ${daysOfData}-Day` : ''} History Coverage
           </span>
         </div>
         <table className="w-full text-[10px]">
           <thead>
             <tr className="bg-[#03172A]">
-              {['Parameter', 'Current 30-Day Value', 'Unit', 'Coverage'].map(h => (
+              {[
+                'Parameter',
+                daysOfData > 0 ? `Current ${daysOfData}-Day Value` : 'Current Value',
+                'Unit',
+                'Coverage',
+              ].map(h => (
                 <th key={h} className="px-3 py-2 text-left text-[#888] font-normal border-b border-[#293C5B]">{h}</th>
               ))}
             </tr>
@@ -1281,28 +1316,43 @@ function KlondikeCompressorDetail({ row, compressorIdx, windowData }) {
               <td className="px-3 py-2 text-white font-bold">Desired Flow SP For PID Murphy</td>
               <td className="px-3 py-2 text-[#4fc3f7] font-bold">{desiredFlow?.toFixed(3) ?? '--'}</td>
               <td className="px-3 py-2 text-[#888]">MMSCFD</td>
-              <td className="px-3 py-2 text-[#22c55e]">In 30-day panel export</td>
+              <td className="px-3 py-2 text-[#22c55e]">In panel export</td>
             </tr>
             <tr className="bg-[#0c0c18]">
               <td className="px-3 py-2 text-white font-bold">Run Status</td>
               <td className="px-3 py-2 text-[#22c55e] font-bold">{runStatus || '--'}</td>
               <td className="px-3 py-2 text-[#888]">state</td>
-              <td className="px-3 py-2 text-[#22c55e]">In 30-day panel export</td>
+              <td className="px-3 py-2 text-[#22c55e]">In panel export</td>
             </tr>
-            {COMPRESSOR_DEFAULT_VISIBLE_LABELS.map(label => (
-              <tr key={label} className="bg-[#05233E]">
-                <td className="px-3 py-2 text-white">{label}</td>
-                <td className="px-3 py-2 text-[#666]">--</td>
-                <td className="px-3 py-2 text-[#666]">{getCompressorUnit(label) || '--'}</td>
-                <td className="px-3 py-2 text-[#eab308]">Needs stored MLINK snapshot history</td>
-              </tr>
-            ))}
+            {COMPRESSOR_DEFAULT_VISIBLE_LABELS.map(label => {
+              const numeric = regValue(label)
+              const hasData = numeric != null && Number.isFinite(numeric)
+              const unit = getCompressorUnit(label) || '--'
+              return (
+                <tr key={label} className="bg-[#05233E]">
+                  <td className="px-3 py-2 text-white">{label}</td>
+                  <td className={`px-3 py-2 font-bold ${hasData ? 'text-[#4fc3f7]' : 'text-[#666]'}`}>
+                    {hasData ? numeric.toFixed(3) : '--'}
+                  </td>
+                  <td className={`px-3 py-2 ${hasData ? 'text-[#888]' : 'text-[#666]'}`}>{unit}</td>
+                  <td className={`px-3 py-2 ${hasData ? 'text-[#22c55e]' : 'text-[#eab308]'}`}>
+                    {hasData
+                      ? (registerCoverageDays > 0
+                          ? `Live · ${registerCoverageDays}-day snapshot history`
+                          : 'Live from MLink snapshot')
+                      : 'Awaiting first MLink snapshot'}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
 
       <div className="bg-[#0c0c18] rounded border border-[#293C5B] p-3 text-[10px] text-[#888]">
-        The current 30-day panel export carries compressor run status and desired-flow history. Full trends for compressor temperatures, speeds, and pressures require stored MLINK compressor snapshots over the same 30-day window.
+        {registerCoverageDays > 0
+          ? `Compressor temperatures, speeds, and pressures are sourced from stored MLink snapshots — ${registerCoverageDays}-day history and growing. Run status and desired-flow history come from the panel export.`
+          : 'Compressor temperatures, speeds, and pressures populate automatically once the MLink snapshot scheduler records its first poll on this deployment. Run status and desired-flow history come from the panel export.'}
       </div>
     </div>
   )

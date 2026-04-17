@@ -101,8 +101,65 @@ export function parseKlondikeCSV(text) {
   })
 }
 
-// Hook — loads and parses the Klondike CSV once, caches result
+// Hook — loads the CSV baseline once, then merges with the live MLink
+// history snapshots the server is appending to the Railway volume
+// every MLINK_POLL_INTERVAL_MINUTES.
+//
+// Merge strategy: CSV rows are the "baseline" (what we had before the
+// live scheduler existed). API rows are added alongside them, deduped
+// by timestamp, and API wins on collision because it carries the
+// per-compressor `registers` map the CSV never had. Results are sorted
+// oldest-first so the playback slider reads naturally regardless of
+// which source each row came from.
 let _cachedData = null
+let _cachedCsv = null
+let _cachedFetchedAt = 0
+const LIVE_REFRESH_MS = 60_000 // refresh the API rows every minute
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
+async function fetchCsvBaseline() {
+  if (_cachedCsv) return _cachedCsv
+  try {
+    const res = await fetch(`${BASE}data/klondike_cop0001.csv`)
+    if (!res.ok) return []
+    const text = await res.text()
+    _cachedCsv = parseKlondikeCSV(text)
+    return _cachedCsv
+  } catch {
+    return []
+  }
+}
+
+async function fetchLiveHistory() {
+  try {
+    const res = await fetch(`${API_BASE}/api/mlink/history`)
+    if (!res.ok) return []
+    const body = await res.json()
+    return Array.isArray(body?.rows) ? body.rows : []
+  } catch {
+    return []
+  }
+}
+
+function mergeByTimestamp(csvRows, apiRows) {
+  const seen = new Set()
+  const merged = []
+  // API rows first so their `registers` map wins on collision; the CSV
+  // baseline fills in anywhere the live scheduler hasn't observed yet.
+  for (const row of apiRows) {
+    if (!row?.timestamp) continue
+    seen.add(row.timestamp)
+    merged.push(row)
+  }
+  for (const row of csvRows) {
+    if (!row?.timestamp) continue
+    if (seen.has(row.timestamp)) continue
+    seen.add(row.timestamp)
+    merged.push(row)
+  }
+  merged.sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)))
+  return merged
+}
 
 export function useKlondikeData() {
   const [data, setData] = useState(_cachedData)
@@ -110,16 +167,45 @@ export function useKlondikeData() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (_cachedData) return
-    fetch(`${BASE}data/klondike_cop0001.csv`)
-      .then(r => r.text())
-      .then(text => {
-        const parsed = parseKlondikeCSV(text)
-        _cachedData = parsed
-        setData(parsed)
+    let cancelled = false
+
+    async function load() {
+      try {
+        const [csvRows, apiRows] = await Promise.all([fetchCsvBaseline(), fetchLiveHistory()])
+        if (cancelled) return
+        const merged = mergeByTimestamp(csvRows, apiRows)
+        _cachedData = merged
+        _cachedFetchedAt = Date.now()
+        setData(merged)
         setLoading(false)
-      })
-      .catch(e => { setError(e.message); setLoading(false) })
+      } catch (e) {
+        if (cancelled) return
+        setError(e.message)
+        setLoading(false)
+      }
+    }
+
+    if (!_cachedData || Date.now() - _cachedFetchedAt > LIVE_REFRESH_MS) {
+      load()
+    } else {
+      setData(_cachedData)
+      setLoading(false)
+    }
+
+    // Keep the API rows fresh — CSV is static so we only refetch live.
+    const refresh = setInterval(async () => {
+      const [csvRows, apiRows] = [await fetchCsvBaseline(), await fetchLiveHistory()]
+      if (cancelled) return
+      const merged = mergeByTimestamp(csvRows, apiRows)
+      _cachedData = merged
+      _cachedFetchedAt = Date.now()
+      setData(merged)
+    }, LIVE_REFRESH_MS)
+
+    return () => {
+      cancelled = true
+      clearInterval(refresh)
+    }
   }, [])
 
   return { data, loading, error }
