@@ -11,6 +11,7 @@ import {
   startMlinkHistoryScheduler,
   triggerMlinkHistoryTickNow,
 } from './mlinkHistory.js'
+import { seedCompressorHistoryIfNeeded } from './seedCompressorHistory.js'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
 import roleRoutes from './routes/roles.js'
@@ -218,6 +219,12 @@ app.listen(PORT, () => {
   // right away. The scheduler idles harmlessly if MLINK_API_KEY isn't
   // set, so we can always kick it.
   startMlinkHistoryScheduler()
+  // One-shot seed of ~30 days of compressor history from the bundled
+  // CSV exports. Idempotent — safe to run on every boot, only writes
+  // rows the first time the volume sees it.
+  seedCompressorHistoryIfNeeded()
+    .then(result => console.log(`[seedCompressorHistory] ${JSON.stringify(result)}`))
+    .catch(err => console.warn(`[seedCompressorHistory] failed: ${err.message}`))
   connectWithRetry()
 })
 

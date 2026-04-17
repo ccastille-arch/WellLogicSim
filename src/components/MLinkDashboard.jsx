@@ -974,10 +974,17 @@ function formatHourMeterValue(value) {
 }
 
 function getCompressorUnit(label) {
-  if (/temperature/i.test(label)) return 'deg F'
+  // Most-specific matches first so e.g. "Loaded Auto Sp" doesn't
+  // accidentally get RPM or MMSCFD through a looser rule below.
+  if (/loaded\s*auto\s*sp/i.test(label)) return '%'
+  if (/auto\s*sp$/i.test(label)) return '°F'   // PID temperature setpoints
+  if (/qu(?:i)?ck\s*start.*desired.*flow/i.test(label)) return 'MMSCFD'
+  if (/temp(?:erature)?/i.test(label)) return '°F'
   if (/speed/i.test(label)) return 'RPM'
   if (/pressure|prs|dp/i.test(label)) return 'PSI'
   if (/flow/i.test(label)) return 'MMSCFD'
+  if (/voltage/i.test(label)) return 'V'
+  if (/oil\s*pressure/i.test(label)) return 'PSI'
   return ''
 }
 
@@ -1243,8 +1250,16 @@ function findCompressorDesiredFlow(compressorData, panelData, compressorIndex) {
   }
 
   // Tier 2: compressor device — SP lives on the unit itself.
+  // "Quck Start Setting - Desired Flow Rate" is the authoritative
+  // label on the Klondike 2074 asset per the 4/17 CSV export (note:
+  // "Quck" is Murphy's spelling; do NOT normalize to "Quick" or the
+  // lookup breaks). Listed first so it short-circuits on Centurion
+  // A3 catalogs; remaining entries are legacy / other-catalog
+  // spellings kept as fallbacks.
   if (compressorData) {
     const compExplicit = resolvePreferredDatapoint(compressorData, [
+      'Quck Start Setting - Desired Flow Rate',
+      'Quick Start Setting - Desired Flow Rate',
       'Flow Rate SP',
       'Flow Rate Setpoint',
       'Flow Rate - SP',
@@ -1272,6 +1287,7 @@ function findCompressorDesiredFlow(compressorData, panelData, compressorIndex) {
     || /desired\s*flow/i.test(key)
     || /setpoint.*flow/i.test(key)
     || /target\s*flow/i.test(key)
+    || /qu(?:i)?ck\s*start.*desired.*flow/i.test(key)
     || /flow.*desired/i.test(key)
   )
   for (const data of [panelData, compressorData]) {

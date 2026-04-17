@@ -11,16 +11,25 @@ export const LIVE_DATA_DEVICES = {
   compB: '2504-505472',
 }
 
+// Canonical compressor parameters. Names match the 2074 asset CSV
+// export verbatim — including Murphy's typo "Quck" in
+// "Quck Start Setting - Desired Flow Rate". DO NOT fix the typo:
+// the publishing side spells it that way and any normalization
+// here breaks the lookup.
 export const COMPRESSOR_DEFAULT_VISIBLE_LABELS = [
   '3rd Stage Discharge Temperature',
   'Compressor Speed',
+  'Cooler Outlet Temp PID Auto Sp',
   'Cooler Outlet Temperature',
   'Flow Rate PID PV',
+  'Loaded Auto Sp',
+  'Quck Start Setting - Desired Flow Rate',
+  'Stage 1 Suction Prs',
+  'Stage 3 Discharge Prs',
+  // Historical / other-catalog labels kept so older deploys still render.
   'Inlet Diff Pressure Reading',
   'Inlet Witches Hat DP Setpoint',
   'Skid - Shutdown',
-  'Stage 1 Suction Prs',
-  'Stage 3 Discharge Prs',
 ]
 
 const KLONDIKE_DEFAULT_VISIBLE_LABELS = new Set([
