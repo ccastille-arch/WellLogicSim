@@ -29,7 +29,7 @@ export default function Header({ onReconfigure, tutorialMode, onTutorialToggle, 
             borderLeft: '1px solid rgba(255, 255, 255, 0.15)',
           }}
         >
-          Pad Logic Simulator
+          Well Logic Simulator
         </span>
       </div>
       <div className="flex items-center gap-3">

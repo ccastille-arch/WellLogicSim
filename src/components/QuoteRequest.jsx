@@ -54,7 +54,7 @@ export default function QuoteRequest({ onBack }) {
       <div className="max-w-[650px] mx-auto py-8 px-6">
         <div className="text-center mb-6">
           <div className="text-xl tracking-tight mb-1" style={{ fontFamily: "'Montserrat'", color: '#D32028' }}>Service Compression</div>
-          <h1 className="text-xl text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>Request a Pad Logic Quote</h1>
+          <h1 className="text-xl text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>Request a Well Logic Quote</h1>
           <p className="text-[12px] text-[#888] mt-1">Tell us about your pad and we'll provide custom pricing.</p>
         </div>
 
@@ -121,7 +121,7 @@ export default function QuoteRequest({ onBack }) {
               Your electrical team meets with the SC integration team to discuss preferred connection methods, communication protocols, and site-specific requirements.
             </TimelineStep>
             <TimelineStep number="3" title="Panel Build & Delivery">
-              SC engineers and builds your custom Pad Logic panel. Once complete, the panel is shipped directly to your site.
+              SC engineers and builds your custom Well Logic panel. Once complete, the panel is shipped directly to your site.
             </TimelineStep>
             <TimelineStep number="4" title="On-Site Installation">
               The SC integration team is on-site to assist your crew with physical installation, wiring, and communication hookup.
@@ -130,7 +130,7 @@ export default function QuoteRequest({ onBack }) {
               An SC commissioning representative is on-site to properly configure the panel to your specific site needs - setpoints, well priorities, compressor parameters, and alarm thresholds.
             </TimelineStep>
             <TimelineStep number="6" title="Panel In Service" highlight>
-              Your Pad Logic system is live and optimizing injection 24/7. SC provides remote monitoring and support.
+              Your Well Logic system is live and optimizing injection 24/7. SC provides remote monitoring and support.
             </TimelineStep>
           </div>
 

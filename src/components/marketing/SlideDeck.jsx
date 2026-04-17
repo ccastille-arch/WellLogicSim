@@ -60,7 +60,7 @@ function TitleSlide() {
   return (
     <S>
       <div className="text-3xl tracking-tight mb-2" style={{ fontFamily: "'Montserrat'", color: '#D32028' }}>Service Compression</div>
-      <div className="text-5xl text-white font-bold mb-4" style={{ fontFamily: "'Montserrat'" }}>Pad Logic TM</div>
+      <div className="text-5xl text-white font-bold mb-4" style={{ fontFamily: "'Montserrat'" }}>Well Logic TM</div>
       <div className="text-lg text-[#888]">Automated Gas Lift Injection Optimization</div>
       <div className="mt-8 w-32 h-0.5 bg-[#D32028]" />
       <div className="mt-4 text-sm text-[#555]">Service Compression</div>
@@ -115,13 +115,13 @@ function SolutionSlide() {
   return (
     <S>
       <div className="text-[#22c55e] text-sm font-bold uppercase tracking-wider mb-2">The Solution</div>
-      <div className="text-3xl text-white font-bold mb-2" style={{ fontFamily: "'Montserrat'" }}>Pad Logic TM Handles It</div>
+      <div className="text-3xl text-white font-bold mb-2" style={{ fontFamily: "'Montserrat'" }}>Well Logic TM Handles It</div>
       <div className="text-lg text-[#888] mb-8">Automatic. Instant. 24/7.</div>
       <div className="grid grid-cols-3 gap-6 text-center">
         {[
           ['30 sec', 'Response Time', 'Detects and rebalances injection in seconds, not hours.'],
           ['85%', 'Production Saved', 'Of what would otherwise be lost during every event.'],
-          ['$0', 'Operator Trips', 'For choke adjustment. Pad Logic handles it remotely.'],
+          ['$0', 'Operator Trips', 'For choke adjustment. Well Logic handles it remotely.'],
         ].map(([value, title, desc], i) => (
           <div key={i}>
             <div className="text-3xl text-[#22c55e] font-bold" style={{ fontFamily: "'Montserrat'" }}>{value}</div>
@@ -138,14 +138,14 @@ function HowItWorksSlide() {
   return (
     <S className="items-start px-16">
       <div className="text-[#4fc3f7] text-sm font-bold uppercase tracking-wider mb-2">How It Works</div>
-      <div className="text-2xl text-white font-bold mb-6" style={{ fontFamily: "'Montserrat'" }}>The Pad Logic Control Loop</div>
+      <div className="text-2xl text-white font-bold mb-6" style={{ fontFamily: "'Montserrat'" }}>The Well Logic Control Loop</div>
       <div className="flex items-center gap-3 text-[12px] flex-wrap justify-center">
         {['Wells Produce', 'to', 'HP Scrubber', 'to', 'Gas Recirculates', 'to', 'Suction Header', 'to', 'Compressors', 'to', 'Discharge Header', 'to', 'Choke Valves', 'to', 'Back to Wells'].map((item, i) => (
           <span key={i} className={item === 'to' ? 'text-[#D32028] text-lg' : 'bg-[#293C5B] px-3 py-1.5 rounded text-white font-bold'}>{item}</span>
         ))}
       </div>
       <div className="mt-6 text-[13px] text-[#888] text-center max-w-[600px]">
-        Pad Logic controls the <span className="text-[#D32028] font-bold">choke valves</span> - the injection point for each well.
+        Well Logic controls the <span className="text-[#D32028] font-bold">choke valves</span> - the injection point for each well.
         It monitors every pressure, flow, and compressor status in real-time and makes decisions in milliseconds.
       </div>
     </S>
@@ -184,7 +184,7 @@ function TripResponseSlide() {
       <div className="text-2xl text-white font-bold mb-6" style={{ fontFamily: "'Montserrat'" }}>Compressor Trip Response</div>
       <div className="grid grid-cols-2 gap-8 max-w-[700px]">
         <div className="bg-[#1a0808] rounded-lg p-4 border border-[#D32028]/30">
-          <div className="text-[#D32028] font-bold text-sm mb-2">Without Pad Logic</div>
+          <div className="text-[#D32028] font-bold text-sm mb-2">Without Well Logic</div>
           <div className="text-[12px] text-[#888] space-y-1">
             <div>SCADA alarm fires</div>
             <div>Dispatch operator (45-90 min)</div>
@@ -197,7 +197,7 @@ function TripResponseSlide() {
           </div>
         </div>
         <div className="bg-[#081a08] rounded-lg p-4 border border-[#22c55e]/30">
-          <div className="text-[#22c55e] font-bold text-sm mb-2">With Pad Logic</div>
+          <div className="text-[#22c55e] font-bold text-sm mb-2">With Well Logic</div>
           <div className="text-[12px] text-[#888] space-y-1">
             <div>Detects shortfall (instant)</div>
             <div>Rebalances chokes (30-60 sec)</div>
@@ -220,10 +220,10 @@ function UnloadSlide() {
       <div className="text-2xl text-white font-bold mb-4" style={{ fontFamily: "'Montserrat'" }}>Well Unload Detection</div>
       <div className="text-[14px] text-[#888] text-center max-w-[600px] mb-6">
         Gas slugs and liquid unloads cause rapid pressure spikes that can shut down your entire pad.
-        Pad Logic detects them <span className="text-white font-bold">before they become a problem</span>.
+        Well Logic detects them <span className="text-white font-bold">before they become a problem</span>.
       </div>
       <div className="flex gap-3 items-center text-[12px]">
-        {['Pressure Spike', 'to', 'Pad Logic Detects', 'to', 'Sales Valve Opens', 'to', 'Pressure Relieved', 'to', 'Shutdown Prevented'].map((item, i) => (
+        {['Pressure Spike', 'to', 'Well Logic Detects', 'to', 'Sales Valve Opens', 'to', 'Pressure Relieved', 'to', 'Shutdown Prevented'].map((item, i) => (
           <span key={i} className={item === 'to' ? 'text-[#eab308]' : 'bg-[#293C5B] px-3 py-2 rounded text-white font-bold'}>{item}</span>
         ))}
       </div>
@@ -266,7 +266,7 @@ function TimelineSlide() {
           { week: 'Wk 3-5', label: 'Panel Build', desc: 'Assembly, wiring, factory test' },
           { week: 'Wk 6', label: 'Ship', desc: 'Direct to your pad' },
           { week: 'Wk 7-8', label: 'Commission', desc: '1-2 days on-site setup' },
-          { week: 'Day 1', label: 'LIVE', desc: 'Pad Logic running 24/7' },
+          { week: 'Day 1', label: 'LIVE', desc: 'Well Logic running 24/7' },
         ].map((step, i) => (
           <div key={i} className="flex items-center gap-2">
             <div className="text-center">
@@ -288,16 +288,16 @@ function CTASlide() {
   return (
     <S>
       <div className="text-4xl text-white font-bold mb-4" style={{ fontFamily: "'Montserrat'" }}>Ready to Get Started?</div>
-      <div className="text-lg text-[#888] mb-8">Let's put Pad Logic on your pad.</div>
+      <div className="text-lg text-[#888] mb-8">Let's put Well Logic on your pad.</div>
       <div className="bg-[#111120] rounded-xl border border-[#D32028]/30 px-10 py-6 text-center">
-        <div className="text-2xl tracking-tight mb-1" style={{ fontFamily: "'Montserrat'", color: '#D32028' }}>Pad Logic TM</div>
+        <div className="text-2xl tracking-tight mb-1" style={{ fontFamily: "'Montserrat'", color: '#D32028' }}>Well Logic TM</div>
         <div className="text-xl text-white font-bold mb-4" style={{ fontFamily: "'Montserrat'" }}>Service Compression</div>
         <div className="text-[13px] text-[#888] space-y-1">
           <div>Cody Castille - Director of Product Development</div>
           <div className="text-white">servicecompression.com</div>
         </div>
       </div>
-      <div className="mt-6 text-[11px] text-[#555]">Pad Logic TM is a Service Compression product.</div>
+      <div className="mt-6 text-[11px] text-[#555]">Well Logic TM is a Service Compression product.</div>
     </S>
   )
 }

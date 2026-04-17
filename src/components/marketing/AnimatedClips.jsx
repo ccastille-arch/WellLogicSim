@@ -3,22 +3,22 @@
 const CLIPS = [
   {
     id: 'well-pad-optimizer',
-    title: 'Pad Logic TM Well Panel - Well Pad Optimizer',
+    title: 'Well Logic TM Well Panel - Well Pad Optimizer',
     duration: '2:30',
-    description: 'From reactive control to coordinated optimization. See why the Pad Logic Well Panel is not just a choke controller - it is a Well Pad Optimizer.',
+    description: 'From reactive control to coordinated optimization. See why the Well Logic Well Panel is not just a choke controller - it is a Well Pad Optimizer.',
     featured: true,
   },
   {
     id: 'what-is-welllogic',
-    title: 'Pad Logic TM - What It Does On Your Pad',
+    title: 'Well Logic TM - What It Does On Your Pad',
     duration: '45 sec',
-    description: 'Your pad, your equipment, your gas. See how Pad Logic controls every choke, reads every meter, and keeps your top wells producing - automatically.',
+    description: 'Your pad, your equipment, your gas. See how Well Logic controls every choke, reads every meter, and keeps your top wells producing - automatically.',
   },
   {
     id: 'trip-sidebyside',
-    title: 'Compressor Trip - Your Pad vs a Pad Logic Pad',
+    title: 'Compressor Trip - Your Pad vs a Well Logic Pad',
     duration: '40 sec',
-    description: 'Same compressor trips on two identical pads at the same time. One has Pad Logic, one does not. Watch what happens to your production.',
+    description: 'Same compressor trips on two identical pads at the same time. One has Well Logic, one does not. Watch what happens to your production.',
   },
 ]
 
@@ -60,7 +60,7 @@ export default function AnimatedClips() {
   return (
     <div className="p-4 sm:p-6 max-w-[1200px] mx-auto">
       <h2 className="text-lg text-white font-bold mb-1" style={{ fontFamily: "'Montserrat'" }}>Product Videos</h2>
-      <p className="text-[12px] text-[#888] mb-6">Animated demonstrations showing Pad Logic in action.</p>
+      <p className="text-[12px] text-[#888] mb-6">Animated demonstrations showing Well Logic in action.</p>
 
       <div className="space-y-6">
         {CLIPS.map(clip => (
@@ -151,7 +151,7 @@ const NARRATION = {
     'Surging systems. Inefficient flow. Constant correction.',
     'Most sites operate like a relay race - each component reacting, then handing off. Never truly working together.',
     'What if the system did not just react... but coordinated?',
-    'The Pad Logic Well Panel is not a choke controller.',
+    'The Well Logic Well Panel is not a choke controller.',
     'It is a Well Pad Optimizer.',
     'It communicates across the entire pad.',
     'Every component understands what is happening before... and after it.',
@@ -162,32 +162,32 @@ const NARRATION = {
     'Just controlled... continuous... optimized flow.',
     'This is not incremental improvement.',
     'This is the next generation of oilfield control.',
-    'Pad Logic. Well Pad Optimizer. Engineered for Uptime.',
+    'Well Logic. Well Pad Optimizer. Engineered for Uptime.',
   ],
   'what-is-welllogic': [
     'Here is your pad. Four wells on gas lift, two compressors, recirculated gas off the scrubber.',
     'Gas comes off the vertical scrubber, hits the suction header, feeds your compressors.',
     'Compressors push it through the discharge header. From there it splits to each well.',
-    'Every well has a motor valve choke and a flow meter on the injection line. That is what Pad Logic controls.',
-    'Pad Logic reads every flow meter, every pressure transmitter, every compressor status. All real time. All Modbus.',
+    'Every well has a motor valve choke and a flow meter on the injection line. That is what Well Logic controls.',
+    'Well Logic reads every flow meter, every pressure transmitter, every compressor status. All real time. All Modbus.',
     'It sets your choke positions automatically. No pumper driving out. No manual adjustments.',
-    'Suction pressure drops? Pad Logic adjusts compressor staging. Discharge spikes? It backs off before you trip.',
-    'Your number one well always gets gas first. Period. Pad Logic enforces priority across every choke on the pad.',
+    'Suction pressure drops? Well Logic adjusts compressor staging. Discharge spikes? It backs off before you trip.',
+    'Your number one well always gets gas first. Period. Well Logic enforces priority across every choke on the pad.',
     'Well slugs out and scrubber pressure spikes? Sales valve opens. Compressors stay running. No pad shutdown.',
-    'Demand changes? Pad Logic stages compressors up or down. No wasted fuel, no starved wells.',
+    'Demand changes? Well Logic stages compressors up or down. No wasted fuel, no starved wells.',
     'This runs twenty four seven. Nights, weekends, holidays. Same response at two A M as two P M.',
-    'Pad Logic by Service Compression. Your pad, optimized. All the time.',
+    'Well Logic by Service Compression. Your pad, optimized. All the time.',
   ],
   'trip-sidebyside': [
-    'Two identical pads. Same wells, same compressors, same gas. One has Pad Logic. One does not.',
+    'Two identical pads. Same wells, same compressors, same gas. One has Well Logic. One does not.',
     'C 1 trips. High discharge temp. Both pads lose half their compression at the same time. Right now.',
     'Every well on both pads just lost injection pressure. Production is falling. Barrels are being lost.',
-    'Left side, your SCADA fires an alarm. Dispatcher calls the pumper. He is forty five minutes out. Right side, Pad Logic already knows.',
-    'Left side, pumper is still driving. Every well still starving. Right side, Pad Logic is closing chokes on the low priority wells, pushing all available gas to your top producers.',
+    'Left side, your SCADA fires an alarm. Dispatcher calls the pumper. He is forty five minutes out. Right side, Well Logic already knows.',
+    'Left side, pumper is still driving. Every well still starving. Right side, Well Logic is closing chokes on the low priority wells, pushing all available gas to your top producers.',
     'Left pad is still losing barrels across all four wells. Right pad, wells one and two are back at full target injection. Your best producers are protected.',
     'Pumper finally shows up on the left pad. Starts looking at the unit. Right pad has been stable for thirty plus minutes. Your top wells never stopped producing.',
-    'Left side, pumper calls the mechanic. Waits an hour. Right side, Pad Logic has been running at full optimization this entire time. Zero intervention.',
-    'Mechanic fixes the unit. Now the pumper has to drive back out and reset every choke by hand. That is another trip, another hour. With Pad Logic, that trip never happens. It is already done.',
+    'Left side, pumper calls the mechanic. Waits an hour. Right side, Well Logic has been running at full optimization this entire time. Zero intervention.',
+    'Mechanic fixes the unit. Now the pumper has to drive back out and reset every choke by hand. That is another trip, another hour. With Well Logic, that trip never happens. It is already done.',
   ],
 }
 
@@ -267,7 +267,7 @@ function ClipPlayer({ id, audioUrl, onEnd }) {
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// VIDEO 1: What is Pad Logic?
+// VIDEO 1: What is Well Logic?
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function WhatIsWellLogicVideo({ frame, tick }) {
   const narration = [
@@ -276,13 +276,13 @@ function WhatIsWellLogicVideo({ frame, tick }) {
     'Compressors push gas through a discharge header to each well.',
     'Each well has an injection choke valve controlling how much gas it receives.',
     'Flow meters measure the actual injection rate on every well.',
-    'Pad Logic sits at the center - controlling every choke valve in real time.',
+    'Well Logic sits at the center - controlling every choke valve in real time.',
     'It monitors suction pressure, discharge pressure, and every compressor.',
-    'When conditions change, Pad Logic reacts in seconds - not hours.',
+    'When conditions change, Well Logic reacts in seconds - not hours.',
     'It prioritizes your highest-value wells automatically.',
     'It detects well unloads and prevents shutdowns.',
     'It stages compressors based on demand - no wasted fuel.',
-    'Pad Logic - 24/7 automatic gas lift optimization.',
+    'Well Logic - 24/7 automatic gas lift optimization.',
   ]
 
   const caption = narration[Math.min(frame, narration.length - 1)]
@@ -382,12 +382,12 @@ function WhatIsWellLogicVideo({ frame, tick }) {
           <line x1="200" y1="290" x2="600" y2="290" stroke="#f97316" strokeWidth={4} opacity={0.3} />
           <text x="190" y="288" textAnchor="end" fill="#f97316" fontSize="7" fontWeight="bold">SUCTION HDR</text>
 
-          {/* Pad Logic box â€” center highlight */}
+          {/* Well Logic box â€” center highlight */}
           <rect x={330} y={310} width={140} height={35} rx={6} fill="#0a0a16"
             stroke={highlightWellLogic || highlightAll ? '#D32028' : '#333'}
             strokeWidth={highlightWellLogic || highlightAll ? 2.5 : 1} />
           {(highlightWellLogic || highlightAll) && <rect x={330} y={310} width={140} height={35} rx={6} fill="#D32028" opacity={0.1} />}
-          <text x={400} y={326} textAnchor="middle" fill="#D32028" fontSize="10" fontWeight="bold">Pad Logic TM</text>
+          <text x={400} y={326} textAnchor="middle" fill="#D32028" fontSize="10" fontWeight="bold">Well Logic TM</text>
           <text x={400} y={338} textAnchor="middle" fill="#888" fontSize="7">Pad Optimization Controller</text>
 
           {/* Scrubber (right) */}
@@ -418,11 +418,11 @@ function TripSideBySideVideo({ frame, tick }) {
     'Both pads are running normally. 4 wells, 2 compressors, full injection.',
     'COMPRESSOR C1 TRIPS - both pads lose a compressor at the same time.',
     'All wells immediately lose injection pressure on both pads.',
-    'LEFT: Manual pad - SCADA alarm fires. Dispatching operator. RIGHT: Pad Logic detecting shortfall.',
-    'LEFT: Operator driving to pad (45 min). Production still down. RIGHT: Pad Logic rebalancing chokes.',
+    'LEFT: Manual pad - SCADA alarm fires. Dispatching operator. RIGHT: Well Logic detecting shortfall.',
+    'LEFT: Operator driving to pad (45 min). Production still down. RIGHT: Well Logic rebalancing chokes.',
     'LEFT: Still waiting. All wells suffering. RIGHT: Priority wells W1 and W2 back at target.',
-    'LEFT: Operator arrives. Starts diagnosing. RIGHT: Pad Logic stable. Top wells producing.',
-    'LEFT: Calls mechanic. Waits 60 min. RIGHT: Pad Logic been stable for over an hour already.',
+    'LEFT: Operator arrives. Starts diagnosing. RIGHT: Well Logic stable. Top wells producing.',
+    'LEFT: Calls mechanic. Waits 60 min. RIGHT: Well Logic been stable for over an hour already.',
     'LEFT: Mechanic fixes comp. Operator drives BACK to readjust chokes. RIGHT: Already handled.',
   ]
 
@@ -462,7 +462,7 @@ function TripSideBySideVideo({ frame, tick }) {
           )}
         </div>
 
-        {/* RIGHT: Pad Logic */}
+        {/* RIGHT: Well Logic */}
         <div className="flex-1 relative">
           <div className="absolute top-2 left-0 right-0 text-center">
             <span className="bg-[#22c55e]/20 text-[#22c55e] px-3 py-1 rounded text-[10px] font-bold">WITH PAD LOGIC - AUTOMATIC</span>
@@ -471,7 +471,7 @@ function TripSideBySideVideo({ frame, tick }) {
           {frame >= 3 && (
             <div className="absolute bottom-8 left-4 right-4 bg-[#081a08] rounded p-2 border border-[#22c55e]/30">
               <div className="text-[9px] text-[#22c55e]">
-                {frame < 4 ? 'Pad Logic rebalancing chokes by priority...' : 'Priority wells at target. No operator needed.'}
+                {frame < 4 ? 'Well Logic rebalancing chokes by priority...' : 'Priority wells at target. No operator needed.'}
               </div>
             </div>
           )}
@@ -538,11 +538,11 @@ function MiniPad({ wells, c1Status, c2Status, showWellLogic }) {
       {/* Suction header */}
       <line x1="80" y1="165" x2="320" y2="165" stroke="#f97316" strokeWidth={3} opacity={0.3} />
 
-      {/* Pad Logic box (only on right side) */}
+      {/* Well Logic box (only on right side) */}
       {showWellLogic && (
         <g>
           <rect x={150} y={180} width={100} height={25} rx={4} fill="#0a0a16" stroke="#D32028" strokeWidth={1.5} />
-          <text x={200} y={195} textAnchor="middle" fill="#D32028" fontSize="8" fontWeight="bold">Pad Logic TM</text>
+          <text x={200} y={195} textAnchor="middle" fill="#D32028" fontSize="8" fontWeight="bold">Well Logic TM</text>
           <line x1={200} y1={180} x2={200} y2={170} stroke="#D32028" strokeWidth={0.5} strokeDasharray="2 2" />
         </g>
       )}
@@ -551,7 +551,7 @@ function MiniPad({ wells, c1Status, c2Status, showWellLogic }) {
 }
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// VIDEO 3: Pad Logicâ„¢ Well Pad Optimizer â€” Cinematic
+// VIDEO 3: Well Logicâ„¢ Well Pad Optimizer â€” Cinematic
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function WellPadOptimizerVideo({ frame, tick }) {
 
@@ -573,7 +573,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
     'Surging systems. Inefficient flow. Constant correction.',
     'Most sites operate like a relay race - each component reacting, then handing off. Never truly working together.',
     'What if the system did not just react... but coordinated?',
-    'The Pad Logic Well Panel is not a choke controller.',
+    'The Well Logic Well Panel is not a choke controller.',
     'It is a Well Pad Optimizer.',
     'It communicates across the entire pad.',
     'Every component understands what is happening before... and after it.',
@@ -657,7 +657,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
             {/* Title overlay */}
             <text x="400" y="100" textAnchor="middle" fill="white" fontSize="22" fontWeight="900"
               fontFamily="'Montserrat', sans-serif" fontStyle="italic" opacity={frame === 0 ? 0.9 : 0.4}>
-              Pad Logic TM
+              Well Logic TM
             </text>
             <text x="400" y="124" textAnchor="middle" fill="white" fontSize="13" fontWeight="700"
               fontFamily="'Montserrat', sans-serif" letterSpacing="4" opacity={frame === 0 ? 0.7 : 0.3}>
@@ -745,7 +745,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
             </text>
           </>}
 
-          {/* â”€â”€ SOLUTION: Pad Logic panel close-up â”€â”€ */}
+          {/* â”€â”€ SOLUTION: Well Logic panel close-up â”€â”€ */}
           {scene === 'solution' && <>
             <rect width="800" height="320" fill="#0a0a10" />
             {/* Panel enclosure */}
@@ -754,7 +754,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
             {/* Panel nameplate */}
             <rect x="300" y="55" width="200" height="24" rx="2" fill="#1a1a28" stroke="#333" strokeWidth="1" />
             <text x="400" y="71" textAnchor="middle" fill="#D32028" fontSize="10" fontWeight="bold"
-              fontFamily="'Montserrat', sans-serif" fontStyle="italic">Pad Logic TM</text>
+              fontFamily="'Montserrat', sans-serif" fontStyle="italic">Well Logic TM</text>
             {/* Screen */}
             <rect x="270" y="88" width="170" height="100" rx="3" fill="#060612" stroke="#444" strokeWidth="1" />
             {/* SCADA display on screen */}
@@ -799,7 +799,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
             <rect x="325" y="135" width="150" height="50" rx="8" fill="#0f0f1e" stroke="#D32028" strokeWidth="2" />
             <rect x="325" y="135" width="150" height="50" rx="8" fill="#D32028" opacity="0.07" />
             <text x="400" y="157" textAnchor="middle" fill="#D32028" fontSize="11" fontWeight="bold"
-              fontFamily="'Montserrat', sans-serif" fontStyle="italic">Pad Logic TM</text>
+              fontFamily="'Montserrat', sans-serif" fontStyle="italic">Well Logic TM</text>
             <text x="400" y="173" textAnchor="middle" fill="#888" fontSize="7" letterSpacing="2">WELL PAD OPTIMIZER</text>
             {/* Connected nodes â€” wells */}
             {[0,1,2,3].map(i => {
@@ -881,7 +881,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
             })}
             <text x="200" y="300" textAnchor="middle" fill="#D32028" fontSize="7">Uneven. Reactive. Wasteful.</text>
 
-            {/* RIGHT: Pad Logic â€” maintaining */}
+            {/* RIGHT: Well Logic â€” maintaining */}
             <text x="600" y="25" textAnchor="middle" fill="#22c55e" fontSize="9" fontWeight="bold" letterSpacing="2">PAD LOGIC WELL PANEL</text>
             {/* Smooth flat trace */}
             <polyline points="440,80 480,79 520,80 560,80 600,79 640,80 680,80 720,79 760,80"
@@ -982,7 +982,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
             {/* Red accent line */}
             <line x1="250" y1="175" x2="550" y2="175" stroke="#D32028" strokeWidth="2" />
             <text x="400" y="138" textAnchor="middle" fill="#D32028" fontSize="30" fontWeight="900"
-              fontFamily="'Montserrat', sans-serif" fontStyle="italic" letterSpacing="2">Pad Logic TM</text>
+              fontFamily="'Montserrat', sans-serif" fontStyle="italic" letterSpacing="2">Well Logic TM</text>
             <text x="400" y="163" textAnchor="middle" fill="white" fontSize="14" fontWeight="700"
               fontFamily="'Montserrat', sans-serif" letterSpacing="4">WELL PAD OPTIMIZER</text>
             <line x1="280" y1="178" x2="520" y2="178" stroke="#D32028" strokeWidth="1" opacity="0.4" />

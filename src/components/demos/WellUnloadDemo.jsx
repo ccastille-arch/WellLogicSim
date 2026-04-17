@@ -117,7 +117,7 @@ export default function WellUnloadDemo({ sim }) {
     <DemoPage
       sim={sim}
       title="Well Unload & Slugging Events"
-      pitch="Pad Logic detects well unloads and liquid slugs instantly - rapid pressure spikes that can shut down your entire site. The system automatically relieves pressure through the sales valve and keeps compressors running safely."
+      pitch="Well Logic detects well unloads and liquid slugs instantly - rapid pressure spikes that can shut down your entire site. The system automatically relieves pressure through the sales valve and keeps compressors running safely."
       triggers={triggers}
       metrics={metrics}
     />

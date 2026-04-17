@@ -5,7 +5,7 @@ import WellLogicLogo from './WellLogicBrand'
  * LandingPage — Service Compression brand treatment.
  *
  * Hierarchy matches the SC home page pattern (eyebrow → rule → lockup
- * → hero CTA → secondary grid). The PadLogic logo + tagline stay as
+ * → hero CTA → secondary grid). The WellLogic logo + tagline stay as
  * authored artwork; everything else is navy/red/cyan/Montserrat.
  */
 export default function LandingPage({ onNavigate }) {
@@ -145,7 +145,7 @@ export default function LandingPage({ onNavigate }) {
                   marginBottom: 6,
                 }}
               >
-                See a Real Pad Logic System
+                See a Real Well Logic System
               </h2>
               <p
                 style={{
@@ -266,6 +266,14 @@ export default function LandingPage({ onNavigate }) {
               cta: 'Get a quote',
               accent: '#D32028',
             },
+            {
+              id: 'setpoint-adjust',
+              tag: 'Remote · Control',
+              title: 'How to Remotely Adjust Your Wells',
+              desc: 'Change a well setpoint from the couch — see how the pad rebalances in real time without a truck roll.',
+              cta: 'See it work',
+              accent: '#49D0E2',
+            },
           ].map(section => (
             <button
               key={section.id}
@@ -373,7 +381,7 @@ export default function LandingPage({ onNavigate }) {
             color: 'rgba(255, 255, 255, 0.3)',
           }}
         >
-          Service Compression · Pad Logic
+          Service Compression · Well Logic
         </div>
       </div>
     </div>

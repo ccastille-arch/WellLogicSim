@@ -81,7 +81,7 @@ export default function PersonnelLockoutDemo({ sim }) {
     <DemoPage
       sim={sim}
       title="Personnel Lockout Protection"
-      pitch="When your people are on-site working on a compressor, Pad Logic keeps them safe. The system instantly disables all remote commands to that unit - no accidental starts. Flow contribution is still tracked for accurate pad calculations."
+      pitch="When your people are on-site working on a compressor, Well Logic keeps them safe. The system instantly disables all remote commands to that unit - no accidental starts. Flow contribution is still tracked for accurate pad calculations."
       triggers={triggers}
       metrics={metrics}
     />

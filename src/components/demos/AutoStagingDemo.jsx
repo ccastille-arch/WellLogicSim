@@ -83,7 +83,7 @@ export default function AutoStagingDemo({ sim }) {
     <DemoPage
       sim={sim}
       title="Automatic Compressor Staging"
-      pitch="Pad Logic starts and stops compressors automatically based on pad demand. As wells come online or shut in, the system stages compressors up or down - matching capacity to demand without wasting fuel or leaving production on the table."
+      pitch="Well Logic starts and stops compressors automatically based on pad demand. As wells come online or shut in, the system stages compressors up or down - matching capacity to demand without wasting fuel or leaving production on the table."
       triggers={triggers}
     >
       <div className="text-[8px] text-[#888] uppercase tracking-wider font-bold mb-2">Pad Status</div>

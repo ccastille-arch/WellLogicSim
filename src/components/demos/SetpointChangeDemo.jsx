@@ -312,8 +312,8 @@ export default function SetpointChangeDemo() {
       setDraft(null)
       addLog(
         targetState.overloaded
-          ? 'Pad Logic rebalanced flow by priority after the write. Lower-priority wells were trimmed.'
-          : 'Pad Logic settled the new desired rate with all wells still meeting demand.',
+          ? 'Well Logic rebalanced flow by priority after the write. Lower-priority wells were trimmed.'
+          : 'Well Logic settled the new desired rate with all wells still meeting demand.',
         targetState.overloaded ? 'WARN' : 'INFO',
       )
     }
@@ -326,7 +326,7 @@ export default function SetpointChangeDemo() {
       <div className="mx-auto flex max-w-[1560px] flex-col gap-4">
         <div className="overflow-hidden rounded-md border border-[#c8c8c8] bg-white shadow-sm">
           <div className="bg-[#c40000] px-4 py-2 text-center text-[11px] font-black uppercase tracking-[0.24em] text-white">
-            Pad Logic MLink Settings Training
+            Well Logic MLink Settings Training
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d6d6d6] bg-[#333] px-4 py-3 text-white">

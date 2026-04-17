@@ -43,7 +43,7 @@ export default function GasConstrainedDemo({ sim }) {
     <DemoPage
       sim={sim}
       title="Gas Constrained Operation"
-      pitch="Even when gas supply drops significantly, Pad Logic protects your best producers. The system progressively curtails lower-priority wells first, ensuring maximum production from the wells that matter most to your bottom line."
+      pitch="Even when gas supply drops significantly, Well Logic protects your best producers. The system progressively curtails lower-priority wells first, ensuring maximum production from the wells that matter most to your bottom line."
       triggers={triggers}
     >
       <div className="text-[8px] text-[#888] uppercase tracking-wider font-bold mb-2">Gas Supply</div>

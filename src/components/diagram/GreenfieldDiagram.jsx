@@ -187,7 +187,7 @@ export default function GreenfieldDiagram({ state }) {
       <EquipmentNode
         x={svgW / 2 - 60} y={wellLogicY}
         width={120} height={32}
-        label="Pad Logic"
+        label="Well Logic"
         sublabel="Gas Lift Controller"
         color="#D32028"
       />
@@ -240,7 +240,7 @@ export default function GreenfieldDiagram({ state }) {
 
       {/* Labels */}
       <text x={margin} y={svgH - 10} fill="#333" fontSize={9} fontFamily="Arial">
-        GREENFIELD - Standard Pad Logic Deployment
+        GREENFIELD - Standard Well Logic Deployment
       </text>
     </svg>
   )

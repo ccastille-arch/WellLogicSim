@@ -249,7 +249,7 @@ export default function BrownfieldDiagram({ state }) {
       <EquipmentNode
         x={wellLogicX} y={suctionValveY - 8}
         width={110} height={32}
-        label="Pad Logic"
+        label="Well Logic"
         sublabel="Suction Controller Mgmt"
         color="#D32028"
       />

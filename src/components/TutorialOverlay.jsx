@@ -5,13 +5,13 @@ const TUTORIAL_STEPS = [
   {
     selector: '[data-tutorial="choke-row-0"]',
     title: 'WellHead Choke Controller',
-    description: 'Each row represents one well\'s injection choke valve. The Pad Logic panel controls these choke valves to regulate the amount of gas injected into each well. This is the primary control mechanism for gas lift optimization.',
+    description: 'Each row represents one well\'s injection choke valve. The Well Logic panel controls these choke valves to regulate the amount of gas injected into each well. This is the primary control mechanism for gas lift optimization.',
     position: 'bottom',
   },
   {
     selector: '[data-tutorial="choke-manual-0"]',
     title: 'Manual Setpoint (SP)',
-    description: 'This is the operator\'s manual setpoint for the choke valve position (0-100%). Use the down and up arrows to adjust. In Auto mode, the Pad Logic optimizer will override this value. In Manual mode, this value directly controls the valve.',
+    description: 'This is the operator\'s manual setpoint for the choke valve position (0-100%). Use the down and up arrows to adjust. In Auto mode, the Well Logic optimizer will override this value. In Manual mode, this value directly controls the valve.',
     position: 'bottom',
   },
   {

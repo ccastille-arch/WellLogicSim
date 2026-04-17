@@ -30,7 +30,7 @@ export default function CompressorTripDemo({ sim }) {
     <DemoPage
       sim={sim}
       title="Compressor Trip Response"
-      pitch="When a compressor goes down unexpectedly, Pad Logic instantly rebalances gas distribution across remaining units - no operator intervention needed. Watch all wells initially lose flow, then priority wells recover as the system corrects."
+      pitch="When a compressor goes down unexpectedly, Well Logic instantly rebalances gas distribution across remaining units - no operator intervention needed. Watch all wells initially lose flow, then priority wells recover as the system corrects."
       triggers={triggers}
     >
       <div className="text-[8px] text-[#888] uppercase tracking-wider font-bold mb-2">Compressor Status</div>

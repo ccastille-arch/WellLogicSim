@@ -19,7 +19,9 @@ import SuctionPressureDemo from './demos/SuctionPressureDemo'
 import AutoStagingDemo from './demos/AutoStagingDemo'
 import PersonnelLockoutDemo from './demos/PersonnelLockoutDemo'
 import BreakItChallenge from './demos/BreakItChallenge'
-import SetpointChangeDemo from './demos/SetpointChangeDemo'
+// SetpointChangeDemo is now surfaced as a top-level home tile
+// ('How to remotely adjust your wells'). Kept out of the sales-demo
+// sidebar to prevent duplication. Route lives in App.jsx.
 import { WellLogicCompact } from './WellLogicBrand'
 import {
   RevenueTicker, BeforeAfterOverlay, BadDayButton,
@@ -35,7 +37,8 @@ const DEMOS = [
   { id: 'suction', label: 'Suction\nPressure', icon: '📐', Component: SuctionPressureDemo },
   { id: 'staging', label: 'Auto\nStaging', icon: '🔄', Component: AutoStagingDemo },
   { id: 'lockout', label: 'Personnel\nLockout', icon: '🔒', Component: PersonnelLockoutDemo },
-  { id: 'setpoint', label: 'Setpoint\nChange', icon: '🎯', Component: SetpointChangeDemo },
+  // 'setpoint' removed from sidebar — promoted to a home tile
+  // (see LandingPage.jsx 'setpoint-adjust' route).
   { id: 'breakit', label: 'Break It\nChallenge', icon: '🎮', Component: BreakItChallenge },
 ]
 

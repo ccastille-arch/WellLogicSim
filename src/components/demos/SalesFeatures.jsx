@@ -204,11 +204,11 @@ function getManualProductionPct(simState) {
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // 2. PRODUCTION RECOVERY COMPARISON
-// Shows the full manual workflow vs Pad Logic automatic response
+// Shows the full manual workflow vs Well Logic automatic response
 // Manual: SCADA alarm â†’ dispatch operator â†’ drive to pad â†’ diagnose â†’
 //         call out mechanic â†’ mechanic fixes comp â†’ operator returns â†’
 //         operator readjusts chokes â†’ production restored
-// Pad Logic: detects â†’ rebalances chokes automatically â†’ production protected
+// Well Logic: detects â†’ rebalances chokes automatically â†’ production protected
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export function BeforeAfterOverlay({ sim, customerData }) {
   const [manualState, setManualState] = useState({ elapsed: 0, phase: 'idle' })
@@ -427,7 +427,7 @@ function ROILine({ label, value }) {
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // 6. TIME TO FULL PRODUCTION RECOVERY
 // Manual: drive1 + diagnose + wait mechanic + fix + drive2 + readjust chokes
-// Pad Logic: 30-60 seconds automatic
+// Well Logic: 30-60 seconds automatic
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export function ResponseTimer({ sim, customerData }) {
   const [eventStart, setEventStart] = useState(null)
@@ -490,7 +490,7 @@ export function ResponseTimer({ sim, customerData }) {
 
         {/* WELLLOGIC */}
         <div className="text-center bg-[#081a08] rounded p-2 border border-[#22c55e]/20">
-          <div className="text-[8px] text-[#22c55e] font-bold mb-0.5">Pad Logic - Fully Automatic</div>
+          <div className="text-[8px] text-[#22c55e] font-bold mb-0.5">Well Logic - Fully Automatic</div>
           <div className="text-[20px] font-bold" style={{ fontFamily: "'Montserrat'", color: recovered ? '#22c55e' : '#eab308' }}>
             {recovered ? fmt(Math.min(elapsed, 60)) : fmt(elapsed)}
           </div>
@@ -522,8 +522,8 @@ export function SaturdayNightButton({ sim, customerData }) {
     setTimeout(() => { setStage('2:03 AM - C1 trips on high discharge temp.'); sim.setCompressorStatus(0, 'tripped') }, 3000)
     setTimeout(() => { setStage('2:05 AM - Suction pressure dropping. All wells losing injection.'); sim.setTotalAvailableGas(sim.state.maxGasCapacity * 0.5) }, 8000)
     setTimeout(() => { setStage('2:08 AM - Well unloads. Scrubber pressure spikes.'); sim.setStateField('scrubberPressure', sim.state.suctionTarget + 30); sim.setStateField('wellUnloadActive', true) }, 14000)
-    setTimeout(() => { setStage('Pad Logic rebalanced. Priority wells protected. Sales valve managing pressure.'); sim.setStateField('wellUnloadActive', false) }, 22000)
-    setTimeout(() => setStage(`2:${nightMin > 60 ? Math.floor(nightMin / 60) + ':' + (nightMin % 60).toString().padStart(2, '0') : nightMin} AM - Pumper finally arrives. Pad Logic handled it ${nightMin} minutes ago.`), 30000)
+    setTimeout(() => { setStage('Well Logic rebalanced. Priority wells protected. Sales valve managing pressure.'); sim.setStateField('wellUnloadActive', false) }, 22000)
+    setTimeout(() => setStage(`2:${nightMin > 60 ? Math.floor(nightMin / 60) + ':' + (nightMin % 60).toString().padStart(2, '0') : nightMin} AM - Pumper finally arrives. Well Logic handled it ${nightMin} minutes ago.`), 30000)
     setTimeout(() => setActive(false), 40000)
   }
 

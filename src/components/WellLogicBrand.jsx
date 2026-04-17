@@ -6,7 +6,7 @@ function BrandArt({ width, height, mode = 'full' }) {
   return (
     <div
       role="img"
-      aria-label="Pad Logic"
+      aria-label="Well Logic"
       style={{
         width,
         height,
@@ -37,7 +37,7 @@ export function WellLogicCompact({ size = 38 }) {
           className="text-[15px] text-white font-black uppercase tracking-[0.14em]"
           style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
         >
-          Pad Logic
+          Well Logic
         </div>
         <div className="text-[7px] uppercase tracking-[0.18em] text-[#a7a7b8] font-bold">
           The Night Crew That Never Goes Home

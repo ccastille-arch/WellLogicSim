@@ -45,6 +45,7 @@ import AdminDashboard from './components/auth/AdminDashboard'
 import { ForumButton, ForumPanel } from './components/Forum'
 import MLinkDashboard from './components/MLinkDashboard'
 import AutoPilot from './components/demos/AutoPilot'
+import SetpointChangeDemo from './components/demos/SetpointChangeDemo'
 import { WellLogicCompact } from './components/WellLogicBrand'
 
 function AppContent() {
@@ -139,6 +140,18 @@ function AppContent() {
       case 'livedata':
         return <MLinkDashboard onBack={() => setPage('home')} />
 
+      case 'setpoint-adjust':
+        // Standalone "How to remotely adjust your wells" page. Pulled
+        // out of the SalesMode sidebar so it can be surfaced as a
+        // first-class home tile.
+        return (
+          <div className="flex-1 overflow-auto" style={{ background: '#05233E' }}>
+            <div className="max-w-[1280px] mx-auto p-4">
+              <SetpointChangeDemo />
+            </div>
+          </div>
+        )
+
       case 'simulator':
         return (
           <>
@@ -164,7 +177,7 @@ function AppContent() {
   return (
     <div className="flex flex-col h-screen" style={{ background: '#05233E' }}>
       {/* Header for pages that need it */}
-      {(page === 'home' || page === 'technical' || page === 'quote' || page === 'admin' || page === 'pipeline' || page === 'livedata') && (
+      {(page === 'home' || page === 'technical' || page === 'quote' || page === 'admin' || page === 'pipeline' || page === 'livedata' || page === 'setpoint-adjust') && (
         <header
           className="flex items-center justify-between px-3 sm:px-5 py-2 sm:py-2.5 shrink-0 gap-2"
           style={{

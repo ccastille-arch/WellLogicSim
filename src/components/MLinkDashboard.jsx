@@ -240,10 +240,10 @@ export default function MLinkDashboard({ onBack }) {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg text-white font-bold flex items-center gap-2" style={{ fontFamily: "'Montserrat'" }}>
-              <span className="text-[#22c55e]">ON</span> Live Field Data - Pad Logic in Production
+              <span className="text-[#22c55e]">ON</span> Live Field Data - Well Logic in Production
             </h1>
             <p className="text-[11px] text-[#888]">
-              Real-time data from an active Pad Logic panel and compressors running in West Texas
+              Real-time data from an active Well Logic panel and compressors running in West Texas
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -265,7 +265,7 @@ export default function MLinkDashboard({ onBack }) {
       <div className="flex gap-2 px-6 py-2 bg-[#03172A] border-b border-[#293C5B] shrink-0">
         <button onClick={() => setTab('live')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'live' ? 'bg-[#D32028] text-white' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Live Data</button>
         <button onClick={() => setTab('history')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'history' ? 'bg-[#D32028] text-white' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Run History</button>
-        <button onClick={() => setTab('klondike')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'klondike' ? 'bg-[#4fc3f7] text-black' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>30-Day Field Data</button>
+        <button onClick={() => setTab('klondike')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'klondike' ? 'bg-[#4fc3f7] text-black' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Field Data History</button>
       </div>
 
       <div className="flex-1 overflow-auto p-6">
@@ -478,7 +478,7 @@ function LivePerformanceHero({ metrics, wells, timestamp }) {
   const headline = metrics.currentMatch != null && metrics.currentMatch >= 97
     ? 'Running Tight. Running On Target.'
     : metrics.currentMatch != null && metrics.currentMatch >= 93
-      ? 'Pad Logic Is Holding This Pad In Tight Balance.'
+      ? 'Well Logic Is Holding This Pad In Tight Balance.'
       : 'Live Field Data Is Tracking In Real Time.'
 
   return (
@@ -667,12 +667,19 @@ function resolvePreferredDatapoint(dataMap, labels) {
 
 function computeMatchPct(actual, desired) {
   if (actual == null || desired == null || desired <= 0) return null
-  return Math.max(0, 100 - (Math.abs(actual - desired) / desired) * 100)
+  // Meeting OR exceeding target counts as a 100% match. We only penalize
+  // under-injection — wells running hotter than their setpoint are still
+  // delivering the required gas, so they're on target by definition.
+  if (actual >= desired) return 100
+  return Math.max(0, 100 - ((desired - actual) / desired) * 100)
 }
 
 function isWithinTarget(actual, desired) {
   if (actual == null || desired == null || desired <= 0) return false
-  return Math.abs(actual - desired) <= desired * 0.03
+  // Same rule as computeMatchPct: overshoots count as on-target. Only
+  // undershoots beyond the 3% tolerance band flag as off-target.
+  if (actual >= desired) return true
+  return (desired - actual) <= desired * 0.03
 }
 
 function average(values) {
@@ -743,6 +750,16 @@ function KlondikeHistoryTab({ klondike }) {
 
   // Mini sparkline data â€” last 40 points up to cursor
   const windowData = data.slice(Math.max(0, cursor - 39), cursor + 1)
+
+  // Compute the actual span of data we have in days, rounded up so a
+  // partial day still shows as "1 day" rather than "0 days". This
+  // replaces the old hardcoded "30-Day" label so the header reflects
+  // what the user is actually looking at.
+  const firstTs = data[0]?.timestamp ? Date.parse(data[0].timestamp) : NaN
+  const lastTs = data[data.length - 1]?.timestamp ? Date.parse(data[data.length - 1].timestamp) : NaN
+  const daysOfData = Number.isFinite(firstTs) && Number.isFinite(lastTs)
+    ? Math.max(1, Math.ceil((lastTs - firstTs) / 86400_000) + 1)
+    : data.length
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'well1', label: 'Well 1' },
@@ -759,9 +776,9 @@ function KlondikeHistoryTab({ klondike }) {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>
-            Klondike COP0001 - 30-Day Field Data
+            WL0001 &mdash; {daysOfData}-Day Field Data
           </h2>
-          <p className="text-[10px] text-[#888]">{data.length} samples - 15-min intervals - {data[0]?.timestamp} to {data[data.length-1]?.timestamp}</p>
+          <p className="text-[10px] text-[#888]">{data.length} samples · 15-min intervals · {data[0]?.timestamp} to {data[data.length-1]?.timestamp}</p>
         </div>
         <div className="flex items-center gap-2">
           {tabs.map(tab => (

@@ -48,7 +48,7 @@ export default function WellPriorityDemo({ sim }) {
     <DemoPage
       sim={sim}
       title="Well Prioritization"
-      pitch="Pad Logic ensures your highest-value wells always get gas first. When supply is limited, the system protects your top producers while proportionally reducing injection to lower-priority wells."
+      pitch="Well Logic ensures your highest-value wells always get gas first. When supply is limited, the system protects your top producers while proportionally reducing injection to lower-priority wells."
       triggers={triggers}
     >
       <div className="text-[8px] text-[#888] uppercase tracking-wider font-bold mb-2">Priority Order</div>

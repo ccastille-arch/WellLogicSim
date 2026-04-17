@@ -10,8 +10,8 @@ const TUNING_PARAMS = [
     { key: 'flowResponseRate', label: 'Flow Response Rate', desc: 'How fast flow establishes through piping per tick. Higher = less piping lag.', min: 0.01, max: 0.5, step: 0.01 },
     { key: 'productionLag', label: 'Production Inertia', desc: 'How fast well production responds to injection changes. Higher = faster response.', min: 0.005, max: 0.3, step: 0.005 },
   ]},
-  { section: 'Pad Logic Control Response', params: [
-    { key: 'rebalanceRate', label: 'Pad Logic Rebalance Speed', desc: 'How fast Pad Logic corrects allocation after a disturbance. Higher = faster prioritization.', min: 0.005, max: 0.3, step: 0.005 },
+  { section: 'Well Logic Control Response', params: [
+    { key: 'rebalanceRate', label: 'Well Logic Rebalance Speed', desc: 'How fast Well Logic corrects allocation after a disturbance. Higher = faster prioritization.', min: 0.005, max: 0.3, step: 0.005 },
     { key: 'disturbanceThreshold', label: 'Disturbance Detection Threshold', desc: 'MCFD capacity change required to trigger disturbance response.', min: 5, max: 100, step: 5, unit: 'MCFD' },
   ]},
   { section: 'Compressor Response', params: [
@@ -79,23 +79,23 @@ function buildLogicSummary(state) {
   const priorityAllocation = buildPriorityAllocation(wells, effectiveGas)
 
   let modeTitle = 'Normal optimization'
-  let modeBody = `All compressors are available and Pad Logic is balancing ${formatMcfd(totalDesired)} of target demand against ${formatMcfd(effectiveGas)} of usable gas.`
+  let modeBody = `All compressors are available and Well Logic is balancing ${formatMcfd(totalDesired)} of target demand against ${formatMcfd(effectiveGas)} of usable gas.`
 
   if (onlineCompressors.length === 0) {
     modeTitle = 'Pad shutdown protection'
-    modeBody = 'No compressors are online, so Pad Logic is suspending flow control and driving wells shut to protect the site.'
+    modeBody = 'No compressors are online, so Well Logic is suspending flow control and driving wells shut to protect the site.'
   } else if ((state.startupAssistRemaining || 0) > 0) {
     modeTitle = 'Cold-start recovery'
-    modeBody = `The pad is recovering from zero-flow conditions, so Pad Logic is holding the first ${startupAssistCount} priority well(s) near a fixed choke while compressor throughput stabilizes.`
+    modeBody = `The pad is recovering from zero-flow conditions, so Well Logic is holding the first ${startupAssistCount} priority well(s) near a fixed choke while compressor throughput stabilizes.`
   } else if (shortage > 5) {
     modeTitle = 'Gas constrained prioritization'
-    modeBody = `Demand is ${formatMcfd(totalDesired)} but only ${formatMcfd(effectiveGas)} is available. Pad Logic is protecting higher-priority wells first and trimming lower-priority wells.`
+    modeBody = `Demand is ${formatMcfd(totalDesired)} but only ${formatMcfd(effectiveGas)} is available. Well Logic is protecting higher-priority wells first and trimming lower-priority wells.`
   } else if (state.wellUnloadActive) {
     modeTitle = 'Unload event response'
-    modeBody = 'A well unload event is active, so Pad Logic is protecting header pressure while the upset clears.'
+    modeBody = 'A well unload event is active, so Well Logic is protecting header pressure while the upset clears.'
   } else if ((state.salesValvePosition || 0) > 5 || (state.suctionHeaderPressure || 0) > suctionUpperLimit) {
     modeTitle = 'Pressure override active'
-    modeBody = 'Header pressure is elevated, so Pad Logic is using override logic to bleed pressure and keep the pad inside its operating window.'
+    modeBody = 'Header pressure is elevated, so Well Logic is using override logic to bleed pressure and keep the pad inside its operating window.'
   }
 
   const constraints = []
@@ -138,13 +138,13 @@ function buildLogicSummary(state) {
       let reason = `${well.name} is still moving back toward target after a recent change in pad conditions.`
 
       if (onlineCompressors.length === 0) {
-        reason = `${well.name} is red because no compressors are online, so Pad Logic has shut the well in.`
+        reason = `${well.name} is red because no compressors are online, so Well Logic has shut the well in.`
       } else if ((state.startupAssistRemaining || 0) > 0 && !startupAssistIds.has(well.id)) {
         reason = `${well.name} is red because startup assist is giving the first priority wells the minimum flow needed to restart the pad before this well is allowed back up.`
       } else if (allocated <= 5) {
-        reason = `${well.name} is red because available gas is short by ${formatMcfd(shortage)}, so Pad Logic is fully closing this lower-priority well to protect more important wells.`
+        reason = `${well.name} is red because available gas is short by ${formatMcfd(shortage)}, so Well Logic is fully closing this lower-priority well to protect more important wells.`
       } else if (allocated < desired - 5) {
-        reason = `${well.name} is red because Pad Logic has trimmed its target to ${formatMcfd(allocated)} while higher-priority wells consume the limited gas.`
+        reason = `${well.name} is red because Well Logic has trimmed its target to ${formatMcfd(allocated)} while higher-priority wells consume the limited gas.`
       } else if (state.wellUnloadActive) {
         reason = `${well.name} is red because the pad is riding through an unload event and the well has not fully recovered yet.`
       } else if ((state.salesValvePosition || 0) > 5) {
@@ -165,7 +165,7 @@ function buildLogicSummary(state) {
 
     if (compressor.personnelLockout) {
       status = 'Lockout'
-      detail = `${compressor.name} is in personnel lockout, so Pad Logic must ignore it for remote optimization actions.`
+      detail = `${compressor.name} is in personnel lockout, so Well Logic must ignore it for remote optimization actions.`
     } else if (!isCompressorOnline(compressor)) {
       status = 'Offline'
       detail = `${compressor.name} is offline, so the remaining compressors must absorb its share of the pad flow.`
@@ -313,7 +313,7 @@ export default function AdminPanel({ state, onFieldChange, onClose }) {
             </div>
             <button onClick={onClose} className="text-[#888] hover:text-white text-lg">X</button>
           </div>
-          <p className="text-[10px] text-[#666] mt-1">Adjust response rates and timing, and see why Pad Logic is taking each action.</p>
+          <p className="text-[10px] text-[#666] mt-1">Adjust response rates and timing, and see why Well Logic is taking each action.</p>
         </div>
 
         <div className="p-4 space-y-4">
@@ -368,7 +368,7 @@ export default function AdminPanel({ state, onFieldChange, onClose }) {
             <div className="text-[9px] text-[#D32028] uppercase tracking-wider font-bold mb-2">Why It Is Red</div>
             {logicSummary.redWellReasons.length === 0 ? (
               <div className="rounded border border-[#1f4d30] bg-[#0d1d14] px-2.5 py-2 text-[10px] text-[#86efac]">
-                No wells are red right now. Pad Logic currently has the pad inside target conditions.
+                No wells are red right now. Well Logic currently has the pad inside target conditions.
               </div>
             ) : (
               <div className="space-y-2">

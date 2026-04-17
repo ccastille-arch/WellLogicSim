@@ -94,7 +94,7 @@ export default function SuctionPressureDemo({ sim }) {
     <DemoPage
       sim={sim}
       title="Suction Pressure Management"
-      pitch="Pad Logic maintains stable suction pressure - the foundation of reliable compression. The system continuously adjusts compressor speeds and staging to keep suction within the operating window, preventing both high-pressure events and low-suction shutdowns."
+      pitch="Well Logic maintains stable suction pressure - the foundation of reliable compression. The system continuously adjusts compressor speeds and staging to keep suction within the operating window, preventing both high-pressure events and low-suction shutdowns."
       triggers={triggers}
       metrics={metrics}
     />

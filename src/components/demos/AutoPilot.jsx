@@ -45,16 +45,16 @@ const SCRIPT = [
   },
   {
     phase: 'trip',
-    title: 'Without Pad Logic',
-    say: "Without Pad Logic, this is where your pumper gets a call. Forty five minutes to drive out. Another hour to diagnose and wait on a mechanic. Then he has to drive back out again just to readjust the chokes. That's three to four hours of lost production across every well on your pad.",
+    title: 'Without Well Logic',
+    say: "Without Well Logic, this is where your pumper gets a call. Forty five minutes to drive out. Another hour to diagnose and wait on a mechanic. Then he has to drive back out again just to readjust the chokes. That's three to four hours of lost production across every well on your pad.",
     presenterNote: 'This is the pain point. Let it sink in.',
     action: null,
     duration: 12000,
   },
   {
     phase: 'trip',
-    title: 'Pad Logic Responds',
-    say: "But watch what Pad Logic does. It's already detected the shortfall. It's closing chokes on your lower priority wells and redirecting all available gas to your top producers.",
+    title: 'Well Logic Responds',
+    say: "But watch what Well Logic does. It's already detected the shortfall. It's closing chokes on your lower priority wells and redirecting all available gas to your top producers.",
     presenterNote: 'Point to wells 1 and 2 recovering to green while 3 and 4 stay curtailed.',
     action: null,
     duration: 10000,
@@ -89,7 +89,7 @@ const SCRIPT = [
   {
     phase: 'constrain',
     title: 'Priority Enforcement',
-    say: "Pad Logic automatically protects your highest value wells. Your number one well gets every bit of gas it needs. The lower priority wells get what's left. You're not losing production equally across the board anymore — your best wells are always protected.",
+    say: "Well Logic automatically protects your highest value wells. Your number one well gets every bit of gas it needs. The lower priority wells get what's left. You're not losing production equally across the board anymore — your best wells are always protected.",
     presenterNote: 'Point to W1 staying green, W3/W4 going red. This is prioritization.',
     action: null,
     duration: 12000,
@@ -119,8 +119,8 @@ const SCRIPT = [
   },
   {
     phase: 'unload',
-    title: 'Pad Logic Handles It',
-    say: "Pad Logic detected that pressure spike instantly. It opened the sales valve to relieve pressure and kept your compressors running. No shutdown. No lost production. No middle of the night phone call.",
+    title: 'Well Logic Handles It',
+    say: "Well Logic detected that pressure spike instantly. It opened the sales valve to relieve pressure and kept your compressors running. No shutdown. No lost production. No middle of the night phone call.",
     presenterNote: 'Point to sales valve opening, pressure stabilizing. Compressors still green.',
     action: null,
     duration: 10000,
@@ -141,7 +141,7 @@ const SCRIPT = [
   {
     phase: 'close',
     title: 'ROI',
-    say: "Based on your pad size and the event frequency you told us about, Pad Logic typically pays for itself in sixty to ninety days. After that, it's pure upside.",
+    say: "Based on your pad size and the event frequency you told us about, Well Logic typically pays for itself in sixty to ninety days. After that, it's pure upside.",
     presenterNote: 'If they entered their numbers in the questionnaire, the ROI is calculated. Reference it.',
     action: null,
     duration: 8000,
@@ -149,7 +149,7 @@ const SCRIPT = [
   {
     phase: 'close',
     title: 'Questions',
-    say: "That's Pad Logic. What questions do you have?",
+    say: "That's Well Logic. What questions do you have?",
     presenterNote: 'Stop here. Let them talk. This is where deals happen.',
     action: null,
     duration: 0, // stays here
@@ -201,28 +201,51 @@ export default function AutoPilot({ sim, onExit }) {
     audio.play().catch(() => {})
   }
 
+  // Keep the simulation clock in lock-step with the narration controls.
+  // Without this, pausing/jumping the narration freezes the teleprompter
+  // words but the underlying simulation keeps ticking, so by the time
+  // the presenter resumes the visual no longer matches what they just
+  // described. Every narration control must also stop (or restart) the
+  // sim's internal tick loop.
+  const pauseSim = () => {
+    if (sim.running) sim.toggleRunning()
+  }
+  const resumeSim = () => {
+    if (!sim.running) sim.toggleRunning()
+  }
+
   const start = () => {
     startUploadedAudio()
+    resumeSim()
     advanceStep(0)
   }
   const pause = () => {
     setPaused(true)
     clearTimeout(timerRef.current)
     audioRef.current?.pause()
+    pauseSim()
   }
   const resume = () => {
     setPaused(false)
     audioRef.current?.play().catch(() => {})
+    resumeSim()
     if (step >= 0 && currentStep) scheduleAdvance(step, currentStep.duration)
   }
   const next = () => {
     clearTimeout(timerRef.current)
     stopUploadedAudio()
+    // Manual navigation pauses the sim so the visible state lines up
+    // with the narration tile the presenter jumped to. Presenter can
+    // click Resume to let it continue.
+    setPaused(true)
+    pauseSim()
     advanceStep(Math.min(step + 1, SCRIPT.length - 1))
   }
   const prev = () => {
     clearTimeout(timerRef.current)
     stopUploadedAudio()
+    setPaused(true)
+    pauseSim()
     advanceStep(Math.max(step - 1, 0))
   }
 
@@ -256,7 +279,7 @@ export default function AutoPilot({ sim, onExit }) {
       <div className="flex items-center justify-between px-4 py-2 bg-[#03172A] border-b border-[#293C5B] shrink-0">
         <div className="flex items-center gap-3">
           <WellLogicCompact size={32} />
-          <span className="text-sm text-white" style={{ fontFamily: "'Montserrat'" }}>Pad Logic Presentation</span>
+          <span className="text-sm text-white" style={{ fontFamily: "'Montserrat'" }}>Well Logic Presentation</span>
         </div>
         <div className="flex items-center gap-2">
           {step >= 0 && (
@@ -285,7 +308,7 @@ export default function AutoPilot({ sim, onExit }) {
             <div className="flex justify-center mb-4">
               <WellLogicCompact size={56} />
             </div>
-            <div className="text-4xl text-white font-bold mb-3" style={{ fontFamily: "'Montserrat'" }}>Pad Logic</div>
+            <div className="text-4xl text-white font-bold mb-3" style={{ fontFamily: "'Montserrat'" }}>Well Logic</div>
             <div className="text-sm text-[#888] mb-8">Automated Gas Lift Injection Optimization</div>
             {isAdmin && (
               <>
@@ -333,8 +356,13 @@ export default function AutoPilot({ sim, onExit }) {
       ) : (
         /* PRESENTATION */
         <div className="flex-1 flex overflow-hidden min-h-0">
-          {/* Live diagram */}
-          <div className="flex-1 min-h-0 min-w-0 overflow-hidden relative">
+          {/* Live diagram — overflow-auto so the SiteOverview SVG is
+               never clipped on the left edge when the presenter panel
+               takes its 320 px. SiteOverview preserves aspect ratio via
+               xMidYMid meet, but on narrow viewports the meet-fit can
+               still shave pixels off the outer labels; letting users
+               scroll is safer than losing content. */}
+          <div className="flex-1 min-h-0 min-w-0 overflow-auto relative">
             <SiteOverview state={sim.state} config={sim.state.config} />
             {/* Reset button */}
             <button onClick={() => {

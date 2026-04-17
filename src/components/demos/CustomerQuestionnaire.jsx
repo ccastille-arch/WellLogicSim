@@ -43,9 +43,9 @@ export const INDUSTRY_RATES = {
   avgUnatendedDowntime: 3, // hours
   // Production loss during constraint events (% of pad production affected)
   constraintProductionLoss: 0.25, // 25% of production typically affected
-  // Pad Logic recovery rate (% of lost production saved vs manual)
+  // Well Logic recovery rate (% of lost production saved vs manual)
   wellLogicRecoveryPct: 0.85, // saves 85% of what would be lost
-  // Avoided site visits per week with Pad Logic (reduces unnecessary trips)
+  // Avoided site visits per week with Well Logic (reduces unnecessary trips)
   avoidedVisitsPct: 0.30, // reduces trips by 30%
 }
 
@@ -67,10 +67,10 @@ export default function CustomerQuestionnaire({ data, onChange, onComplete }) {
             <WellLogicCompact size={42} />
           </div>
           <h1 className="text-xl text-white mt-2" style={{ fontFamily: "'Montserrat'" }}>
-            Pad Logic Custom Demo Setup
+            Well Logic Custom Demo Setup
           </h1>
           <p className="text-[12px] text-[#888] mt-1">
-            Answer a few questions about your operation so we can show you exactly how Pad Logic performs on your pad.
+            Answer a few questions about your operation so we can show you exactly how Well Logic performs on your pad.
           </p>
         </div>
 

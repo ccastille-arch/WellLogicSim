@@ -1,9 +1,9 @@
 ﻿import { useState } from 'react'
 
 const SHEETS = [
-  { id: 'overview', title: 'Pad Logic TM Product Overview', desc: 'One-page overview of Pad Logic capabilities for gas lift optimization.' },
+  { id: 'overview', title: 'Well Logic TM Product Overview', desc: 'One-page overview of Well Logic capabilities for gas lift optimization.' },
   { id: 'roi', title: 'ROI Analysis Template', desc: 'Customizable ROI breakdown based on pad configuration and operational data.' },
-  { id: 'comparison', title: 'Manual vs Pad Logic Comparison', desc: 'Side-by-side comparison of manual operations vs Pad Logic automation.' },
+  { id: 'comparison', title: 'Manual vs Well Logic Comparison', desc: 'Side-by-side comparison of manual operations vs Well Logic automation.' },
   { id: 'specs', title: 'Technical Specifications', desc: 'Panel specifications, I/O counts, communication protocols, and certifications.' },
 ]
 
@@ -57,7 +57,7 @@ function SheetPage({ children }) {
           <div className="text-[10px] text-gray-500 tracking-wider">SERVICE COMPRESSION</div>
         </div>
         <div className="text-right">
-          <div className="text-sm font-bold" style={{ fontFamily: "'Montserrat'" }}>Pad Logic TM</div>
+          <div className="text-sm font-bold" style={{ fontFamily: "'Montserrat'" }}>Well Logic TM</div>
           <div className="text-[10px] text-gray-500">Gas Lift Optimization</div>
         </div>
       </div>
@@ -74,7 +74,7 @@ function SheetPage({ children }) {
 function OverviewSheet() {
   return (
     <SheetPage>
-      <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "'Montserrat'" }}>Pad Logic TM Pad Optimization</h1>
+      <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "'Montserrat'" }}>Well Logic TM Pad Optimization</h1>
       <p className="text-sm text-gray-600 mb-6">Automated gas lift injection control for maximum production uptime.</p>
 
       <div className="grid grid-cols-2 gap-6 mb-6">
@@ -106,8 +106,8 @@ function OverviewSheet() {
         <h3 className="text-sm font-bold mb-2">How It Works - The Loop</h3>
         <div className="text-[11px] text-gray-600 leading-relaxed">
           Wells produce to Production header to HP Scrubber/Separator to Gas recirculates to Suction header to
-          Compressors to Discharge header to Injection chokes (Pad Logic controlled) to Flow meters to Back to wells.
-          Pad Logic sits at the center, controlling the choke valves and monitoring every pressure, flow, and compressor in real-time.
+          Compressors to Discharge header to Injection chokes (Well Logic controlled) to Flow meters to Back to wells.
+          Well Logic sits at the center, controlling the choke valves and monitoring every pressure, flow, and compressor in real-time.
         </div>
       </div>
     </SheetPage>
@@ -118,7 +118,7 @@ function ROISheet() {
   return (
     <SheetPage>
       <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "'Montserrat'" }}>ROI Analysis</h1>
-      <p className="text-sm text-gray-600 mb-6">Estimated annual savings from Pad Logic deployment.</p>
+      <p className="text-sm text-gray-600 mb-6">Estimated annual savings from Well Logic deployment.</p>
 
       <table className="w-full text-[11px] mb-6">
         <thead><tr className="border-b-2 border-[#D32028]">
@@ -145,13 +145,13 @@ function ROISheet() {
 function ComparisonSheet() {
   return (
     <SheetPage>
-      <h1 className="text-2xl font-bold mb-4" style={{ fontFamily: "'Montserrat'" }}>Manual vs Pad Logic</h1>
+      <h1 className="text-2xl font-bold mb-4" style={{ fontFamily: "'Montserrat'" }}>Manual vs Well Logic</h1>
 
       <table className="w-full text-[11px]">
         <thead><tr className="border-b-2 border-gray-300">
           <th className="text-left py-2 w-1/3">Scenario</th>
           <th className="text-left py-2 w-1/3 text-[#D32028]">Manual Operations</th>
-          <th className="text-left py-2 w-1/3 text-[#22c55e]">With Pad Logic</th>
+          <th className="text-left py-2 w-1/3 text-[#22c55e]">With Well Logic</th>
         </tr></thead>
         <tbody className="text-gray-700">
           {[

@@ -4,7 +4,7 @@ import { getMetrics, GAS_SUPPLY_UI_MAX } from '../../engine/simulation'
 
 // "BREAK IT" CHALLENGE
 // Give the customer every slider and button. Dare them to crash the system.
-// Pad Logic handles it all. The lightbulb moment: "I literally cannot break this thing."
+// Well Logic handles it all. The lightbulb moment: "I literally cannot break this thing."
 
 export default function BreakItChallenge({ sim }) {
   const m = getMetrics(sim.state)
@@ -34,7 +34,7 @@ export default function BreakItChallenge({ sim }) {
               <span className="text-2xl">BC</span> Break It Challenge
             </h2>
             <p className="text-[11px] text-[#888] mt-0.5">
-              Go ahead - try to crash the system. Every slider and button is yours. Pad Logic handles it all.
+              Go ahead - try to crash the system. Every slider and button is yours. Well Logic handles it all.
             </p>
           </div>
           <div className="flex gap-3">
@@ -215,7 +215,7 @@ export default function BreakItChallenge({ sim }) {
         <Metric label="Wells OK" value={`${m.wellsAtTarget}/${m.wellsTotal}`}
           color={m.wellsAtTarget === m.wellsTotal ? '#22c55e' : '#D32028'} />
         <div className="ml-auto text-[10px] text-[#555]">
-          Break it and watch Pad Logic handle it
+          Break it and watch Well Logic handle it
         </div>
       </div>
     </div>
