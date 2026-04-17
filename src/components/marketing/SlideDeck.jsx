@@ -144,9 +144,9 @@ function HowItWorksSlide() {
           <span key={i} className={item === 'to' ? 'text-[#D32028] text-lg' : 'bg-[#293C5B] px-3 py-1.5 rounded text-white font-bold'}>{item}</span>
         ))}
       </div>
-      <div className="mt-6 text-[13px] text-[#888] text-center max-w-[600px]">
-        Well Logic controls the <span className="text-[#D32028] font-bold">choke valves</span> - the injection point for each well.
-        It monitors every pressure, flow, and compressor status in real-time and makes decisions in milliseconds.
+      <div className="mt-6 text-[13px] text-[#888] text-center max-w-[640px]">
+        Well Logic reads every pressure, flow, and compressor status in real time &mdash; and <span className="text-[#D32028] font-bold">directs every piece of the loop in sync</span>.
+        Choke valves, compressor stages, suction-header pressure, recirculation routing: every component runs the same play, every decision lands in milliseconds.
       </div>
     </S>
   )
