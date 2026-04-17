@@ -278,6 +278,17 @@ body {
   animation: huntPulse 1.5s ease-in-out infinite;
 }
 
+/* sim-paused — applied by AutoPilot when the presenter pauses the
+   narration. Kills every CSS-driven motion on the diagram (flow dashes
+   and hunt pulse) so the pad visually freezes the same instant the sim
+   clock stops. Without this the flow-line dashes would keep marching
+   and make the pause feel like it didn't take. */
+.sim-paused .flow-line-animated,
+.sim-paused .flow-line-animated-reverse,
+.sim-paused .hunt-indicator {
+  animation: none !important;
+}
+
 /* Sidebar scrollbar */
 .sidebar-scroll::-webkit-scrollbar         { width: 6px; }
 .sidebar-scroll::-webkit-scrollbar-track   { background: #05233E; }

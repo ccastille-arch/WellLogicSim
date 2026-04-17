@@ -164,6 +164,16 @@ export default function AutoPilot({ sim, onExit }) {
   const timerRef = useRef(null)
   const audioRef = useRef(null)
 
+  // Mirror `paused` into a ref so the setTimeout inside scheduleAdvance
+  // always reads the LATEST value when it fires, not the closure from
+  // the render when it was scheduled. Without this, clicking Next
+  // would pause the sim correctly but the auto-advance timer set by
+  // the new step would still fire seconds later (its closure thinks
+  // paused is still false), making it look like the sim is still
+  // progressing on its own.
+  const pausedRef = useRef(false)
+  useEffect(() => { pausedRef.current = paused }, [paused])
+
   const currentStep = step >= 0 && step < SCRIPT.length ? SCRIPT[step] : null
   const m = getMetrics(sim.state)
 
@@ -171,7 +181,7 @@ export default function AutoPilot({ sim, onExit }) {
     if (duration <= 0) return
     clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => {
-      if (!paused) advanceStep(nextStep + 1)
+      if (!pausedRef.current) advanceStep(nextStep + 1)
     }, duration)
   }
 
@@ -358,12 +368,48 @@ export default function AutoPilot({ sim, onExit }) {
         <div className="flex-1 flex overflow-hidden min-h-0">
           {/* Live diagram — overflow-auto so the SiteOverview SVG is
                never clipped on the left edge when the presenter panel
-               takes its 320 px. SiteOverview preserves aspect ratio via
-               xMidYMid meet, but on narrow viewports the meet-fit can
-               still shave pixels off the outer labels; letting users
-               scroll is safer than losing content. */}
-          <div className="flex-1 min-h-0 min-w-0 overflow-auto relative">
+               takes its 320 px. When paused, the `sim-paused` class
+               freezes the CSS flow-line animations so there's no
+               visual motion at all (matches the sim's internal pause)
+               and a PAUSED overlay makes the state unmistakable. */}
+          <div className={`flex-1 min-h-0 min-w-0 overflow-auto relative ${paused ? 'sim-paused' : ''}`}>
             <SiteOverview state={sim.state} config={sim.state.config} />
+            {paused && (
+              <div
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  top: 16,
+                  left: 16,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '6px 14px',
+                  background: 'rgba(211, 32, 40, 0.92)',
+                  border: '1px solid rgba(255,255,255,0.4)',
+                  borderRadius: 2,
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 800,
+                  fontSize: 11,
+                  letterSpacing: 2,
+                  textTransform: 'uppercase',
+                  color: '#FFFFFF',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+                  zIndex: 5,
+                }}
+              >
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: 8,
+                    height: 8,
+                    background: '#FFFFFF',
+                    borderRadius: 1,
+                  }}
+                />
+                Simulation Paused
+              </div>
+            )}
             {/* Reset button */}
             <button onClick={() => {
               sim.state.compressors.forEach(c => sim.setCompressorStatus(c.id, 'running'))

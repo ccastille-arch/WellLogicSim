@@ -93,17 +93,34 @@ router.post('/login', async (req, res) => {
   res.json({ token, user: userResponse(fullUser || user) })
 })
 
-// POST /api/auth/signup  (first name + last name as password)
+// POST /api/auth/signup  (first name + last name)
+//
+// The signup UX uses first name as the username field and last name as
+// the "password" field, but per the product decision this is for
+// AUDITING, not protection — two people named "Cody" working in two
+// different basins must each be able to have their own account.
+//
+// The unique identity is therefore the {firstName, lastName} pair. We
+// key users by a composite username (`firstname.lastname`, lowercased
+// and whitespace-collapsed) so Cody Smith and Cody Jones coexist. The
+// bare-firstName collision path the prior implementation used is gone.
+//
+// Legacy accounts (pre-composite) are still supported: if we don't find
+// the composite username but we DO find a bare firstName account whose
+// stored last name matches the submitted last name, we log them into
+// that legacy account. Same person, continuous history.
 router.post('/signup', async (req, res) => {
   const { firstName, lastName } = req.body
   const fn = (firstName || '').trim()
   const ln = (lastName || '').trim()
   if (!fn || !ln) return res.status(400).json({ error: 'First and last name required' })
 
-  const username = normalizeUsername(fn)
+  const composite = `${fn.toLowerCase()}.${ln.toLowerCase()}`.replace(/\s+/g, '-')
+  const legacyUsername = normalizeUsername(fn)
   const name = `${fn} ${ln}`
 
-  const { rows } = await pool.query(
+  // ── Path 1: exact composite match → log into that account ──
+  const { rows: compRows } = await pool.query(
     `SELECT
        username,
        password,
@@ -113,29 +130,68 @@ router.post('/signup', async (req, res) => {
        name
      FROM users
      WHERE LOWER(username) = LOWER($1)`,
-    [username]
+    [composite]
   )
-  const existing = rows[0]
-
-  if (existing) {
-    const existingHash = existing.password || existing.password_hash
-    const match = existingHash ? await bcrypt.compare(ln.toLowerCase(), existingHash) : false
-    if (!match) return res.status(409).json({ error: 'Username taken. Try logging in instead.' })
+  if (compRows[0]) {
+    const existing = compRows[0]
     const token = makeToken()
     await createSession(token, existing.username)
+    await pool.query(
+      "INSERT INTO activity (username, user_name, action) VALUES ($1, $2, 'Logged in')",
+      [existing.username, existing.name]
+    ).catch(() => {})
     const fullUser = await getUserFromToken(token)
     return res.json({ token, user: userResponse(fullUser || existing) })
   }
 
+  // ── Path 2: legacy first-name-only account with matching last name ──
+  // Accepts either stored first_name/last_name columns OR the old
+  // bcrypt(lastName) password as evidence of the same person.
+  const { rows: legacyRows } = await pool.query(
+    `SELECT
+       username,
+       password,
+       password_hash,
+       first_name,
+       last_name,
+       COALESCE(role, role_id, 'viewer') AS role,
+       COALESCE(role_id, role, 'viewer') AS role_id,
+       name
+     FROM users
+     WHERE LOWER(username) = LOWER($1)`,
+    [legacyUsername]
+  )
+  if (legacyRows[0]) {
+    const legacy = legacyRows[0]
+    const legacyLast = (legacy.last_name || '').toLowerCase()
+    const legacyHash = legacy.password || legacy.password_hash
+    const bcryptMatch = legacyHash ? await bcrypt.compare(ln.toLowerCase(), legacyHash) : false
+    if (legacyLast === ln.toLowerCase() || bcryptMatch) {
+      const token = makeToken()
+      await createSession(token, legacy.username)
+      await pool.query(
+        "INSERT INTO activity (username, user_name, action) VALUES ($1, $2, 'Logged in')",
+        [legacy.username, legacy.name]
+      ).catch(() => {})
+      const fullUser = await getUserFromToken(token)
+      return res.json({ token, user: userResponse(fullUser || legacy) })
+    }
+    // Legacy user exists but last name doesn't match. That's a
+    // DIFFERENT person who shares the first name — fall through and
+    // create a new composite-username account for them below. We do
+    // NOT reject here; allowing duplicates is the whole point.
+  }
+
+  // ── Path 3: create a fresh account on the composite username ──
   const hash = await bcrypt.hash(ln.toLowerCase(), 10)
-  const identity = buildIdentityFields(username, name, 'viewer', fn, ln)
+  const identity = buildIdentityFields(composite, name, 'viewer', fn, ln)
   await pool.query(
     `INSERT INTO users (
        username, password, password_hash, role, role_id, name, email,
        sso_sub, sso_role, platform_role, is_active, first_name, last_name, updated_at
      ) VALUES ($1, $2, $2, $3, $3, $4, $5, $6, $7, $8, TRUE, $9, $10, NOW())`,
     [
-      username,
+      composite,
       hash,
       'viewer',
       identity.name,
@@ -148,14 +204,14 @@ router.post('/signup', async (req, res) => {
     ]
   )
   const token = makeToken()
-  await createSession(token, username)
+  await createSession(token, composite)
   await pool.query(
     "INSERT INTO activity (username, user_name, action) VALUES ($1, $2, 'Created account & logged in')",
-    [username, name]
+    [composite, name]
   )
 
   const fullUser = await getUserFromToken(token)
-  res.status(201).json({ token, user: userResponse(fullUser || { username, role: 'viewer', role_id: 'viewer', name, permissions: [] }) })
+  res.status(201).json({ token, user: userResponse(fullUser || { username: composite, role: 'viewer', role_id: 'viewer', name, permissions: [] }) })
 })
 
 // POST /api/auth/logout

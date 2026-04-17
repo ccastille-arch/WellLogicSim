@@ -178,19 +178,7 @@ export default function MLinkDashboard({ onBack }) {
     ]),
   )
   const compressorActualFlowDatapoints = [compA, compB].map((compressorData) =>
-    resolvePreferredDatapoint(compressorData, [
-      // The Centurion C5 over CAN CCP publishes the actual compressor
-      // flow as plain 'Flow Rate' (register 400656). That's the real
-      // field name — the *_PID_PV variants are historical aliases that
-      // don't match the live MLink payload, so 'Flow Rate' must come
-      // first or the Compressor Flow Match card (and CompressorCard
-      // actual-flow display) will go blank.
-      'Flow Rate',
-      'Flow Rate PID PV',
-      'Flow Rate PV',
-      'Flow PID PV',
-      'Compressor Flow Rate PID PV',
-    ]),
+    findCompressorActualFlow(compressorData),
   )
   const liveWellPerformance = LIVE_WELL_FLOW_KEYS.map((keys, index) => {
     const wellNumber = index + 1
@@ -223,6 +211,15 @@ export default function MLinkDashboard({ onBack }) {
   const validWells = liveWellPerformance.filter(well => well.actual != null && well.desired != null)
   const historicalStats = buildHistoricalWellStats(klondike.data)
   const historicalAtTarget = average(historicalStats.map(stat => stat.atTargetPct))
+  // Surface where each compressor's actual-flow reading came from so
+  // the Compressor Flow Match card can show a visible "Reading from:
+  // <label>" note. When no label matched, the card lists a sample of
+  // the actually-available keys so the engineer can add the right one.
+  const compressorFlowSources = compressorActualFlowDatapoints.map((dp) => dp?.keyUsed || null)
+  const compressorSampleKeys = [compA, compB].map((data) => (
+    data ? Object.keys(data).filter(k => /flow|rate|pv/i.test(k)).slice(0, 6) : []
+  ))
+
   const wowMetrics = {
     totalActual: validWells.reduce((sum, well) => sum + well.actual, 0),
     totalDesired: validWells.reduce((sum, well) => sum + well.desired, 0),
@@ -231,6 +228,8 @@ export default function MLinkDashboard({ onBack }) {
     historicalAtTarget,
     historicalUnderTarget: historicalAtTarget != null ? Math.max(0, 100 - historicalAtTarget) : null,
     compressorMatch: average(liveCompressorPerformance.map(comp => computeMatchPct(comp.actual, comp.desired))),
+    compressorFlowSources,
+    compressorSampleKeys,
   }
 
   return (
@@ -526,7 +525,7 @@ function LivePerformanceHero({ metrics, wells, timestamp }) {
               label="Compressor Flow Match"
               value={formatPercent(metrics.compressorMatch, 1)}
               tone="purple"
-              helper="Desired flow vs actual compressor flow"
+              helper={buildCompressorFlowHelper(metrics)}
             />
           </div>
         </div>
@@ -657,11 +656,97 @@ function parseLiveNumeric(value) {
   return Number.isFinite(numeric) ? numeric : null
 }
 
+/**
+ * Build the helper line under the Compressor Flow Match KPI. When the
+ * flow read succeeded we show which label won (useful for debugging
+ * across device catalogs). When it failed we surface a sample of the
+ * flow/rate keys that ARE in the payload so the engineer can wire the
+ * correct one next time without guessing.
+ */
+function buildCompressorFlowHelper(metrics) {
+  const sources = metrics?.compressorFlowSources || []
+  const samples = metrics?.compressorSampleKeys || []
+  const matched = sources.filter(Boolean)
+  if (matched.length > 0) {
+    const unique = [...new Set(matched)]
+    return `Reading from: ${unique.join(' / ')}`
+  }
+  const available = [...new Set(samples.flat())].filter(Boolean)
+  if (available.length > 0) {
+    return `No flow-rate label matched. Available: ${available.slice(0, 4).join(', ')}`
+  }
+  return 'Compressor data not loaded yet — check MLink connectivity.'
+}
+
 function resolvePreferredDatapoint(dataMap, labels) {
   for (const label of labels) {
     const datapoint = findRegisterDatapoint(dataMap, { label, decimals: 3 })
     if (datapoint) return datapoint
   }
+  return null
+}
+
+/**
+ * Compressor actual-flow resolver with a progressive fallback chain.
+ * Explicit label lookups keep missing real field deployments because the
+ * MLink register catalogs vary across Centurion / Ariel / Caterpillar
+ * devices (e.g. "Flow Rate", "Flow Rate PID PV", "Stage 3 Flow Rate",
+ * "Compressor Flow Rate", etc.). This function tries:
+ *
+ *   1. The known-good explicit labels (Flow Rate first — that's the
+ *      Centurion C5 over CAN CCP spelling at register 400656).
+ *   2. Fuzzy regex scan over every datapoint label whose key looks
+ *      flow-rate-ish AND has a positive numeric reading. Matches
+ *      variants we haven't explicitly listed.
+ *   3. Null — but the UI exposes `keyUsed` so the presenter can see
+ *      which label won the match, or that none did.
+ *
+ * Returning null is never silent — the Compressor Flow Match card and
+ * the per-compressor CompressorCard both render a short "looked for"
+ * hint so the user can feed the right label back to the engineer.
+ */
+function findCompressorActualFlow(compressorData) {
+  if (!compressorData) return null
+
+  const explicit = resolvePreferredDatapoint(compressorData, [
+    'Flow Rate',
+    'Flow Rate PID PV',
+    'Flow Rate PV',
+    'Flow PID PV',
+    'Compressor Flow Rate PID PV',
+    'Compressor Flow Rate',
+    'Discharge Flow Rate',
+    'Actual Flow Rate',
+    'Gas Flow Rate',
+    'Flow',
+  ])
+  if (explicit) return explicit
+
+  // Fuzzy scan — anything containing "flow" + "rate" (any order, any
+  // separators) with a usable numeric value. Case-insensitive. This is
+  // the belt-and-suspenders net for register names we haven't seen.
+  const isFlowLabel = (key) => /flow.*rate|flow_rate|flowrate/i.test(key)
+  for (const [key, dp] of Object.entries(compressorData)) {
+    if (!isFlowLabel(key)) continue
+    if (dp?.value == null) continue
+    const n = parseLiveNumeric(dp.value)
+    if (n != null && n >= 0) return { ...dp, keyUsed: key }
+  }
+  // Last resort: any label containing "flow" with a numeric value,
+  // preferring the largest (main flow > stage flows > temperatures).
+  let bestKey = null
+  let bestVal = -Infinity
+  for (const [key, dp] of Object.entries(compressorData)) {
+    if (!/flow/i.test(key)) continue
+    if (dp?.value == null) continue
+    const n = parseLiveNumeric(dp.value)
+    if (n != null && Number.isFinite(n) && n > bestVal) {
+      bestVal = n
+      bestKey = key
+    }
+  }
+  if (bestKey) return { ...compressorData[bestKey], keyUsed: bestKey }
+
   return null
 }
 
