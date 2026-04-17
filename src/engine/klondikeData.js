@@ -227,13 +227,23 @@ export function useKlondikeData() {
     }
 
     // Keep the API rows fresh — CSV is static so we only refetch live.
+    // Any throw here bubbles as an unhandled promise rejection and
+    // can crash the enclosing page, so the whole block is guarded.
     const refresh = setInterval(async () => {
-      const [csvRows, apiRows] = [await fetchCsvBaseline(), await fetchLiveHistory()]
-      if (cancelled) return
-      const merged = mergeByTimestamp(csvRows, apiRows)
-      _cachedData = merged
-      _cachedFetchedAt = Date.now()
-      setData(merged)
+      try {
+        const [csvRows, apiRows] = [await fetchCsvBaseline(), await fetchLiveHistory()]
+        if (cancelled) return
+        const merged = mergeByTimestamp(csvRows, apiRows)
+        _cachedData = merged
+        _cachedFetchedAt = Date.now()
+        setData(merged)
+      } catch (err) {
+        // Best-effort — stale data is better than a crashed page.
+        if (typeof console !== 'undefined') {
+          // eslint-disable-next-line no-console
+          console.warn('[useKlondikeData] refresh tick failed:', err?.message)
+        }
+      }
     }, LIVE_REFRESH_MS)
 
     return () => {
