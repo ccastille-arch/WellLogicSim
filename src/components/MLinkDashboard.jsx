@@ -108,10 +108,10 @@ const COMPRESSOR_DESIRED_FLOW_KEYS = [
 // WHY Well 4 sometimes runs under setpoint — it's by design, not
 // failure.
 const WELL_PRIORITIES = [
-  { rank: 1, oilBopd: 182, sacrificial: false },
-  { rank: 2, oilBopd: 154, sacrificial: false },
-  { rank: 3, oilBopd: 121, sacrificial: false },
-  { rank: 4, oilBopd: 46,  sacrificial: true  },
+  { rank: 1, sacrificial: false },
+  { rank: 2, sacrificial: false },
+  { rank: 3, sacrificial: false },
+  { rank: 4, sacrificial: true  },
 ]
 
 function getFirstDatapoint(dataMap, keys) {
@@ -681,10 +681,11 @@ export default function MLinkDashboard({ onBack }) {
                               P{priority?.rank}
                             </span>
                           </div>
-                          <div className={`text-[9px] font-bold tracking-[0.16em] uppercase mb-2 ${isSacrificial ? 'text-[#d4a556]' : 'text-[#6b7a8f]'
-                            }`}>
-                            {priority?.oilBopd} BOPD Oil{isSacrificial ? ' · Sacrificial' : ''}
-                          </div>
+                          {isSacrificial && (
+                            <div className="text-[9px] font-bold tracking-[0.16em] uppercase mb-2 text-[#d4a556]">
+                              Sacrificial
+                            </div>
+                          )}
                           <div className="text-[8px] text-[#6b7a8f] uppercase tracking-[0.18em] font-bold mb-0.5">Actual</div>
                           <div className="text-2xl text-[#22c55e] font-bold" style={{ fontFamily: "'Montserrat'" }}>
                             {val != null ? val.toFixed(3) : '--'}
