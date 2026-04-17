@@ -657,6 +657,20 @@ export default function MLinkDashboard({ onBack }) {
                   </div>
                 )}
 
+                {/* Command-vs-Actual widget — the two-number story
+                     of how well each compressor tracks the panel's
+                     commanded SP. Sits above the detailed compressor
+                     cards so presenters see the tracking accuracy
+                     first. */}
+                <CommandVsActualWidget
+                  compADesired={liveCompressorPerformance[0]?.desired}
+                  compAActual={liveCompressorPerformance[0]?.actual}
+                  compBDesired={liveCompressorPerformance[1]?.desired}
+                  compBActual={liveCompressorPerformance[1]?.actual}
+                  compAUnit={deviceLabels.compA.unit}
+                  compBUnit={deviceLabels.compB.unit}
+                />
+
                 {/* Compressors */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <CompressorCard
@@ -1822,6 +1836,245 @@ function LiveClock() {
   )
 }
 
+/**
+ * CommandVsActualWidget — live "what the well panel is telling each
+ * compressor to do" vs "what the compressor is actually doing". The
+ * two numbers make the tracking story legible at a glance: customer
+ * sees the commanded SP, the actual reading, and a green/amber/red
+ * tracking chip that collapses the two into a single judgment.
+ */
+function CommandVsActualWidget({ compADesired, compAActual, compBDesired, compBActual, compAUnit, compBUnit }) {
+  const renderOne = (desired, actual, unitLabel, letter) => {
+    const hasBoth = desired != null && Number.isFinite(desired) && actual != null && Number.isFinite(actual)
+    const gap = hasBoth ? actual - desired : null
+    const gapPct = hasBoth && desired > 0 ? Math.abs(gap / desired) * 100 : null
+    const tone =
+      gapPct == null ? 'muted' :
+      gapPct <= 3   ? 'good'  :
+      gapPct <= 8   ? 'amber' : 'bad'
+    const chipColor = tone === 'good' ? '#22c55e' : tone === 'amber' ? '#eab308' : tone === 'bad' ? '#D32028' : '#8b93a6'
+    const chipLabel =
+      tone === 'good'  ? 'On Track' :
+      tone === 'amber' ? 'Chasing'  :
+      tone === 'bad'   ? 'Off Track': 'Waiting on data'
+    return (
+      <div className="flex-1 min-w-0 rounded-xl border border-[#1e2d44] bg-[#0a1524] p-4">
+        <div className="flex items-baseline justify-between mb-3">
+          <div>
+            <div
+              style={{
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: 10,
+                letterSpacing: 2,
+                textTransform: 'uppercase',
+                color: '#49D0E2',
+                fontWeight: 700,
+              }}
+            >
+              Compressor {letter}{unitLabel ? ` · Unit ${unitLabel}` : ''}
+            </div>
+            <div
+              style={{
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: 9,
+                letterSpacing: 1.2,
+                color: '#6b7a8f',
+                marginTop: 2,
+              }}
+            >
+              Panel command vs. live flow
+            </div>
+          </div>
+          <span
+            className="inline-flex items-center gap-1"
+            style={{
+              padding: '4px 10px',
+              borderRadius: 999,
+              background: `${chipColor}22`,
+              border: `1px solid ${chipColor}66`,
+              color: chipColor,
+              fontFamily: "'Montserrat', sans-serif",
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: 1.4,
+              textTransform: 'uppercase',
+            }}
+          >
+            {chipLabel}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded border border-[#14212f] bg-[#0c1724] p-3">
+            <div className="text-[9px] text-[#6b7a8f] uppercase tracking-[0.18em] mb-1">Panel Command</div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-[22px] font-bold text-white" style={{ fontFamily: "'Montserrat'" }}>
+                {desired != null && Number.isFinite(desired) ? desired.toFixed(3) : '--'}
+              </span>
+              <span className="text-[9px] text-[#6b7a8f]">MMSCFD</span>
+            </div>
+            <div className="text-[8px] text-[#556579] mt-0.5">
+              Well Panel &rarr; Compressor
+            </div>
+          </div>
+          <div className="rounded border border-[#14212f] bg-[#0c1724] p-3">
+            <div className="text-[9px] text-[#6b7a8f] uppercase tracking-[0.18em] mb-1">Live Flow</div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-[22px] font-bold" style={{ color: chipColor, fontFamily: "'Montserrat'" }}>
+                {actual != null && Number.isFinite(actual) ? actual.toFixed(3) : '--'}
+              </span>
+              <span className="text-[9px] text-[#6b7a8f]">MMSCFD</span>
+            </div>
+            <div className="text-[8px] text-[#556579] mt-0.5">
+              {gap != null && Number.isFinite(gap)
+                ? `${gap >= 0 ? '+' : ''}${gap.toFixed(3)} vs command`
+                : 'Gap --'}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-4 rounded-2xl border border-[#1c2836] bg-[radial-gradient(circle_at_top_left,_rgba(73,208,226,0.14),_rgba(8,8,16,0.95)_55%)] p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="rounded-full border border-[#20502d] bg-[#0e1e13] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#66f0a0]">
+          Tracking · Live
+        </span>
+        <span className="text-[10px] text-[#6b7280]">
+          What Well Logic is asking for vs. what the compressors are delivering, right now.
+        </span>
+      </div>
+      <div className="flex gap-3 flex-wrap">
+        {renderOne(compADesired, compAActual, compAUnit, 'A')}
+        {renderOne(compBDesired, compBActual, compBUnit, 'B')}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * CompressorTrackingScore — per-compressor track-record of how often
+ * the actual flow stayed within the 3%/5%/10% bands of the panel's
+ * commanded SP across the full stored history window. Renders on
+ * the Run History tab so the presenter has a concrete "this
+ * compressor hit its mark 97.4% of the time over the last N days"
+ * story.
+ */
+function CompressorTrackingScore({ data, daysOfData }) {
+  const band = (row, idx, pct) => {
+    const desired = idx === 0 ? row.comp1DesiredFlow : row.comp2DesiredFlow
+    const actual = idx === 0 ? row.comp1ActualFlow : row.comp2ActualFlow
+    if (desired == null || actual == null || desired <= 0) return null
+    return Math.abs(actual - desired) / desired <= pct
+  }
+  const compute = (idx) => {
+    if (!Array.isArray(data) || !data.length) return null
+    const valid = data.filter(r => {
+      const d = idx === 0 ? r.comp1DesiredFlow : r.comp2DesiredFlow
+      const a = idx === 0 ? r.comp1ActualFlow : r.comp2ActualFlow
+      return d != null && a != null && d > 0
+    })
+    if (!valid.length) return null
+    const within3 = valid.filter(r => band(r, idx, 0.03)).length
+    const within5 = valid.filter(r => band(r, idx, 0.05)).length
+    const within10 = valid.filter(r => band(r, idx, 0.10)).length
+    return {
+      samples: valid.length,
+      pct3: (within3 / valid.length) * 100,
+      pct5: (within5 / valid.length) * 100,
+      pct10: (within10 / valid.length) * 100,
+    }
+  }
+  const scores = [compute(0), compute(1)]
+  const anyData = scores.some(s => s && s.samples > 0)
+  if (!anyData) {
+    return (
+      <div className="rounded-xl border border-[#1c2836] bg-[#0a1524] p-5 text-[12px] text-[#6b7a8f]">
+        Tracking score populates once the volume has paired command + actual readings for each compressor. Seed or live poll will fill it in shortly.
+      </div>
+    )
+  }
+
+  const renderCard = (idx) => {
+    const s = scores[idx]
+    if (!s) {
+      return (
+        <div className="flex-1 rounded-xl border border-[#1c2836] bg-[#0a1524] p-5 text-[12px] text-[#6b7a8f]">
+          Compressor {idx === 0 ? 'A' : 'B'}: no paired command/actual samples yet.
+        </div>
+      )
+    }
+    const headline = s.pct5
+    const headlineColor = headline >= 95 ? '#22c55e' : headline >= 85 ? '#eab308' : '#D32028'
+    return (
+      <div className="flex-1 rounded-xl border border-[#1c2836] bg-[#0a1524] p-5">
+        <div className="flex items-baseline justify-between mb-3">
+          <span
+            style={{
+              fontFamily: "'Montserrat', sans-serif",
+              fontSize: 10,
+              letterSpacing: 2,
+              textTransform: 'uppercase',
+              color: '#49D0E2',
+              fontWeight: 700,
+            }}
+          >
+            Compressor {idx === 0 ? 'A' : 'B'} Tracking
+          </span>
+          <span className="text-[9px] text-[#6b7a8f]">{s.samples} samples</span>
+        </div>
+        <div className="text-center mb-3">
+          <div
+            className="text-4xl font-bold"
+            style={{ color: headlineColor, fontFamily: "'Montserrat'" }}
+          >
+            {headline.toFixed(1)}%
+          </div>
+          <div className="text-[10px] text-[#6b7a8f]">
+            of the time within 5% of commanded SP
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+          <div>
+            <div className="text-[#22c55e] font-bold">{s.pct3.toFixed(1)}%</div>
+            <div className="text-[#6b7a8f]">±3%</div>
+          </div>
+          <div>
+            <div className="text-[#4fc3f7] font-bold">{s.pct5.toFixed(1)}%</div>
+            <div className="text-[#6b7a8f]">±5%</div>
+          </div>
+          <div>
+            <div className="text-white font-bold">{s.pct10.toFixed(1)}%</div>
+            <div className="text-[#6b7a8f]">±10%</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-6">
+      <div className="flex items-baseline justify-between mb-3 gap-3 flex-wrap">
+        <h3 className="text-white font-bold" style={{ fontFamily: "'Montserrat'", fontSize: 14 }}>
+          Compressor Tracking Score
+        </h3>
+        <span className="text-[10px] text-[#6b7a8f] uppercase tracking-[0.18em] font-semibold">
+          Over {daysOfData > 0 ? daysOfData : '—'} day{daysOfData === 1 ? '' : 's'} of stored history
+        </span>
+      </div>
+      <p className="text-[11px] text-[#6b7a8f] mb-3">
+        How often each compressor held its actual flow within tight bands of the
+        Well Panel&rsquo;s commanded SP. Higher is tighter control.
+      </p>
+      <div className="flex gap-3 flex-wrap">
+        {renderCard(0)}
+        {renderCard(1)}
+      </div>
+    </div>
+  )
+}
+
 function MiniSparkline({ data, color }) {
   if (!data?.length) return null
   const valid = data.filter(v => v != null && !isNaN(v))
@@ -2081,6 +2334,7 @@ function RunHistoryTab({ klondike }) {
         <RunHistoryCard label="Compressor A" stats={stats[0]} loading={loading} />
         <RunHistoryCard label="Compressor B" stats={stats[1]} loading={loading} />
       </div>
+      <CompressorTrackingScore data={data} daysOfData={daysOfData} />
       <WellAchievementSection klondike={klondike} daysOfData={daysOfData} />
     </div>
   )

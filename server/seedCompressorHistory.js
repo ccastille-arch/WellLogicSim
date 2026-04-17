@@ -159,7 +159,7 @@ export async function seedCompressorHistoryIfNeeded() {
     return { status: 'skipped', reason: 'already seeded' }
   } catch { /* not seeded yet */ }
 
-  // Load both CSVs concurrently.
+  // Load both compressor CSVs concurrently.
   const files = [
     { name: 'comp-2073.csv', compIndex: 0 }, // Compressor A
     { name: 'comp-2074.csv', compIndex: 1 }, // Compressor B
@@ -176,11 +176,33 @@ export async function seedCompressorHistoryIfNeeded() {
     }
   }
 
-  // Align both compressors on the same bucket timestamps so each
-  // emitted JSONL row carries registers for BOTH A and B at that
-  // minute. Union of bucket ts's across the two.
+  // Panel CSV carries the commanded flow-SP from the well panel to
+  // each compressor. Different columns (Compressor #1/#2 Desire Flow
+  // SP For PID Murphy) rather than the sparse-row-per-param format
+  // of the compressor CSVs, so we parse + roll up separately and
+  // merge the two desired-flow streams into each snapshot row below.
+  let panelDesiredByBucket = {}
+  try {
+    const text = await readFile(join(SEED_DIR, 'panel-desired-flow.csv'), 'utf8')
+    const { rows } = parseCompressorCsv(text)
+    const panelSnapshots = rollupSnapshots(rows)
+    for (const s of panelSnapshots) {
+      panelDesiredByBucket[s.ts] = {
+        comp1: s.registers['Compressor #1 Desire Flow SP For PID Murphy'] ?? null,
+        comp2: s.registers['Compressor #2 Desire Flow SP For PID Murphy'] ?? null,
+      }
+    }
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err
+  }
+
+  // Align both compressors (and the panel's desired-flow stream) on
+  // the same bucket timestamps so each emitted JSONL row carries
+  // registers for BOTH A and B + the commanded setpoint at that
+  // minute. Union of bucket ts's across all three.
   const allTs = new Set()
   Object.values(parsedByComp).forEach(arr => arr.forEach(s => allTs.add(s.ts)))
+  Object.keys(panelDesiredByBucket).forEach(ts => allTs.add(Number(ts)))
   const bucketList = [...allTs].sort((a, b) => a - b)
 
   const byCompTs = {
@@ -206,8 +228,17 @@ export async function seedCompressorHistoryIfNeeded() {
       totalFlowMscfd: null,
       comp1Status: null,
       comp2Status: null,
-      comp1DesiredFlow: compA?.['Quck Start Setting - Desired Flow Rate'] ?? null,
-      comp2DesiredFlow: compB?.['Quck Start Setting - Desired Flow Rate'] ?? null,
+      // Prefer the panel's commanded SP (what Well Logic is actually
+      // telling each compressor to do) — that's the target the
+      // tracking-score widget compares actual against. Fall back to
+      // the compressor device's local "Quck Start" setting when the
+      // panel stream didn't have a reading at this bucket.
+      comp1DesiredFlow: panelDesiredByBucket[tsMs]?.comp1
+        ?? compA?.['Quck Start Setting - Desired Flow Rate']
+        ?? null,
+      comp2DesiredFlow: panelDesiredByBucket[tsMs]?.comp2
+        ?? compB?.['Quck Start Setting - Desired Flow Rate']
+        ?? null,
       comp1ActualFlow: compA?.['Flow Rate PID PV'] ?? null,
       comp2ActualFlow: compB?.['Flow Rate PID PV'] ?? null,
       faultIndication: null,
