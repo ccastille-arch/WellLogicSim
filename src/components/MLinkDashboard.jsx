@@ -230,28 +230,138 @@ export default function MLinkDashboard({ onBack }) {
 
   return (
     <div className="flex-1 flex flex-col bg-[#05233E] overflow-hidden">
-      {/* Header */}
-      <div className="px-6 py-4 bg-[#0F3C64] border-b border-[#293C5B] shrink-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg text-white font-bold flex items-center gap-2" style={{ fontFamily: "'Montserrat'" }}>
-              <span className="text-[#22c55e]">ON</span> Live Field Data - Well Logic in Production
-            </h1>
-            <p className="text-[11px] text-[#888]">
-              Real-time data from an active Well Logic panel and compressors running in West Texas
-            </p>
+      {/* TV-mode header — zero ambiguity that this is a live stream.
+           LIVE badge + location title + live-ticking clock all at a size
+           that reads across a conference-room TV in one glance. The
+           prior header buried "real-time" in a paragraph that doesn't
+           survive a 10-ft viewing distance. */}
+      <div className="relative overflow-hidden shrink-0" style={{ background: '#03172A', borderBottom: '3px solid #D32028' }}>
+        {/* Subtle red pattern overlay on the right — reinforces the
+             LIVE badge's color at the edge without competing for
+             attention with the title. */}
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            right: -120, top: -40, width: 360, height: 200,
+            background: 'radial-gradient(circle at 60% 40%, rgba(211,32,40,0.24), rgba(211,32,40,0) 60%)',
+            filter: 'blur(30px)',
+            pointerEvents: 'none',
+          }}
+        />
+        <div className="relative flex items-center justify-between gap-6 px-6 py-4">
+          <div className="flex items-center gap-5">
+            {/* GIANT LIVE BADGE — pulsing dot + 'LIVE' text, visible
+                 from across the room. Color locked to SC red #D32028. */}
+            <div
+              className="flex items-center gap-3 px-5 py-2.5"
+              style={{
+                background: '#D32028',
+                borderRadius: 2,
+                boxShadow: '0 0 40px rgba(211, 32, 40, 0.55)',
+              }}
+            >
+              <span
+                style={{
+                  width: 14, height: 14, borderRadius: '50%',
+                  background: '#FFFFFF',
+                  boxShadow: '0 0 12px rgba(255,255,255,0.9)',
+                  animation: 'scPulse 1.2s ease-in-out infinite',
+                  display: 'inline-block',
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 800,
+                  fontSize: 22,
+                  letterSpacing: 6,
+                  color: '#FFFFFF',
+                  lineHeight: 1,
+                }}
+              >
+                LIVE
+              </span>
+            </div>
+
+            {/* Title block — short, loud, at-a-glance. */}
+            <div>
+              <div
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 800,
+                  fontSize: 28,
+                  letterSpacing: '-0.5px',
+                  color: '#FFFFFF',
+                  lineHeight: 1.05,
+                }}
+              >
+                Well Logic · West Texas Pad
+              </div>
+              <div
+                style={{
+                  marginTop: 4,
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 600,
+                  fontSize: 11,
+                  letterSpacing: 3,
+                  textTransform: 'uppercase',
+                  color: '#49D0E2',
+                }}
+              >
+                Streaming Now · 4 Wells · 2 Compressors
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* Right rail — live clock + action buttons. The clock ticks
+               every second so a viewer watching the TV has continuous
+               visual proof the feed is alive. */}
+          <div className="flex items-center gap-4">
+            <LiveClock />
             {lastRefresh && (
-              <span className="text-[9px] text-[#555]">
-                Last update: {lastRefresh.toLocaleTimeString()} (refreshes every 15 min)
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                MLink · {lastRefresh.toLocaleTimeString()}
               </span>
             )}
-            <button onClick={refresh} disabled={loading}
-              className="px-3 py-1.5 text-[10px] font-bold text-[#4fc3f7] border border-[#4fc3f7]/30 rounded hover:bg-[#4fc3f7]/10 disabled:opacity-50">
-              {loading ? 'Loading...' : 'Refresh'}
+            <button
+              onClick={refresh}
+              disabled={loading}
+              className="disabled:opacity-50"
+              style={{
+                padding: '8px 14px',
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: 2,
+                textTransform: 'uppercase',
+                color: '#FFFFFF',
+                background: 'transparent',
+                border: '1px solid rgba(73, 208, 226, 0.45)',
+                borderRadius: 2,
+                cursor: loading ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {loading ? 'Loading…' : 'Refresh'}
             </button>
-            <button onClick={onBack} className="px-3 py-1.5 text-[10px] font-bold text-[#888] border border-[#333] rounded hover:text-white">Back</button>
+            <button
+              onClick={onBack}
+              style={{
+                padding: '8px 14px',
+                fontFamily: "'Montserrat', sans-serif",
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: 2,
+                textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.7)',
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.2)',
+                borderRadius: 2,
+                cursor: 'pointer',
+              }}
+            >
+              Back
+            </button>
           </div>
         </div>
       </div>
@@ -396,17 +506,10 @@ export default function MLinkDashboard({ onBack }) {
             )}
           </div>
         ) : tab === 'history' ? (
-          /* Run History Tab */
-          <div className="max-w-[1000px] mx-auto">
-            <h2 className="text-sm text-white font-bold mb-4" style={{ fontFamily: "'Montserrat'" }}>
-              Yesterday's Run Report
-            </h2>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <RunReportCard label="Compressor A" report={runReports.compA} loading={runReportsLoading} />
-              <RunReportCard label="Compressor B" report={runReports.compB} loading={runReportsLoading} />
-            </div>
-            <WellAchievementSection klondike={klondike} />
-          </div>
+          /* Run History Tab — computed from the full stored volume
+              history (CSV baseline + live JSONL snapshots), not a
+              yesterday-only MLink RunReport fetch. */
+          <RunHistoryTab klondike={klondike} />
         ) : (
           /* 30-Day Klondike Field Data Tab */
           <KlondikeHistoryTab klondike={klondike} />
@@ -1358,6 +1461,56 @@ function KlondikeCompressorDetail({ row, compressorIdx, windowData, daysOfData =
   )
 }
 
+/**
+ * LiveClock — a seconds-precise running clock + date, shown in the
+ * TV-mode header. Two purposes:
+ *   1. Continuous visual proof to the room that the feed is live —
+ *      the seconds tick whether or not an MLink poll has landed.
+ *   2. Anchors the stream in "right now" for remote customers so
+ *      there's no ambiguity about which day's data they're watching.
+ * Uses the user's browser locale for date but formats the time in a
+ * 24h monospace style so it reads cleanly at distance.
+ */
+function LiveClock() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  const pad = (n) => String(n).padStart(2, '0')
+  const time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+  const date = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+  return (
+    <div className="hidden md:flex flex-col items-end leading-tight">
+      <div
+        style={{
+          fontFamily: 'ui-monospace, "SFMono-Regular", Menlo, monospace',
+          fontWeight: 700,
+          fontSize: 20,
+          color: '#FFFFFF',
+          letterSpacing: 1,
+          lineHeight: 1,
+        }}
+      >
+        {time}
+      </div>
+      <div
+        style={{
+          marginTop: 3,
+          fontFamily: "'Montserrat', sans-serif",
+          fontWeight: 600,
+          fontSize: 9,
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          color: '#49D0E2',
+        }}
+      >
+        {date} · Local
+      </div>
+    </div>
+  )
+}
+
 function MiniSparkline({ data, color }) {
   if (!data?.length) return null
   const valid = data.filter(v => v != null && !isNaN(v))
@@ -1377,7 +1530,7 @@ function MiniSparkline({ data, color }) {
   )
 }
 
-function WellAchievementSection({ klondike }) {
+function WellAchievementSection({ klondike, daysOfData }) {
   const { data } = klondike
   const { isAdmin } = useAuth()
   const [spOverrides, setSpOverrides] = useState(null) // null = not loaded yet
@@ -1463,7 +1616,9 @@ function WellAchievementSection({ klondike }) {
           </button>
         )}
       </div>
-      <p className="text-[9px] text-[#888] mb-4">% of time each well hit its desired injection rate (within 5%) - based on 30-day field data</p>
+      <p className="text-[9px] text-[#888] mb-4">
+        % of time each well hit its desired injection rate (within 5%) — based on {daysOfData > 0 ? `${daysOfData}-day` : 'the full'} field data window
+      </p>
 
       <div className="grid grid-cols-4 gap-3">
         {stats.map((s, i) => (
@@ -1536,6 +1691,154 @@ function WellAchievementSection({ klondike }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * Compute running / stopped / faulted totals for one compressor from
+ * the full stored history set. Each row in klondike.data represents a
+ * 15-min sample, so total hours = samples × 0.25 and uptime % =
+ * running / total. Works across whatever window the Railway volume
+ * has accumulated — no dependency on a yesterday-specific API call.
+ */
+function computeRunHistoryStats(data, compIdx) {
+  if (!Array.isArray(data) || data.length === 0) return null
+  const statusKey = compIdx === 0 ? 'comp1Status' : 'comp2Status'
+  const SAMPLE_HR = 0.25 // 15 min
+  let running = 0
+  let stopped = 0
+  let faulted = 0
+  for (const row of data) {
+    const raw = String(row?.[statusKey] || '').toLowerCase()
+    if (!raw) continue
+    if (raw.includes('fault') || raw.includes('shutdown') || raw.includes('alarm')) faulted++
+    else if (raw.includes('running') || raw.includes('online') || raw === 'run') running++
+    else stopped++
+  }
+  const total = running + stopped + faulted
+  if (total === 0) return null
+  return {
+    runningHrs: running * SAMPLE_HR,
+    stoppedHrs: stopped * SAMPLE_HR,
+    faultedHrs: faulted * SAMPLE_HR,
+    uptime: running / total,
+    samples: total,
+  }
+}
+
+/**
+ * RunHistoryTab — aggregates compressor runtime stats across the
+ * full stored history window. Replaces the old "Yesterday's Run
+ * Report" fetch so the presenter sees the entire volume-backed
+ * history instead of a single 24h window.
+ */
+function RunHistoryTab({ klondike }) {
+  const { data, loading } = klondike
+
+  // Compute the span of stored data in days (ceil so a partial day
+  // shows as 1). Falls back to sample count when timestamps are
+  // missing/malformed.
+  const firstTs = data?.[0]?.timestamp ? Date.parse(data[0].timestamp) : NaN
+  const lastTs = data?.[data.length - 1]?.timestamp ? Date.parse(data[data.length - 1].timestamp) : NaN
+  const daysOfData = Number.isFinite(firstTs) && Number.isFinite(lastTs)
+    ? Math.max(1, Math.ceil((lastTs - firstTs) / 86400_000) + 1)
+    : (data?.length || 0)
+
+  const stats = [0, 1].map(idx => computeRunHistoryStats(data, idx))
+
+  return (
+    <div className="max-w-[1000px] mx-auto">
+      <div className="mb-4 flex items-baseline justify-between gap-3 flex-wrap">
+        <h2 className="text-white font-bold" style={{ fontFamily: "'Montserrat'", fontSize: 18, letterSpacing: '-0.2px' }}>
+          Run History · Last {daysOfData > 0 ? daysOfData : '—'} Day{daysOfData === 1 ? '' : 's'}
+        </h2>
+        <span
+          style={{
+            fontFamily: "'Montserrat', sans-serif",
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            color: '#49D0E2',
+          }}
+        >
+          {data?.length || 0} samples · 15-min intervals
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <RunHistoryCard label="Compressor A" stats={stats[0]} loading={loading} />
+        <RunHistoryCard label="Compressor B" stats={stats[1]} loading={loading} />
+      </div>
+      <WellAchievementSection klondike={klondike} daysOfData={daysOfData} />
+    </div>
+  )
+}
+
+/**
+ * RunHistoryCard — renders a compressor's uptime and
+ * running/stopped/faulted hour totals for the full stored window.
+ * Shape is intentionally identical to the old RunReportCard output
+ * (uptime gauge, bar, 3-column hour breakdown) so the visual
+ * language of the page stays consistent even though the data source
+ * is now the volume-backed history.
+ */
+function RunHistoryCard({ label, stats, loading }) {
+  if (loading && !stats) return (
+    <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-5 text-center">
+      <h3 className="text-[13px] text-white font-bold mb-2">{label}</h3>
+      <div className="text-[#555] text-sm animate-pulse">Loading history…</div>
+    </div>
+  )
+  if (!stats) return (
+    <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-5 text-center">
+      <h3 className="text-[13px] text-white font-bold mb-2">{label}</h3>
+      <div className="text-[#D32028] text-[11px]">No run history yet</div>
+      <div className="text-[9px] text-[#555] mt-1">
+        Populates as the MLink scheduler records samples to the Railway volume.
+      </div>
+    </div>
+  )
+
+  const { uptime, runningHrs, stoppedHrs, faultedHrs, samples } = stats
+  const pct = uptime * 100
+  const color = uptime >= 0.95 ? '#22c55e' : uptime >= 0.8 ? '#eab308' : '#D32028'
+
+  return (
+    <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-[13px] text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>{label}</h3>
+        <span className="text-[9px] text-[#8a9bb2]">{samples} samples</span>
+      </div>
+
+      <div className="text-center mb-3">
+        <div
+          className="text-3xl font-bold"
+          style={{ fontFamily: "'Montserrat'", color }}
+        >
+          {pct.toFixed(1)}%
+        </div>
+        <div className="text-[10px] text-[#888]">Uptime</div>
+      </div>
+
+      <div className="w-full bg-[#293C5B] rounded h-4 overflow-hidden mb-3">
+        <div className="h-full bg-[#22c55e] rounded-l" style={{ width: `${Math.min(100, pct)}%` }} />
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+        <div>
+          <div className="text-[#22c55e] font-bold">{runningHrs.toFixed(1)}h</div>
+          <div className="text-[#888]">Running</div>
+        </div>
+        <div>
+          <div className="text-[#eab308] font-bold">{stoppedHrs.toFixed(1)}h</div>
+          <div className="text-[#888]">Stopped</div>
+        </div>
+        <div>
+          <div className="text-[#D32028] font-bold">{faultedHrs.toFixed(1)}h</div>
+          <div className="text-[#888]">Faulted</div>
+        </div>
+      </div>
     </div>
   )
 }

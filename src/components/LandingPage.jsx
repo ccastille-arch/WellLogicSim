@@ -98,89 +98,137 @@ export default function LandingPage({ onNavigate }) {
           </button>
         )}
 
-        {/* Live data — primary narrative feature */}
+        {/* JUMBO Live Stream CTA — sized to jump off a TV screen.
+             Red LIVE STREAM badge, big headline, pulsing red border
+             glow. This is the first thing a customer should notice on
+             the home screen. */}
         <button
           onClick={() => onNavigate('livedata')}
-          className="w-full mb-4 sm:mb-5 transition-all hover:translate-y-[-1px] group text-left"
+          className="w-full mb-5 sm:mb-7 transition-all group text-left relative"
           style={{
             padding: 0,
-            border: '1px solid rgba(73, 208, 226, 0.35)',
+            border: '2px solid #D32028',
             borderRadius: 2,
             overflow: 'hidden',
-            background: 'linear-gradient(135deg, #0F3C64 0%, #05233E 100%)',
+            background: 'linear-gradient(135deg, #0F3C64 0%, #05233E 60%, #03172A 100%)',
             cursor: 'pointer',
+            animation: 'wlLiveGlow 2.2s ease-in-out infinite',
           }}
-          onMouseEnter={e => {
-            e.currentTarget.style.borderColor = '#49D0E2'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.borderColor = 'rgba(73, 208, 226, 0.35)'
-          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
         >
-          <div className="px-6 sm:px-8 py-5 sm:py-6 flex items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="sc-pulse" />
+          <style>{`
+            @keyframes wlLiveGlow {
+              0%, 100% { box-shadow: 0 0 0 0 rgba(211, 32, 40, 0.55); }
+              50%      { box-shadow: 0 0 44px 4px rgba(211, 32, 40, 0.55); }
+            }
+          `}</style>
+          {/* Telemetry-style dot grid on the right for texture */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute', inset: 0,
+              backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(73,208,226,0.10) 1px, transparent 0)',
+              backgroundSize: '18px 18px',
+              maskImage: 'linear-gradient(90deg, transparent 20%, #000 85%)',
+              WebkitMaskImage: 'linear-gradient(90deg, transparent 20%, #000 85%)',
+              pointerEvents: 'none',
+            }}
+          />
+
+          <div className="relative flex items-center justify-between gap-4 px-5 sm:px-8 py-6 sm:py-8">
+            <div className="min-w-0">
+              <div
+                className="inline-flex items-center gap-2 mb-3 px-3 py-1.5"
+                style={{
+                  background: '#D32028',
+                  borderRadius: 2,
+                  boxShadow: '0 0 28px rgba(211, 32, 40, 0.55)',
+                }}
+              >
+                <span
+                  style={{
+                    width: 10, height: 10, borderRadius: '50%',
+                    background: '#FFFFFF',
+                    boxShadow: '0 0 8px rgba(255,255,255,0.9)',
+                    animation: 'scPulse 1.2s ease-in-out infinite',
+                    display: 'inline-block',
+                  }}
+                />
                 <span
                   style={{
                     fontFamily: "'Montserrat', sans-serif",
-                    fontWeight: 700,
-                    fontSize: 10,
-                    letterSpacing: 2,
-                    textTransform: 'uppercase',
-                    color: '#49D0E2',
+                    fontWeight: 800,
+                    fontSize: 12,
+                    letterSpacing: 4,
+                    color: '#FFFFFF',
+                    lineHeight: 1,
                   }}
                 >
-                  Live Now
+                  LIVE STREAM
                 </span>
               </div>
               <h2
                 style={{
                   fontFamily: "'Montserrat', sans-serif",
                   fontWeight: 800,
-                  fontSize: 22,
-                  lineHeight: 1.15,
-                  letterSpacing: '-0.3px',
+                  fontSize: 'clamp(22px, 3.2vw, 34px)',
+                  lineHeight: 1.02,
+                  letterSpacing: '-0.8px',
                   color: '#FFFFFF',
-                  marginBottom: 6,
+                  marginBottom: 8,
                 }}
               >
-                See a Real Well Logic System
+                Watch an Active Well Pad
               </h2>
               <p
                 style={{
                   fontFamily: "'Montserrat', sans-serif",
-                  fontWeight: 500,
+                  fontWeight: 600,
                   fontSize: 13,
                   lineHeight: 1.5,
-                  color: 'rgba(255, 255, 255, 0.75)',
+                  letterSpacing: 0.8,
+                  color: '#49D0E2',
+                  textTransform: 'uppercase',
                 }}
               >
-                Live data from an active pad running in West Texas — 4 wells, 2 compressors,
-                real injection rates right now.
+                West Texas · 4 Wells · 2 Compressors · Streaming Now
               </p>
             </div>
-            <div className="shrink-0 text-right">
+            <div className="shrink-0 text-right flex flex-col items-end gap-2">
+              <div
+                className="group-hover:translate-x-1 transition-transform"
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 800,
+                  fontSize: 'clamp(14px, 1.8vw, 20px)',
+                  letterSpacing: 2,
+                  textTransform: 'uppercase',
+                  color: '#FFFFFF',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Watch Live →
+              </div>
               <div
                 style={{
                   fontFamily: "'Montserrat', sans-serif",
-                  fontWeight: 700,
-                  fontSize: 11,
+                  fontWeight: 600,
+                  fontSize: 10,
                   letterSpacing: 2,
                   textTransform: 'uppercase',
-                  color: '#49D0E2',
+                  color: 'rgba(255,255,255,0.5)',
                 }}
-                className="group-hover:text-white transition-colors whitespace-nowrap"
               >
-                View Live Data →
+                Real Pad · Real Data
               </div>
             </div>
           </div>
           <div
-            className="h-[2px] w-full"
+            className="h-[3px] w-full"
             style={{
               background:
-                'linear-gradient(90deg, transparent, #49D0E2, transparent)',
+                'linear-gradient(90deg, transparent, #D32028 35%, #49D0E2 65%, transparent)',
             }}
           />
         </button>

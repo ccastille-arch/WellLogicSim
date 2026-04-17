@@ -180,7 +180,7 @@ export default function SettingsTab() {
           <div>
             <h3 className="text-[12px] font-bold text-white">Live Compressor Visibility</h3>
             <p className="text-[11px] text-[#888] mt-1">
-              These are the compressor parameters from your Klondike compressor export. They only show on the live page when the compressor feed returns a valid value.
+              These are the compressor parameters from your MLink compressor export. They only show on the live page when the compressor feed returns a valid value.
             </p>
           </div>
           <div className="text-right text-[10px] text-[#666]">

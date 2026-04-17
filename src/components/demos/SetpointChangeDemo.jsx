@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 const TOTAL_CAPACITY = 3350
 const SUCTION_TARGET = 145
-const DEMO_DEVICE = 'Klondike Well Pad COP0001'
+const DEMO_DEVICE = 'Well Pad WL0001'
 
 const WELL_DEFS = [
   { id: 1, display: 'Well 1', short: 'W1', desiredFlow: 800, priority: 1, yesterdayFlow: 0.798 },
@@ -335,7 +335,7 @@ export default function SetpointChangeDemo() {
                 MLink Settings Widget
               </div>
               <div className="text-[11px] text-[#d6d6d6]">
-                Training mirror for {DEMO_DEVICE} using the real Klondike desired-flow and priority registers
+                Training mirror for {DEMO_DEVICE} using real desired-flow and priority registers
               </div>
             </div>
 
@@ -428,7 +428,7 @@ export default function SetpointChangeDemo() {
               ) : (
                 <div className="p-4">
                   <div className="mb-4 rounded-sm border border-[#90caf9] bg-[#e3f2fd] px-4 py-3 text-[12px] text-[#1565c0]">
-                    This mirrors the customer MLink settings workflow. Each write prompt below uses the actual Klondike well pad register labels for desired injection rate and flow priority.
+                    This mirrors the customer MLink settings workflow. Each write prompt below uses the actual Well Logic well pad register labels for desired injection rate and flow priority.
                   </div>
 
                   <div className="overflow-x-auto">
@@ -487,7 +487,7 @@ export default function SetpointChangeDemo() {
                   {[
                     'Open the MLink Settings Widget from laptop or phone.',
                     'Select the well that needs a desired injection or priority change.',
-                    'Review the exact Klondike register labels before saving.',
+                    'Review the exact register labels before saving.',
                     'Confirm the write, then verify the result on real-time data.',
                   ].map((step, index) => (
                     <div key={step} className="flex gap-3">
