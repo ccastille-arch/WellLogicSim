@@ -68,6 +68,57 @@ app.post('/api/tts', async (req, res) => {
 
 const MLINK_BASE = 'https://api.fwmurphy-iot.com/api'
 
+// Single source of truth for which MLink devices the frontend polls.
+// Previously the frontend had these hardcoded in
+// src/engine/liveRegisters.js, which meant changing a device ID
+// required a code edit + redeploy. Now they live on the server as
+// env vars (with the historical defaults as fallback) and the
+// dashboard fetches the list at boot — set MLINK_PANEL_DEVICE_ID,
+// MLINK_COMP_A_DEVICE_ID, MLINK_COMP_B_DEVICE_ID on Railway and a
+// frontend reload picks them up with no rebuild required.
+const MLINK_DEVICES = {
+  panel: process.env.MLINK_PANEL_DEVICE_ID   || '2504-504495',
+  compA: process.env.MLINK_COMP_A_DEVICE_ID  || '2504-505561',
+  compB: process.env.MLINK_COMP_B_DEVICE_ID  || '2504-505472',
+}
+
+app.get('/api/mlink/devices', (_req, res) => {
+  res.json({
+    devices: MLINK_DEVICES,
+    sources: {
+      panel: process.env.MLINK_PANEL_DEVICE_ID ? 'env' : 'default',
+      compA: process.env.MLINK_COMP_A_DEVICE_ID ? 'env' : 'default',
+      compB: process.env.MLINK_COMP_B_DEVICE_ID ? 'env' : 'default',
+    },
+  })
+})
+
+// Device-discovery helper — asks Murphy's API for the list of
+// devices visible to our API key. Useful when the configured
+// compressor IDs aren't pulling flow data: the operator can hit this
+// endpoint, see every device's {deviceId, name, status}, and paste
+// the right IDs into Railway's env vars.
+app.get('/api/mlink/devices/discover', async (_req, res) => {
+  const key = process.env.MLINK_API_KEY
+  if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
+  // Try a couple of the common MLink endpoints for a device list;
+  // different Murphy catalogs expose slightly different paths.
+  const candidates = [
+    `${MLINK_BASE}/DeviceList?code=${encodeURIComponent(key)}`,
+    `${MLINK_BASE}/Devices?code=${encodeURIComponent(key)}`,
+    `${MLINK_BASE}/AssetList?code=${encodeURIComponent(key)}`,
+  ]
+  for (const url of candidates) {
+    try {
+      const r = await fetch(url)
+      if (!r.ok) continue
+      const body = await r.json()
+      return res.json({ source: url.replace(/code=[^&]+/, 'code=***'), body })
+    } catch { /* keep trying */ }
+  }
+  res.status(502).json({ error: 'No MLink device-list endpoint responded. Check MLink API docs for the right path and wire it here.' })
+})
+
 app.get('/api/mlink/device', async (req, res) => {
   const key = process.env.MLINK_API_KEY
   if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })

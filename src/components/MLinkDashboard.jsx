@@ -121,6 +121,27 @@ export default function MLinkDashboard({ onBack }) {
   const [tab, setTab] = useState('live') // live | history | klondike
   const klondike = useKlondikeData()
 
+  // Device IDs are now served by the backend so they can be swapped
+  // via Railway env vars (MLINK_PANEL_DEVICE_ID /
+  // MLINK_COMP_A_DEVICE_ID / MLINK_COMP_B_DEVICE_ID) without a code
+  // deploy. We start with the hardcoded defaults so the first tick
+  // can fire before the endpoint returns, then upgrade to whatever
+  // the server reports. `deviceSources` lets us render a small
+  // diagnostic chip showing which came from env vs default.
+  const [devices, setDevices] = useState(LIVE_DATA_DEVICES)
+  const [deviceSources, setDeviceSources] = useState({
+    panel: 'default', compA: 'default', compB: 'default',
+  })
+  useEffect(() => {
+    fetch('/api/mlink/devices')
+      .then(r => r.ok ? r.json() : null)
+      .then(body => {
+        if (body?.devices) setDevices(body.devices)
+        if (body?.sources) setDeviceSources(body.sources)
+      })
+      .catch(() => {})
+  }, [])
+
   // Admin-configured per-well setpoint overrides — same settings key
   // used by WellAchievementSection so there's a single source of truth
   // for "what the wells should be targeting". Used as a fallback here
@@ -147,9 +168,9 @@ export default function MLinkDashboard({ onBack }) {
     if (!silent) setLoading(true)
     try {
       const [panelResult, compAResult, compBResult] = await Promise.all([
-        fetchDevice(LIVE_DATA_DEVICES.panel),
-        fetchDevice(LIVE_DATA_DEVICES.compA),
-        fetchDevice(LIVE_DATA_DEVICES.compB),
+        fetchDevice(devices.panel),
+        fetchDevice(devices.compA),
+        fetchDevice(devices.compB),
       ])
 
       // HOLD LAST KNOWN GOOD: if a specific device's fetch returned
@@ -176,7 +197,10 @@ export default function MLinkDashboard({ onBack }) {
       setLoading(false)
       inFlightRef.current = false
     }
-  }, [])
+    // devices is part of the closure — recreate refresh when the
+    // server-configured IDs arrive so the 2-sec interval starts
+    // hitting the correct compressor assets.
+  }, [devices.panel, devices.compA, devices.compB])
 
   const loadRunReports = useCallback(async () => {
     setRunReportsLoading(true)
@@ -187,8 +211,8 @@ export default function MLinkDashboard({ onBack }) {
     const startTs = endTs - 86399
 
     const [rA, rB] = await Promise.allSettled([
-      fetchRunReport(LIVE_DATA_DEVICES.compA, startTs, endTs),
-      fetchRunReport(LIVE_DATA_DEVICES.compB, startTs, endTs),
+      fetchRunReport(devices.compA, startTs, endTs),
+      fetchRunReport(devices.compB, startTs, endTs),
     ])
     setRunReports({
       compA: rA.status === 'fulfilled' ? rA.value : null,
@@ -722,12 +746,29 @@ function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers 
 
   return (
     <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-5">
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-1">
         <div className={`w-3 h-3 rounded-full ${isRunning ? 'bg-[#22c55e] shadow-lg shadow-[#22c55e]/50' : 'bg-[#D32028]'}`} />
         <h3 className="text-[13px] text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>{label}</h3>
         <span className={`text-[9px] font-bold ml-auto ${isRunning ? 'text-[#22c55e]' : 'text-[#D32028]'}`}>
           {isRunning ? 'RUNNING' : 'STOPPED'}
         </span>
+      </div>
+      {/* Package tag — reads as operator-facing "equipment spec" copy
+          so it doesn't feel like marketing, but quietly plants the
+          FieldTune product for anyone who notices the word. This is
+          the only place FieldTune appears on the simulator. */}
+      <div
+        className="mb-3 ml-5"
+        style={{
+          fontFamily: "'Montserrat', sans-serif",
+          fontWeight: 600,
+          fontSize: 8,
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          color: 'rgba(73, 208, 226, 0.55)',
+        }}
+      >
+        Service Compression KTA-Cummins FieldTune Compressor
       </div>
       <div className="grid grid-cols-2 gap-2 mb-3">
         <FlowDataPoint
