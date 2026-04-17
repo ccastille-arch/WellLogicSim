@@ -303,6 +303,17 @@ export default function MLinkDashboard({ onBack }) {
     data ? Object.keys(data).filter(k => /flow|rate|pv/i.test(k)).slice(0, 6) : []
   ))
 
+  // Diagnostic for the Live Injection Match helper. When desired
+  // flows don't resolve from the panel, list panel labels that look
+  // like they could be desired-flow registers so we can see exactly
+  // what Murphy is publishing and pin the right label in code.
+  const injectionDesiredResolved = liveWellPerformance.map(w => w.desired != null)
+  const panelSampleDesiredKeys = panel
+    ? Object.keys(panel)
+        .filter(k => /desired|setpoint|calculated|\bsp\b/i.test(k))
+        .slice(0, 8)
+    : []
+
   const wowMetrics = {
     totalActual: validWells.reduce((sum, well) => sum + well.actual, 0),
     totalDesired: validWells.reduce((sum, well) => sum + well.desired, 0),
@@ -313,6 +324,8 @@ export default function MLinkDashboard({ onBack }) {
     compressorMatch: average(liveCompressorPerformance.map(comp => computeMatchPct(comp.actual, comp.desired))),
     compressorFlowSources,
     compressorSampleKeys,
+    injectionDesiredResolved,
+    panelSampleDesiredKeys,
   }
 
   return (
@@ -703,7 +716,7 @@ function LivePerformanceHero({ metrics, wells, timestamp }) {
               label="Live Injection Match"
               value={formatPercent(metrics.currentMatch, 1)}
               tone="green"
-              helper={metrics.totalDesired ? `${metrics.totalActual.toFixed(3)} actual vs ${metrics.totalDesired.toFixed(3)} desired` : 'Waiting on desired-rate tags'}
+              helper={buildInjectionMatchHelper(metrics)}
             />
             <WowMetricCard
               label="Wells On Target"
@@ -914,6 +927,29 @@ function parseLiveNumeric(value) {
  * flow/rate keys that ARE in the payload so the engineer can wire the
  * correct one next time without guessing.
  */
+/**
+ * Helper line under the Live Injection Match KPI. When desired flows
+ * resolve we show the expected actual-vs-desired summary. When one or
+ * more wells fall back to a non-panel source, we surface a sample of
+ * panel labels that LOOK like they could be desired-flow registers —
+ * so the engineer can see exactly what Murphy is publishing and pin
+ * the right label in code.
+ */
+function buildInjectionMatchHelper(metrics) {
+  if (metrics?.totalDesired) {
+    const resolved = metrics.injectionDesiredResolved || []
+    const allFromPanel = resolved.length > 0 && resolved.every(Boolean)
+    const base = `${metrics.totalActual.toFixed(3)} actual vs ${metrics.totalDesired.toFixed(3)} desired`
+    if (allFromPanel) return base
+    return `${base} · desired from fallback (override / history)`
+  }
+  const sample = metrics?.panelSampleDesiredKeys || []
+  if (sample.length > 0) {
+    return `Panel has no desired-rate match. Available keys: ${sample.slice(0, 3).join(', ')}`
+  }
+  return 'Waiting on desired-rate tags'
+}
+
 function buildCompressorFlowHelper(metrics) {
   const sources = metrics?.compressorFlowSources || []
   const samples = metrics?.compressorSampleKeys || []
