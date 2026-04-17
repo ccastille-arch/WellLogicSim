@@ -1637,15 +1637,17 @@ function KlondikeOverview({ row, prev, windowData }) {
 
         <div className="bg-[#0F3C64] rounded-lg border border-[#222] p-4">
           <div className="text-[9px] text-[#888] uppercase tracking-wider mb-2">Well Flow Distribution</div>
-          {row.wells.map((w, i) => {
-            const flow = w.flowMmscfd ?? 0
-            const sp = w.setpointMmscfd ?? 1
+          {(row.wells ?? []).map((w, i) => {
+            // Seeded/compressor-only rows carry wells:[null,null,null,null]
+            // so every well field must tolerate w being null.
+            const flow = w?.flowMmscfd ?? 0
+            const sp = w?.setpointMmscfd ?? 1
             const pct = Math.min(100, (flow / sp) * 100)
             return (
               <div key={i} className="mb-1.5">
                 <div className="flex justify-between text-[9px] mb-0.5">
                   <span className="text-[#888]">W{i+1}</span>
-                  <span className="text-white">{flow.toFixed(3)} MMSCFD</span>
+                  <span className="text-white">{w ? flow.toFixed(3) : '--'} MMSCFD</span>
                 </div>
                 <div className="w-full bg-[#293C5B] rounded-full h-1.5">
                   <div className="h-full rounded-full bg-[#22c55e]" style={{ width: `${pct}%` }} />
@@ -1670,18 +1672,18 @@ function KlondikeOverview({ row, prev, windowData }) {
             </tr>
           </thead>
           <tbody>
-            {row.wells.map((w, i) => (
+            {(row.wells ?? []).map((w, i) => (
               <tr key={i} className={i % 2 === 0 ? 'bg-[#05233E]' : 'bg-[#0c0c18]'}>
                 <td className="px-3 py-2 text-[#D32028] font-bold">Well {i+1}</td>
-                <td className="px-3 py-2 text-[#22c55e] font-bold">{w.flowMmscfd?.toFixed(3) ?? '--'}</td>
-                <td className="px-3 py-2 text-[#888]">{(w.desiredInjectionRateMmscfd ?? w.setpointMmscfd)?.toFixed(3) ?? '--'}</td>
-                <td className="px-3 py-2 text-white">{w.staticPressure ?? '--'}</td>
-                <td className="px-3 py-2 text-white">{w.diffPressure ?? '--'}</td>
-                <td className="px-3 py-2 text-white">{w.temp ?? '--'}</td>
-                <td className="px-3 py-2 text-white">{w.analogOutput ?? '--'}</td>
+                <td className="px-3 py-2 text-[#22c55e] font-bold">{w?.flowMmscfd?.toFixed(3) ?? '--'}</td>
+                <td className="px-3 py-2 text-[#888]">{(w?.desiredInjectionRateMmscfd ?? w?.setpointMmscfd)?.toFixed(3) ?? '--'}</td>
+                <td className="px-3 py-2 text-white">{w?.staticPressure ?? '--'}</td>
+                <td className="px-3 py-2 text-white">{w?.diffPressure ?? '--'}</td>
+                <td className="px-3 py-2 text-white">{w?.temp ?? '--'}</td>
+                <td className="px-3 py-2 text-white">{w?.analogOutput ?? '--'}</td>
                 <td className="px-3 py-2">
-                  <span className={`font-bold ${w.runStatus === 'Online' ? 'text-[#22c55e]' : 'text-[#888]'}`}>
-                    {w.runStatus || '--'}
+                  <span className={`font-bold ${w?.runStatus === 'Online' ? 'text-[#22c55e]' : 'text-[#888]'}`}>
+                    {w?.runStatus || '--'}
                   </span>
                 </td>
               </tr>
@@ -1694,24 +1696,32 @@ function KlondikeOverview({ row, prev, windowData }) {
 }
 
 function KlondikeWellDetail({ row, prev, wellIdx, windowData }) {
-  const w = row.wells[wellIdx]
-  const pw = prev?.wells[wellIdx]
+  // Seeded rows from the compressor CSVs only carry compressor data;
+  // their wells[] is padded with nulls. Optional-chain every access so
+  // landing on a seed row doesn't crash the tab with a "Cannot read
+  // properties of null" error.
+  const w = row.wells?.[wellIdx] ?? null
+  // prev intentionally unused below — kept in signature for symmetry
+  // with siblings and for future delta rendering.
+  void prev
+
+  const safeSpark = (accessor) => windowData.map(r => accessor(r?.wells?.[wellIdx]) ?? 0)
 
   const params = [
-    { label: 'Injection Flow', value: w.flowMmscfd?.toFixed(3), unit: 'MMSCFD', color: '#22c55e', spark: windowData.map(r => r.wells[wellIdx]?.flowMmscfd ?? 0) },
-    { label: 'Desired Rate', value: (w.desiredInjectionRateMmscfd ?? w.setpointMmscfd)?.toFixed(3), unit: 'MMSCFD', color: '#4fc3f7', spark: windowData.map(r => r.wells[wellIdx]?.desiredInjectionRateMmscfd ?? r.wells[wellIdx]?.setpointMmscfd ?? 0) },
-    { label: 'Static Pressure', value: w.staticPressure, unit: 'PSI', color: '#eab308', spark: windowData.map(r => r.wells[wellIdx]?.staticPressure ?? 0) },
-    { label: 'Differential Pres', value: w.diffPressure, unit: 'PSI', color: '#f97316', spark: windowData.map(r => r.wells[wellIdx]?.diffPressure ?? 0) },
-    { label: 'Injection Temp', value: w.temp, unit: 'deg F', color: '#D32028', spark: windowData.map(r => r.wells[wellIdx]?.temp ?? 0) },
-    { label: 'Choke AO', value: w.analogOutput, unit: '%', color: '#a78bfa', spark: windowData.map(r => r.wells[wellIdx]?.analogOutput ?? 0) },
+    { label: 'Injection Flow', value: w?.flowMmscfd?.toFixed(3), unit: 'MMSCFD', color: '#22c55e', spark: safeSpark(w => w?.flowMmscfd) },
+    { label: 'Desired Rate', value: (w?.desiredInjectionRateMmscfd ?? w?.setpointMmscfd)?.toFixed(3), unit: 'MMSCFD', color: '#4fc3f7', spark: safeSpark(w => w?.desiredInjectionRateMmscfd ?? w?.setpointMmscfd) },
+    { label: 'Static Pressure', value: w?.staticPressure, unit: 'PSI', color: '#eab308', spark: safeSpark(w => w?.staticPressure) },
+    { label: 'Differential Pres', value: w?.diffPressure, unit: 'PSI', color: '#f97316', spark: safeSpark(w => w?.diffPressure) },
+    { label: 'Injection Temp', value: w?.temp, unit: 'deg F', color: '#D32028', spark: safeSpark(w => w?.temp) },
+    { label: 'Choke AO', value: w?.analogOutput, unit: '%', color: '#a78bfa', spark: safeSpark(w => w?.analogOutput) },
   ]
 
   return (
     <div>
       <div className="flex items-center gap-3 mb-4">
-        <div className={`w-3 h-3 rounded-full ${w.runStatus === 'Online' ? 'bg-[#22c55e]' : 'bg-[#555]'}`} />
+        <div className={`w-3 h-3 rounded-full ${w?.runStatus === 'Online' ? 'bg-[#22c55e]' : 'bg-[#555]'}`} />
         <span className="text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>Well {wellIdx + 1}</span>
-        <span className={`text-[10px] font-bold ${w.runStatus === 'Online' ? 'text-[#22c55e]' : 'text-[#888]'}`}>{w.runStatus || '--'}</span>
+        <span className={`text-[10px] font-bold ${w?.runStatus === 'Online' ? 'text-[#22c55e]' : 'text-[#888]'}`}>{w?.runStatus || '--'}</span>
         <span className="text-[9px] text-[#555] ml-auto">{row.timestamp}</span>
       </div>
 
@@ -1729,9 +1739,9 @@ function KlondikeWellDetail({ row, prev, wellIdx, windowData }) {
       </div>
 
       <div className="mt-3 bg-[#0c0c18] rounded border border-[#293C5B] p-3 text-[10px] text-[#888]">
-        Yesterday total: <span className="text-white">{w.yesterdayTotal?.toFixed(3) ?? '--'} MMSCFD</span>
-        &nbsp;-&nbsp; Desired: <span className="text-white">{w.calcDesiredFlow?.toFixed(3) ?? '--'} MMSCFD</span>
-        &nbsp;-&nbsp; Max rate: <span className="text-white">{w.maxFlowRate?.toFixed(3) ?? '--'} MMSCFD</span>
+        Yesterday total: <span className="text-white">{w?.yesterdayTotal?.toFixed(3) ?? '--'} MMSCFD</span>
+        &nbsp;-&nbsp; Desired: <span className="text-white">{w?.calcDesiredFlow?.toFixed(3) ?? '--'} MMSCFD</span>
+        &nbsp;-&nbsp; Max rate: <span className="text-white">{w?.maxFlowRate?.toFixed(3) ?? '--'} MMSCFD</span>
       </div>
     </div>
   )

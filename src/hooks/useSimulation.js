@@ -29,50 +29,40 @@ export function useSimulation(config) {
     }
   }, [running, state.tuning?.tickInterval])
 
+  // Slider independence: the Sales Demo / Edit Inputs sliders are
+  // expected to behave like independent knobs. Previously, toggling a
+  // compressor's status OR changing a compressor's capacity would
+  // recompute and clamp `totalAvailableGas`, so moving one slider
+  // visibly tugged the gas-supply slider (and vice-versa via the
+  // maxGasCapacity recompute). That coupling is gone now — each
+  // setter only touches the field the slider names on the tin.
+  // `maxGasCapacity` still tracks the sum because it's a derived
+  // ceiling for the gas-supply slider, not a slider the user drags.
   const setCompressorStatus = useCallback((id, status) => {
-    setState(prev => {
-      const compressors = prev.compressors.map(c =>
+    setState(prev => ({
+      ...prev,
+      compressors: prev.compressors.map(c =>
         c.id === id ? { ...c, status } : c
-      )
-      const prevOnlineCapacity = getOnlineCapacity(prev.compressors)
-      const onlineCapacity = getOnlineCapacity(compressors)
-      const wasAtCapacity = Math.abs(prev.totalAvailableGas - prevOnlineCapacity) < 1
-
-      return {
-        ...prev,
-        compressors,
-        totalAvailableGas:
-          onlineCapacity > prevOnlineCapacity && wasAtCapacity
-            ? onlineCapacity
-            : Math.min(prev.totalAvailableGas, onlineCapacity),
-        maxGasCapacity: compressors.reduce((sum, c) => sum + c.capacityMcfd, 0),
-      }
-    })
+      ),
+    }))
   }, [])
 
   const setCompressorCapacity = useCallback((id, capacityMcfd) => {
     setState(prev => {
       const nextCapacity = Math.max(0, Number(capacityMcfd) || 0)
-      const prevOnlineCapacity = getOnlineCapacity(prev.compressors)
       const compressors = prev.compressors.map(c =>
         c.id === id ? { ...c, capacityMcfd: nextCapacity } : c
       )
-      const onlineCapacity = getOnlineCapacity(compressors)
-      const maxGasCapacity = compressors.reduce((sum, c) => sum + c.capacityMcfd, 0)
-      const wasAtCapacity = Math.abs(prev.totalAvailableGas - prevOnlineCapacity) < 1
-
       return {
         ...prev,
         compressors,
-        config: {
-          ...prev.config,
-          compressorMaxFlowRate: nextCapacity,
-        },
-        totalAvailableGas:
-          onlineCapacity > prevOnlineCapacity && wasAtCapacity
-            ? onlineCapacity
-            : Math.min(prev.totalAvailableGas, onlineCapacity),
-        maxGasCapacity,
+        // IMPORTANT: do NOT propagate a single compressor's capacity
+        // into config.compressorMaxFlowRate — that value is the
+        // default applied to ALL compressors at createInitialState,
+        // so overwriting it here meant setting C0 capacity bled into
+        // C1 on the next state rebuild (the reported "sliders affect
+        // each other" symptom).
+        maxGasCapacity: compressors.reduce((sum, c) => sum + c.capacityMcfd, 0),
       }
     })
   }, [])

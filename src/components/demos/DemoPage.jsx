@@ -6,13 +6,16 @@ import { getMetrics } from '../../engine/simulation'
 export default function DemoPage({ title, pitch, triggers, metrics, children, sim }) {
   const m = getMetrics(sim.state)
 
+  // Full rebuild — the partial reset (compressors → running, zero
+  // setpoints → 150, clear unload + sales valve) left demo-specific
+  // bugs alive: alarms, choke-manual-overrides, personnel lockouts,
+  // capacity tweaks, etc. Calling resetToDefaults regenerates the
+  // entire sim state via createInitialState(config), wiping every
+  // preset the triggers may have applied so the pad returns to a
+  // full-green, steady-state, all-wells-at-setpoint baseline.
   const resetAll = () => {
-    if (!sim?.state) return
-    sim.state.compressors?.forEach(c => sim.setCompressorStatus(c.id, 'running'))
-    sim.state.wells?.forEach(w => { if (w.desiredRate === 0) sim.setWellDesiredRate(w.id, 150) })
-    sim.setTotalAvailableGas(sim.state.maxGasCapacity)
-    sim.setStateField('wellUnloadActive', false)
-    sim.setStateField('salesValvePosition', 0)
+    if (!sim?.resetToDefaults) return
+    sim.resetToDefaults()
   }
 
   return (
