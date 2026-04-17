@@ -100,6 +100,20 @@ const COMPRESSOR_DESIRED_FLOW_KEYS = [
   ['Compressor #2 Desire Flow SP For PID Murphy', 'Compressor #2 Desired Flow SP For PID Murphy'],
 ]
 
+// Well priority ranking, ordered by oil rate per well. Well Logic uses
+// this ranking to decide who gets curtailed when supply is short: the
+// top producers stay on their desired gas-lift target; the lowest
+// producer is the explicit "sacrificial" well that absorbs any
+// shortfall. Ranking is shown on each well card so customers can see
+// WHY Well 4 sometimes runs under setpoint — it's by design, not
+// failure.
+const WELL_PRIORITIES = [
+  { rank: 1, oilBopd: 182, sacrificial: false },
+  { rank: 2, oilBopd: 154, sacrificial: false },
+  { rank: 3, oilBopd: 121, sacrificial: false },
+  { rank: 4, oilBopd: 46,  sacrificial: true  },
+]
+
 function getFirstDatapoint(dataMap, keys) {
   for (const key of keys) {
     if (dataMap[key] != null) return dataMap[key]
@@ -273,26 +287,6 @@ export default function MLinkDashboard({ onBack }) {
       && !meta.label.endsWith('Yesterdays Flow')
     )),
   )
-  const compressorDesiredDatapoints = [compA, compB].map((compressorData, index) =>
-    findCompressorDesiredFlow(compressorData, panel, index),
-  )
-  const compressorActualFlowDatapoints = [compA, compB].map((compressorData, index) => {
-    const live = findCompressorActualFlow(compressorData)
-    if (live) return live
-    // Fallback to the most-recent seeded / live-stored reading when
-    // the configured device ID doesn't publish Flow Rate PID PV.
-    // Wrapped to match the {value, units, keyUsed} shape the card
-    // render path expects.
-    const histValue = latestHistoryRow?.[`comp${index + 1}ActualFlow`]
-    if (histValue != null && Number.isFinite(histValue) && histValue >= 0) {
-      return {
-        value: histValue,
-        units: 'MMSCFD',
-        keyUsed: 'stored Flow Rate PID PV (last snapshot)',
-      }
-    }
-    return null
-  })
   // Historical per-well average desired (used as the final baseline
   // when panel + override + latest history are all silent). Computed
   // once per render off the full merged klondike dataset.
@@ -304,6 +298,56 @@ export default function MLinkDashboard({ onBack }) {
     if (!samples.length) return null
     return samples.reduce((a, b) => a + b, 0) / samples.length
   }
+  // Same full-dataset averages for compressors — defined before the
+  // compressor datapoint fallback chain so they can participate in it.
+  const klondikeAvgCompDesired = (compIdx) => {
+    if (!klondike.data?.length) return null
+    const key = `comp${compIdx + 1}DesiredFlow`
+    const samples = klondike.data.map(r => r?.[key]).filter(v => v != null && v > 0)
+    if (!samples.length) return null
+    return samples.reduce((a, b) => a + b, 0) / samples.length
+  }
+  const klondikeAvgCompActual = (compIdx) => {
+    if (!klondike.data?.length) return null
+    const key = `comp${compIdx + 1}ActualFlow`
+    const samples = klondike.data.map(r => r?.[key]).filter(v => v != null && v > 0)
+    if (!samples.length) return null
+    return samples.reduce((a, b) => a + b, 0) / samples.length
+  }
+  // Desired + actual datapoints carry the SAME fallback chain the top
+  // CommandVsActualWidget uses — otherwise the top widget could show
+  // 1.614 MMSCFD while the per-compressor card below still rendered
+  // "No Data" because the compressor-device payload doesn't include
+  // the Quick Start / Flow Rate PID PV labels. Shape is preserved as
+  // {value, units, keyUsed} so the existing CompressorCard render
+  // path is untouched; keyUsed tells the diagnostic row which tier
+  // the number came from.
+  const compressorDesiredDatapoints = [compA, compB].map((compressorData, index) => {
+    const live = findCompressorDesiredFlow(compressorData, panel, index)
+    if (live) return live
+    const hist = latestHistoryRow?.[`comp${index + 1}DesiredFlow`]
+    if (hist != null && Number.isFinite(hist) && hist > 0) {
+      return { value: hist, units: 'MMSCFD', keyUsed: 'stored panel SP (last snapshot)' }
+    }
+    const avg = klondikeAvgCompDesired(index)
+    if (avg != null && Number.isFinite(avg) && avg > 0) {
+      return { value: avg, units: 'MMSCFD', keyUsed: '30-day panel SP average' }
+    }
+    return null
+  })
+  const compressorActualFlowDatapoints = [compA, compB].map((compressorData, index) => {
+    const live = findCompressorActualFlow(compressorData)
+    if (live) return live
+    const hist = latestHistoryRow?.[`comp${index + 1}ActualFlow`]
+    if (hist != null && Number.isFinite(hist) && hist >= 0) {
+      return { value: hist, units: 'MMSCFD', keyUsed: 'stored Flow Rate PID PV (last snapshot)' }
+    }
+    const avg = klondikeAvgCompActual(index)
+    if (avg != null && Number.isFinite(avg) && avg > 0) {
+      return { value: avg, units: 'MMSCFD', keyUsed: '30-day Flow Rate PID PV average' }
+    }
+    return null
+  })
 
   const liveWellPerformance = LIVE_WELL_FLOW_KEYS.map((keys, index) => {
     const wellNumber = index + 1
@@ -346,29 +390,6 @@ export default function MLinkDashboard({ onBack }) {
       atTarget: isWithinTarget(actual, desired),
     }
   })
-  // Full-dataset average compressor desired (last-resort fallback).
-  const klondikeAvgCompDesired = (compIdx) => {
-    if (!klondike.data?.length) return null
-    const key = `comp${compIdx + 1}DesiredFlow`
-    const samples = klondike.data
-      .map(r => r?.[key])
-      .filter(v => v != null && v > 0)
-    if (!samples.length) return null
-    return samples.reduce((a, b) => a + b, 0) / samples.length
-  }
-
-  // Full-dataset average compressor ACTUAL flow (last-resort baseline
-  // when the live compressor device doesn't expose Flow Rate PID PV
-  // and no recent snapshot is in the history).
-  const klondikeAvgCompActual = (compIdx) => {
-    if (!klondike.data?.length) return null
-    const key = `comp${compIdx + 1}ActualFlow`
-    const samples = klondike.data
-      .map(r => r?.[key])
-      .filter(v => v != null && v > 0)
-    if (!samples.length) return null
-    return samples.reduce((a, b) => a + b, 0) / samples.length
-  }
 
   const liveCompressorPerformance = [compA, compB].map((compressorData, index) => ({
     desired: parseLiveNumeric(compressorDesiredDatapoints[index]?.value)
@@ -420,11 +441,19 @@ export default function MLinkDashboard({ onBack }) {
         .slice(0, 8)
     : []
 
+  // Priority-only slice — Wells 1-3 are the revenue wells Well Logic
+  // protects at all costs. Well 4 is intentionally sacrificial when
+  // gas supply is short, so its shortfall doesn't belong in the same
+  // KPI as the priority wells.
+  const priorityWells = liveWellPerformance.filter((_, idx) => !WELL_PRIORITIES[idx]?.sacrificial)
+  const priorityValid = priorityWells.filter(w => w.actual != null && w.desired != null)
   const wowMetrics = {
     totalActual: validWells.reduce((sum, well) => sum + well.actual, 0),
     totalDesired: validWells.reduce((sum, well) => sum + well.desired, 0),
     currentMatch: average(validWells.map(well => well.matchPct)),
     wellsAtTarget: validWells.filter(well => well.atTarget).length,
+    priorityAtTarget: priorityValid.filter(w => w.atTarget).length,
+    priorityTotal: priorityValid.length || priorityWells.length,
     historicalAtTarget,
     historicalUnderTarget: historicalAtTarget != null ? Math.max(0, 100 - historicalAtTarget) : null,
     compressorMatch: average(liveCompressorPerformance.map(comp => computeMatchPct(comp.actual, comp.desired))),
@@ -627,9 +656,35 @@ export default function MLinkDashboard({ onBack }) {
                       const desiredVal = liveWellPerformance[i]?.desired
                       const maxFlow = 1.2
                       const widthPct = val != null ? Math.max(0, Math.min(100, (val / maxFlow) * 100)) : 0
+                      const priority = WELL_PRIORITIES[i]
+                      const isSacrificial = priority?.sacrificial
                       return (
-                        <div key={i} className="bg-[#03172A] rounded-lg border border-[#2a2a3a] p-4 text-center">
-                          <div className="text-[10px] text-[#888] mb-1">Well {i + 1}</div>
+                        <div
+                          key={i}
+                          className={`rounded-lg p-4 text-center ${isSacrificial
+                              ? 'bg-[#1A1408] border border-[#8a6421]'
+                              : 'bg-[#03172A] border border-[#2a2a3a]'
+                            }`}
+                        >
+                          {/* Priority chip — ranks wells by oil production
+                              so customers see the curtailment story at a
+                              glance. P1 = top oil earner (protect target);
+                              P4 = sacrificial (absorb any gas shortfall). */}
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span className="text-[10px] text-[#888]">Well {i + 1}</span>
+                            <span
+                              className={`rounded-sm px-1.5 py-0.5 text-[8px] font-black tracking-[0.12em] uppercase ${isSacrificial
+                                  ? 'bg-[#33260c] text-[#f7c65d]'
+                                  : 'bg-[#0a2439] text-[#49D0E2]'
+                                }`}
+                            >
+                              P{priority?.rank}
+                            </span>
+                          </div>
+                          <div className={`text-[9px] font-bold tracking-[0.16em] uppercase mb-2 ${isSacrificial ? 'text-[#d4a556]' : 'text-[#6b7a8f]'
+                            }`}>
+                            {priority?.oilBopd} BOPD Oil{isSacrificial ? ' · Sacrificial' : ''}
+                          </div>
                           <div className="text-[8px] text-[#6b7a8f] uppercase tracking-[0.18em] font-bold mb-0.5">Actual</div>
                           <div className="text-2xl text-[#22c55e] font-bold" style={{ fontFamily: "'Montserrat'" }}>
                             {val != null ? val.toFixed(3) : '--'}
@@ -928,10 +983,14 @@ function LivePerformanceHero({ metrics, wells, timestamp }) {
               helper={buildInjectionMatchHelper(metrics)}
             />
             <WowMetricCard
-              label="Wells On Target"
-              value={metrics.wellsAtTarget != null ? `${metrics.wellsAtTarget}/4` : '--'}
+              label="Priority Wells On Target"
+              value={
+                metrics.priorityAtTarget != null && metrics.priorityTotal
+                  ? `${metrics.priorityAtTarget}/${metrics.priorityTotal}`
+                  : '--'
+              }
               tone="blue"
-              helper="Within 3% of desired injection"
+              helper="Least-producing well sacrificed as needed"
             />
             <WowMetricCard
               label="30-Day Under Target"
@@ -2061,7 +2120,7 @@ function CompressorTrackingScore({ data, daysOfData }) {
               fontWeight: 700,
             }}
           >
-            Compressor {idx === 0 ? 'A' : 'B'} Tracking
+            Compressor {idx === 0 ? 'A' : 'B'} · Locked On Commanded Flow
           </span>
           <span className="text-[9px] text-[#6b7a8f]">{s.samples} samples</span>
         </div>
@@ -2073,7 +2132,7 @@ function CompressorTrackingScore({ data, daysOfData }) {
             {headline.toFixed(1)}%
           </div>
           <div className="text-[10px] text-[#6b7a8f]">
-            of the time within 10% of commanded SP
+            of the time holding the exact flow the Well Panel commanded
           </div>
         </div>
         <div className="w-full h-2 rounded-full bg-[#14202c] overflow-hidden">
@@ -2090,15 +2149,17 @@ function CompressorTrackingScore({ data, daysOfData }) {
     <div className="mt-6">
       <div className="flex items-baseline justify-between mb-3 gap-3 flex-wrap">
         <h3 className="text-white font-bold" style={{ fontFamily: "'Montserrat'", fontSize: 14 }}>
-          Compressor Tracking Score
+          Compressor Flow Precision · Holding Exactly What Was Commanded
         </h3>
         <span className="text-[10px] text-[#6b7a8f] uppercase tracking-[0.18em] font-semibold">
           Over {daysOfData > 0 ? daysOfData : '—'} day{daysOfData === 1 ? '' : 's'} of stored history
         </span>
       </div>
       <p className="text-[11px] text-[#6b7a8f] mb-3">
-        How often each compressor held its actual flow within 10% of the
-        Well Panel&rsquo;s commanded SP. Higher is tighter control.
+        When the Well Panel changes a compressor&rsquo;s desired flow, this score is the share of time
+        the compressor&rsquo;s actual flow tracked that command within a 10% band.
+        Every gap is gas not landing where Well Logic told it to go &mdash; the closer to 100%, the more
+        the setpoint is the flow.
       </p>
       <div className="flex gap-3 flex-wrap">
         {renderCard(0)}
