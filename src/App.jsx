@@ -48,6 +48,16 @@ import AutoPilot from './components/demos/AutoPilot'
 import SetpointChangeDemo from './components/demos/SetpointChangeDemo'
 import { WellLogicCompact } from './components/WellLogicBrand'
 
+// Customer-share URL. Hitting this path renders ONLY the Live Data
+// tab of MLinkDashboard with no header, no home button, no forum, no
+// login gate, no tab switcher to Run History or Field Data. Safe to
+// paste into a sales email so customers can watch the stream without
+// getting a foothold in the rest of the simulator. Keep it a constant
+// so a future rename is a one-line change.
+const STREAM_ONLY_PATH = '/live-stream'
+const isStreamOnlyUrl = () =>
+  typeof window !== 'undefined' && window.location.pathname === STREAM_ONLY_PATH
+
 function AppContent() {
   const { user, isAdmin, isTech, canViewQuotes, canAccess, logout, trackActivity, settings, loading } = useAuth()
   const [page, setPage] = useState('home')
@@ -65,6 +75,20 @@ function AppContent() {
     }
     setPage(target)
   }, [canAccess, trackActivity])
+
+  // Stream-only kiosk mode — intercept BEFORE the loading spinner /
+  // auth gate / page chrome so the customer-share URL never flashes a
+  // login screen, never shows the Home button, never exposes the tab
+  // switcher. Purely read-only Live Data. AuthProvider still wraps
+  // this so MLinkDashboard's internal useAuth() reads don't crash;
+  // it just gets the default no-user state.
+  if (isStreamOnlyUrl()) {
+    return (
+      <div className="flex flex-col h-screen" style={{ background: '#05233E' }}>
+        <MLinkDashboard streamOnly />
+      </div>
+    )
+  }
 
   // Show spinner while restoring session from server
   if (loading) {

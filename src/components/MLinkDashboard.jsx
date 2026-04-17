@@ -121,7 +121,7 @@ function getFirstDatapoint(dataMap, keys) {
   return null
 }
 
-export default function MLinkDashboard({ onBack }) {
+export default function MLinkDashboard({ onBack, streamOnly = false }) {
   const { settings } = useAuth()
   const [panelData, setPanelData] = useState(null)
   const [compAData, setCompAData] = useState(null)
@@ -580,34 +580,44 @@ export default function MLinkDashboard({ onBack }) {
                 Auto · {lastRefresh.toLocaleTimeString()}
               </span>
             )}
-            <button
-              onClick={onBack}
-              style={{
-                padding: '8px 14px',
-                fontFamily: "'Montserrat', sans-serif",
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: 2,
-                textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.7)',
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: 2,
-                cursor: 'pointer',
-              }}
-            >
-              Back
-            </button>
+            {/* Back button suppressed in streamOnly (customer-share)
+                mode — there's nowhere to go back TO from the public
+                /live-stream URL. */}
+            {!streamOnly && onBack && (
+              <button
+                onClick={onBack}
+                style={{
+                  padding: '8px 14px',
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: 2,
+                  textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.7)',
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 2,
+                  cursor: 'pointer',
+                }}
+              >
+                Back
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 px-6 py-2 bg-[#03172A] border-b border-[#293C5B] shrink-0">
-        <button onClick={() => setTab('live')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'live' ? 'bg-[#D32028] text-white' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Live Data</button>
-        <button onClick={() => setTab('history')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'history' ? 'bg-[#D32028] text-white' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Run History</button>
-        <button onClick={() => setTab('klondike')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'klondike' ? 'bg-[#4fc3f7] text-black' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Field Data History</button>
-      </div>
+      {/* Tabs — hidden in streamOnly mode so customers can't navigate
+          into Run History / Field Data History from the public share
+          URL. The local `tab` state is still wired so if the URL ever
+          switches OUT of streamOnly the tabs reappear seamlessly. */}
+      {!streamOnly && (
+        <div className="flex gap-2 px-6 py-2 bg-[#03172A] border-b border-[#293C5B] shrink-0">
+          <button onClick={() => setTab('live')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'live' ? 'bg-[#D32028] text-white' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Live Data</button>
+          <button onClick={() => setTab('history')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'history' ? 'bg-[#D32028] text-white' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Run History</button>
+          <button onClick={() => setTab('klondike')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'klondike' ? 'bg-[#4fc3f7] text-black' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Field Data History</button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-auto p-6">
         {tab === 'live' ? (
