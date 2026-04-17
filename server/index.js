@@ -82,9 +82,25 @@ const MLINK_DEVICES = {
   compB: process.env.MLINK_COMP_B_DEVICE_ID  || '2504-505472',
 }
 
+// Human-facing labeling for each compressor. The card title renders
+// as "{name} · Unit {unit}" so customers see the product description
+// and their actual fleet number, not a generic "Compressor A". Both
+// env-overridable on Railway.
+const MLINK_LABELS = {
+  compA: {
+    name: process.env.MLINK_COMP_A_NAME || 'Service Compression KTA-Cummins FieldTune Compressor',
+    unit: process.env.MLINK_COMP_A_UNIT || '',
+  },
+  compB: {
+    name: process.env.MLINK_COMP_B_NAME || 'Service Compression KTA-Cummins FieldTune Compressor',
+    unit: process.env.MLINK_COMP_B_UNIT || '',
+  },
+}
+
 app.get('/api/mlink/devices', (_req, res) => {
   res.json({
     devices: MLINK_DEVICES,
+    labels: MLINK_LABELS,
     sources: {
       panel: process.env.MLINK_PANEL_DEVICE_ID ? 'env' : 'default',
       compA: process.env.MLINK_COMP_A_DEVICE_ID ? 'env' : 'default',

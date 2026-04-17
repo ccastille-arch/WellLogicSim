@@ -132,12 +132,17 @@ export default function MLinkDashboard({ onBack }) {
   const [deviceSources, setDeviceSources] = useState({
     panel: 'default', compA: 'default', compB: 'default',
   })
+  const [deviceLabels, setDeviceLabels] = useState({
+    compA: { name: 'Service Compression KTA-Cummins FieldTune Compressor', unit: '' },
+    compB: { name: 'Service Compression KTA-Cummins FieldTune Compressor', unit: '' },
+  })
   useEffect(() => {
     fetch('/api/mlink/devices')
       .then(r => r.ok ? r.json() : null)
       .then(body => {
         if (body?.devices) setDevices(body.devices)
         if (body?.sources) setDeviceSources(body.sources)
+        if (body?.labels) setDeviceLabels(body.labels)
       })
       .catch(() => {})
   }, [])
@@ -655,7 +660,10 @@ export default function MLinkDashboard({ onBack }) {
                 {/* Compressors */}
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <CompressorCard
-                    label="Compressor A"
+                    label={deviceLabels.compA.name}
+                    unit={deviceLabels.compA.unit}
+                    deviceId={devices.compA}
+                    deviceSource={deviceSources.compA}
                     data={compA}
                     time={compATime}
                     desiredFlow={compressorDesiredDatapoints[0]}
@@ -663,7 +671,10 @@ export default function MLinkDashboard({ onBack }) {
                     registers={visibleCompressorARegisters}
                   />
                   <CompressorCard
-                    label="Compressor B"
+                    label={deviceLabels.compB.name}
+                    unit={deviceLabels.compB.unit}
+                    deviceId={devices.compB}
+                    deviceSource={deviceSources.compB}
                     data={compB}
                     time={getTimestamp(compBData)}
                     desiredFlow={compressorDesiredDatapoints[1]}
@@ -688,7 +699,7 @@ export default function MLinkDashboard({ onBack }) {
   )
 }
 
-function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers }) {
+function CompressorCard({ label, unit, deviceId, deviceSource, data, time, desiredFlow, actualFlow, registers }) {
   // RPM detection — try the known labels first, then fuzzy-scan any
   // key containing "speed" / "rpm" that has a numeric value. Needed
   // because Centurion / Ariel / Cat catalogs publish speed under
@@ -746,29 +757,38 @@ function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers 
 
   return (
     <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-5">
-      <div className="flex items-center gap-2 mb-1">
-        <div className={`w-3 h-3 rounded-full ${isRunning ? 'bg-[#22c55e] shadow-lg shadow-[#22c55e]/50' : 'bg-[#D32028]'}`} />
-        <h3 className="text-[13px] text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>{label}</h3>
-        <span className={`text-[9px] font-bold ml-auto ${isRunning ? 'text-[#22c55e]' : 'text-[#D32028]'}`}>
+      {/* Title = product description + customer unit number. Reads
+          as an equipment ID ("KTA-Cummins FieldTune · Unit 2073")
+          which keeps the FieldTune sales pitch implicit and gives
+          operators the actual fleet tag they recognize. Set
+          MLINK_COMP_A_UNIT / MLINK_COMP_B_UNIT (and optionally
+          *_NAME) on Railway to change these per pad. */}
+      <div className="flex items-start gap-2 mb-3">
+        <div className={`w-3 h-3 rounded-full mt-1 shrink-0 ${isRunning ? 'bg-[#22c55e] shadow-lg shadow-[#22c55e]/50' : 'bg-[#D32028]'}`} />
+        <div className="min-w-0 flex-1">
+          <h3
+            className="text-white font-bold leading-tight"
+            style={{ fontFamily: "'Montserrat', sans-serif", fontSize: 13 }}
+          >
+            {label}
+            {unit ? (
+              <span
+                style={{
+                  marginLeft: 8,
+                  fontWeight: 600,
+                  fontSize: 11,
+                  color: '#49D0E2',
+                  letterSpacing: 0.6,
+                }}
+              >
+                &middot; Unit {unit}
+              </span>
+            ) : null}
+          </h3>
+        </div>
+        <span className={`text-[9px] font-bold shrink-0 ${isRunning ? 'text-[#22c55e]' : 'text-[#D32028]'}`}>
           {isRunning ? 'RUNNING' : 'STOPPED'}
         </span>
-      </div>
-      {/* Package tag — reads as operator-facing "equipment spec" copy
-          so it doesn't feel like marketing, but quietly plants the
-          FieldTune product for anyone who notices the word. This is
-          the only place FieldTune appears on the simulator. */}
-      <div
-        className="mb-3 ml-5"
-        style={{
-          fontFamily: "'Montserrat', sans-serif",
-          fontWeight: 600,
-          fontSize: 8,
-          letterSpacing: 2,
-          textTransform: 'uppercase',
-          color: 'rgba(73, 208, 226, 0.55)',
-        }}
-      >
-        Service Compression KTA-Cummins FieldTune Compressor
       </div>
       <div className="grid grid-cols-2 gap-2 mb-3">
         <FlowDataPoint
