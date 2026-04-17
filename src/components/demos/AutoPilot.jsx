@@ -225,12 +225,23 @@ export default function AutoPilot({ sim, onExit }) {
   }
 
   // Replay every SCRIPT action from index 0 up to and including
-  // `targetStep`. The narration's actions are cumulative side-effects
-  // on the sim (trip a compressor, drop gas supply, etc.), so manual
-  // navigation has to rebuild the sim state from scratch — otherwise a
-  // Prev click leaves the sim in a later state than the tile it
-  // jumped back to, and a Next click starting from a paused earlier
-  // state would only run one action without any of its predecessors.
+  // `targetStep`, running the sim forward for each step's duration so
+  // downstream physics (wells going red after a comp trip, pressures
+  // re-balancing after a gas drop) actually propagate on-screen.
+  //
+  // Without the fastForward-per-step, a manual Next into "Impact"
+  // right after "Compressor Trips" showed the trip action applied
+  // (C1 OFFLINE) but every well still green, because the gas chain
+  // hadn't had time to tick. The narration says "all wells going
+  // red" but the sim disagreed.
+  //
+  // Each sim tick is driven by useSimulation's 500 ms setInterval; so
+  // the count of ticks that would have fired during a tile's live
+  // playback is duration / 500. We cap at 60 ticks per step (30 sim-
+  // seconds) to avoid a noticeable freeze on long tiles.
+  const TICK_INTERVAL_MS = 500
+  const MAX_TICKS_PER_STEP = 60
+
   const replayToStep = (targetStep) => {
     if (typeof sim.resetToDefaults !== 'function') return
     sim.resetToDefaults()
@@ -238,6 +249,15 @@ export default function AutoPilot({ sim, onExit }) {
       const s = SCRIPT[i]
       if (s?.action) {
         try { s.action(sim) } catch { /* ignore action errors during replay */ }
+      }
+      // Fast-forward the sim for this step's duration so the
+      // consequences of its action settle before we move to the next.
+      const ticks = Math.min(
+        MAX_TICKS_PER_STEP,
+        Math.ceil((s?.duration || 0) / TICK_INTERVAL_MS),
+      )
+      if (ticks > 0 && typeof sim.fastForward === 'function') {
+        sim.fastForward(ticks)
       }
     }
   }

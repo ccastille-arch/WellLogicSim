@@ -152,6 +152,28 @@ export function useSimulation(config) {
     setRunning(r => !r)
   }, [])
 
+  /**
+   * Synchronously advance the simulation by N ticks in a single
+   * setState update. Used by AutoPilot's replayToStep so the visible
+   * state after a manual Next/Prev matches the sim state that would
+   * have been reached at that narration tile during live playback —
+   * compressor trips have to ripple through the gas supply chain
+   * before wells show red, and that only happens with ticks.
+   *
+   * Runs inside one setState(prev =>) so React batches it as a single
+   * update. Capped in the caller (AutoPilot) to avoid pathological
+   * frame drops when a tile has a very long duration.
+   */
+  const fastForward = useCallback((ticks) => {
+    const n = Math.max(0, Math.floor(Number(ticks) || 0))
+    if (n === 0) return
+    setState(prev => {
+      let next = prev
+      for (let i = 0; i < n; i += 1) next = tick(next)
+      return next
+    })
+  }, [])
+
   const metrics = getMetrics(state)
 
   return {
@@ -171,5 +193,6 @@ export function useSimulation(config) {
     setStateField,
     resetToDefaults,
     applyConfig,
+    fastForward,
   }
 }
