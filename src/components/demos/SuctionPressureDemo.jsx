@@ -72,7 +72,7 @@ export default function SuctionPressureDemo({ sim }) {
       label: 'Suction Header',
       value: sim.state.suctionHeaderPressure.toFixed(0),
       unit: 'PSI',
-      color: sim.state.suctionHeaderPressure > upper ? '#E8200C' :
+      color: sim.state.suctionHeaderPressure > upper ? '#D32028' :
         sim.state.suctionHeaderPressure < sim.state.suctionLowRange ? '#eab308' : '#22c55e',
     },
     { label: 'Target', value: `${target}`, unit: 'PSI' },
@@ -81,12 +81,12 @@ export default function SuctionPressureDemo({ sim }) {
       label: 'Gas Temp',
       value: sim.state.flowMeterTemp.toFixed(0),
       unit: 'deg F',
-      color: sim.state.flowMeterTemp > sim.state.maxTempAtPlate ? '#E8200C' : '#22c55e',
+      color: sim.state.flowMeterTemp > sim.state.maxTempAtPlate ? '#D32028' : '#22c55e',
     },
     ...sim.state.compressors.map(c => ({
       label: `${c.name} RPM`,
       value: c.rpm.toFixed(0),
-      color: c.status === 'running' ? '#22c55e' : '#E8200C',
+      color: c.status === 'running' ? '#22c55e' : '#D32028',
     })),
   ]
 

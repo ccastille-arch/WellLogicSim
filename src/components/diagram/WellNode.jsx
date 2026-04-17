@@ -1,7 +1,7 @@
 export default function WellNode({ well, x, y, width = 80, height = 60 }) {
   const { name, actualRate, desiredRate, productionBoe, isAtTarget, isHunting, chokePosition } = well
   const accuracy = desiredRate > 0 ? (actualRate / desiredRate) : 1
-  const borderColor = isAtTarget ? '#22c55e' : accuracy > 0.5 ? '#eab308' : '#E8200C'
+  const borderColor = isAtTarget ? '#22c55e' : accuracy > 0.5 ? '#eab308' : '#D32028'
 
   return (
     <g transform={`translate(${x}, ${y})`}>
@@ -15,7 +15,7 @@ export default function WellNode({ well, x, y, width = 80, height = 60 }) {
         strokeWidth={1.5}
       />
       {/* Name + hunting indicator */}
-      <text x={6} y={14} fill="white" fontSize={11} fontWeight="bold" fontFamily="Arial Black, Arial">
+      <text x={6} y={14} fill="white" fontSize={11} fontWeight="bold" fontFamily="Montserrat, sans-serif">
         {name}
       </text>
       {isHunting && (

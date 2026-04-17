@@ -18,12 +18,12 @@ export default function AdminDashboard({ onBack }) {
   const [tab, setTab] = useState(visibleTabs[0]?.id || 'users')
 
   return (
-    <div className="flex-1 flex flex-col bg-[#080810] overflow-auto">
+    <div className="flex-1 flex flex-col bg-[#05233E] overflow-auto">
       {/* Header */}
-      <div className="shrink-0 px-5 py-4 border-b border-[#1a1a2a] bg-[#0c0c18]">
+      <div className="shrink-0 px-5 py-4 border-b border-[#293C5B] bg-[#0c0c18]">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-lg font-bold text-white" style={{ fontFamily: "'Arial Black'" }}>Admin Dashboard</h1>
+            <h1 className="text-lg font-bold text-white" style={{ fontFamily: "'Montserrat'" }}>Admin Dashboard</h1>
             <p className="text-[10px] text-[#888]">User management, roles, analytics & settings</p>
           </div>
           <button onClick={onBack}
@@ -38,7 +38,7 @@ export default function AdminDashboard({ onBack }) {
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-4 py-1.5 rounded-lg text-[11px] font-bold transition-colors ${
                 tab === t.id
-                  ? 'bg-[#E8200C] text-white'
+                  ? 'bg-[#D32028] text-white'
                   : 'text-[#888] hover:text-white hover:bg-white/5'
               }`}>
               {t.label}

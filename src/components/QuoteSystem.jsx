@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAuth } from './auth/AuthProvider'
 
 const STAGES = ['New', 'Contacted', 'Site Survey', 'Engineering', 'Quoted', 'Negotiation', 'Won', 'Lost']
-const STAGE_COLORS = { New: '#4fc3f7', Contacted: '#f97316', 'Site Survey': '#eab308', Engineering: '#a855f7', Quoted: '#22c55e', Negotiation: '#f97316', Won: '#22c55e', Lost: '#E8200C' }
+const STAGE_COLORS = { New: '#4fc3f7', Contacted: '#f97316', 'Site Survey': '#eab308', Engineering: '#a855f7', Quoted: '#22c55e', Negotiation: '#f97316', Won: '#22c55e', Lost: '#D32028' }
 
 export default function QuoteSystem({ onBack }) {
   const { quotes, addQuote, updateQuote, deleteQuote, isAdmin, canViewQuotes, user } = useAuth()
@@ -11,10 +11,10 @@ export default function QuoteSystem({ onBack }) {
 
   if (!canViewQuotes && !isAdmin) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#080810]">
+      <div className="flex-1 flex items-center justify-center bg-[#05233E]">
         <div className="text-center">
           <div className="text-4xl mb-4">🔒</div>
-          <h2 className="text-lg text-white font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>Access Required</h2>
+          <h2 className="text-lg text-white font-bold mb-2" style={{ fontFamily: "'Montserrat'" }}>Access Required</h2>
           <p className="text-[12px] text-[#888] mb-4">You don't have permission to view the quote system. Contact your admin.</p>
           <button onClick={onBack} className="px-4 py-2 text-[11px] font-bold text-[#888] border border-[#333] rounded hover:text-white">← Back</button>
         </div>
@@ -23,24 +23,24 @@ export default function QuoteSystem({ onBack }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#080810] overflow-hidden">
-      <div className="px-6 py-4 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0">
+    <div className="flex-1 flex flex-col bg-[#05233E] overflow-hidden">
+      <div className="px-6 py-4 bg-[#0F3C64] border-b border-[#293C5B] shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>💰 Quote & Sales Pipeline</h1>
+            <h1 className="text-lg text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>💰 Quote & Sales Pipeline</h1>
             <p className="text-[11px] text-[#888]">{quotes.length} project{quotes.length !== 1 ? 's' : ''} in pipeline</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setView('new')} className="px-4 py-2 text-[11px] font-bold bg-[#E8200C] text-white rounded hover:bg-[#c01a0a]">+ New Quote</button>
+            <button onClick={() => setView('new')} className="px-4 py-2 text-[11px] font-bold bg-[#D32028] text-white rounded hover:bg-[#B01A20]">+ New Quote</button>
             <button onClick={onBack} className="px-4 py-2 text-[11px] font-bold text-[#888] border border-[#333] rounded hover:text-white">← Back</button>
           </div>
         </div>
       </div>
 
       {/* Pipeline tabs */}
-      <div className="flex gap-1 px-4 py-2 bg-[#0a0a14] border-b border-[#1a1a2a] shrink-0 overflow-x-auto">
-        <button onClick={() => setView('pipeline')} className={`px-3 py-1 rounded text-[10px] font-bold ${view === 'pipeline' ? 'bg-[#E8200C] text-white' : 'text-[#888] hover:text-white'}`}>Pipeline</button>
-        <button onClick={() => setView('list')} className={`px-3 py-1 rounded text-[10px] font-bold ${view === 'list' ? 'bg-[#E8200C] text-white' : 'text-[#888] hover:text-white'}`}>List View</button>
+      <div className="flex gap-1 px-4 py-2 bg-[#03172A] border-b border-[#293C5B] shrink-0 overflow-x-auto">
+        <button onClick={() => setView('pipeline')} className={`px-3 py-1 rounded text-[10px] font-bold ${view === 'pipeline' ? 'bg-[#D32028] text-white' : 'text-[#888] hover:text-white'}`}>Pipeline</button>
+        <button onClick={() => setView('list')} className={`px-3 py-1 rounded text-[10px] font-bold ${view === 'list' ? 'bg-[#D32028] text-white' : 'text-[#888] hover:text-white'}`}>List View</button>
       </div>
 
       <div className="flex-1 overflow-auto p-4">
@@ -71,7 +71,7 @@ function PipelineView({ quotes, onSelect }) {
             <div className="space-y-2">
               {stageQuotes.map(q => (
                 <button key={q.id} onClick={() => onSelect(q)}
-                  className="w-full bg-[#111120] rounded-lg border border-[#2a2a3a] p-3 text-left hover:border-[#E8200C]/50 transition-colors">
+                  className="w-full bg-[#111120] rounded-lg border border-[#2a2a3a] p-3 text-left hover:border-[#D32028]/50 transition-colors">
                   <div className="text-[11px] text-white font-bold truncate">{q.customerName}</div>
                   <div className="text-[9px] text-[#888] truncate">{q.padName || 'No pad specified'}</div>
                   <div className="flex items-center justify-between mt-2">
@@ -107,7 +107,7 @@ function ListView({ quotes, onSelect }) {
         </thead>
         <tbody>
           {quotes.map(q => (
-            <tr key={q.id} onClick={() => onSelect(q)} className="border-b border-[#1a1a2a] hover:bg-[#111120] cursor-pointer">
+            <tr key={q.id} onClick={() => onSelect(q)} className="border-b border-[#293C5B] hover:bg-[#111120] cursor-pointer">
               <td className="py-2 px-2 text-white font-bold">{q.customerName}</td>
               <td className="py-2 px-2 text-[#888]">{q.padName || '—'}</td>
               <td className="py-2 px-2 text-[#888]">{q.wellCount || '—'}</td>
@@ -133,7 +133,7 @@ function NewQuoteForm({ onSave, onCancel }) {
 
   return (
     <div className="max-w-[600px]">
-      <h2 className="text-sm text-white font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>New Quote / Project</h2>
+      <h2 className="text-sm text-white font-bold mb-4" style={{ fontFamily: "'Montserrat'" }}>New Quote / Project</h2>
       <div className="space-y-3">
         <FormSection title="Customer Information">
           <Row><Input label="Customer / Operator" value={form.customerName} onChange={v => set('customerName', v)} /></Row>
@@ -164,7 +164,7 @@ function NewQuoteForm({ onSave, onCancel }) {
       <div className="flex gap-2 mt-4">
         <button onClick={onCancel} className="px-4 py-2 text-[11px] font-bold text-[#888] border border-[#333] rounded hover:text-white">Cancel</button>
         <button onClick={() => { if (form.customerName) onSave(form) }} disabled={!form.customerName}
-          className="px-6 py-2 text-[11px] font-bold bg-[#E8200C] text-white rounded hover:bg-[#c01a0a] disabled:opacity-30">Save Quote</button>
+          className="px-6 py-2 text-[11px] font-bold bg-[#D32028] text-white rounded hover:bg-[#B01A20] disabled:opacity-30">Save Quote</button>
       </div>
     </div>
   )
@@ -187,7 +187,7 @@ function QuoteDetail({ quote, onUpdate, onDelete, onBack, isAdmin }) {
       <div className="bg-[#111120] rounded-xl border border-[#2a2a3a] p-5">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="text-lg text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>{quote.customerName}</h2>
+            <h2 className="text-lg text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>{quote.customerName}</h2>
             <p className="text-[11px] text-[#888]">{quote.padName || 'No pad'} — {quote.basin || ''}</p>
           </div>
           <span className="px-3 py-1 rounded text-[10px] font-bold" style={{ backgroundColor: (STAGE_COLORS[quote.status] || '#888') + '20', color: STAGE_COLORS[quote.status] }}>
@@ -214,7 +214,7 @@ function QuoteDetail({ quote, onUpdate, onDelete, onBack, isAdmin }) {
             {STAGES.map(s => (
               <button key={s} onClick={() => { setStatus(s); onUpdate(quote.id, { status: s }) }}
                 className={`px-2 py-1 rounded text-[9px] font-bold transition-colors ${quote.status === s ? 'text-white' : 'text-[#888] hover:text-white'}`}
-                style={quote.status === s ? { backgroundColor: STAGE_COLORS[s], color: '#000' } : { backgroundColor: '#1a1a2a' }}>
+                style={quote.status === s ? { backgroundColor: STAGE_COLORS[s], color: '#000' } : { backgroundColor: '#293C5B' }}>
                 {s}
               </button>
             ))}
@@ -224,11 +224,11 @@ function QuoteDetail({ quote, onUpdate, onDelete, onBack, isAdmin }) {
         {/* Notes */}
         <div className="mb-4">
           <label className="text-[9px] text-[#888] uppercase tracking-wider font-bold">Notes</label>
-          <pre className="text-[10px] text-[#ccc] bg-[#0a0a14] rounded p-2 mt-1 whitespace-pre-wrap max-h-[150px] overflow-y-auto">{quote.notes || 'No notes'}</pre>
+          <pre className="text-[10px] text-[#ccc] bg-[#03172A] rounded p-2 mt-1 whitespace-pre-wrap max-h-[150px] overflow-y-auto">{quote.notes || 'No notes'}</pre>
           <div className="flex gap-1 mt-2">
             <input type="text" value={note} onChange={e => setNote(e.target.value)} onKeyDown={e => e.key === 'Enter' && addNote()}
-              placeholder="Add a note..." className="flex-1 bg-[#0a0a14] border border-[#333] rounded px-2 py-1.5 text-white text-[10px] outline-none" />
-            <button onClick={addNote} className="px-3 py-1.5 text-[9px] font-bold bg-[#E8200C] text-white rounded">Add</button>
+              placeholder="Add a note..." className="flex-1 bg-[#03172A] border border-[#333] rounded px-2 py-1.5 text-white text-[10px] outline-none" />
+            <button onClick={addNote} className="px-3 py-1.5 text-[9px] font-bold bg-[#D32028] text-white rounded">Add</button>
           </div>
         </div>
 
@@ -244,7 +244,7 @@ function QuoteDetail({ quote, onUpdate, onDelete, onBack, isAdmin }) {
 
         {isAdmin && (
           <button onClick={() => { if (confirm('Delete this quote?')) onDelete(quote.id) }}
-            className="mt-4 px-3 py-1 text-[9px] text-[#E8200C] border border-[#E8200C]/30 rounded hover:bg-[#E8200C] hover:text-white">
+            className="mt-4 px-3 py-1 text-[9px] text-[#D32028] border border-[#D32028]/30 rounded hover:bg-[#D32028] hover:text-white">
             Delete Quote
           </button>
         )}
@@ -255,14 +255,14 @@ function QuoteDetail({ quote, onUpdate, onDelete, onBack, isAdmin }) {
 
 // Form helpers
 function FormSection({ title, children }) {
-  return <div className="bg-[#0a0a14] rounded-lg border border-[#2a2a3a] p-3">
-    <div className="text-[9px] text-[#E8200C] font-bold uppercase tracking-wider mb-2">{title}</div>{children}</div>
+  return <div className="bg-[#03172A] rounded-lg border border-[#2a2a3a] p-3">
+    <div className="text-[9px] text-[#D32028] font-bold uppercase tracking-wider mb-2">{title}</div>{children}</div>
 }
 function Row({ children }) { return <div className="grid grid-cols-2 gap-2 mb-2">{children}</div> }
 function Input({ label, value, onChange, type = 'text' }) {
   return <div><label className="text-[9px] text-[#888] block mb-0.5">{label}</label>
     <input type={type} value={value} onChange={e => onChange(e.target.value)}
-      className="w-full bg-[#111120] border border-[#333] rounded px-2 py-1.5 text-white text-[11px] outline-none focus:border-[#E8200C]" /></div>
+      className="w-full bg-[#111120] border border-[#333] rounded px-2 py-1.5 text-white text-[11px] outline-none focus:border-[#D32028]" /></div>
 }
 function Select({ label, value, onChange, options }) {
   return <div><label className="text-[9px] text-[#888] block mb-0.5">{label}</label>
@@ -272,5 +272,5 @@ function Select({ label, value, onChange, options }) {
 function Textarea({ label, value, onChange }) {
   return <div className="col-span-2"><label className="text-[9px] text-[#888] block mb-0.5">{label}</label>
     <textarea value={value} onChange={e => onChange(e.target.value)} rows={3}
-      className="w-full bg-[#111120] border border-[#333] rounded px-2 py-1.5 text-white text-[11px] outline-none focus:border-[#E8200C] resize-none" /></div>
+      className="w-full bg-[#111120] border border-[#333] rounded px-2 py-1.5 text-white text-[11px] outline-none focus:border-[#D32028] resize-none" /></div>
 }

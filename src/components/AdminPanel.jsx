@@ -268,10 +268,10 @@ export default function AdminPanel({ state, onFieldChange, onClose }) {
   if (!authenticated) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={onClose}>
-        <div className="bg-[#111118] border border-[#333] rounded-xl p-8 w-[380px] shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="bg-[#0F3C64] border border-[#333] rounded-xl p-8 w-[380px] shadow-2xl" onClick={e => e.stopPropagation()}>
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-[#E8200C] text-xl">LOCK</span>
-            <h2 className="text-lg text-white font-bold" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>Admin Access</h2>
+            <span className="text-[#D32028] text-xl">LOCK</span>
+            <h2 className="text-lg text-white font-bold" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>Admin Access</h2>
           </div>
           <p className="text-[12px] text-[#888] mb-4">
             Enter the admin password to access simulation tuning controls.
@@ -282,15 +282,15 @@ export default function AdminPanel({ state, onFieldChange, onClose }) {
             onChange={e => { setPassword(e.target.value); setError(false) }}
             onKeyDown={e => e.key === 'Enter' && handleLogin()}
             placeholder="Password"
-            className="w-full bg-[#1a1a2a] border border-[#333] rounded px-3 py-2.5 text-white text-sm outline-none focus:border-[#E8200C] mb-3"
+            className="w-full bg-[#293C5B] border border-[#333] rounded px-3 py-2.5 text-white text-sm outline-none focus:border-[#D32028] mb-3"
             autoFocus
           />
-          {error && <p className="text-[#E8200C] text-[11px] mb-3">Incorrect password. Try again.</p>}
+          {error && <p className="text-[#D32028] text-[11px] mb-3">Incorrect password. Try again.</p>}
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 py-2 text-[11px] font-bold text-[#888] border border-[#333] rounded hover:text-white hover:border-[#555]">
               Cancel
             </button>
-            <button onClick={handleLogin} className="flex-1 py-2 text-[11px] font-bold bg-[#E8200C] text-white rounded hover:bg-[#c01a0a]">
+            <button onClick={handleLogin} className="flex-1 py-2 text-[11px] font-bold bg-[#D32028] text-white rounded hover:bg-[#B01A20]">
               Login
             </button>
           </div>
@@ -306,8 +306,8 @@ export default function AdminPanel({ state, onFieldChange, onClose }) {
         <div className="sticky top-0 z-10 bg-[#0e0e18] border-b border-[#2a2a3a] px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-[#E8200C]">TUNE</span>
-              <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+              <span className="text-[#D32028]">TUNE</span>
+              <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
                 Admin - Simulation Tuning
               </h2>
             </div>
@@ -320,7 +320,7 @@ export default function AdminPanel({ state, onFieldChange, onClose }) {
           <div className="bg-[#111120] rounded-lg border border-[#2a2a3a] p-3">
             <div className="flex items-center justify-between gap-3 mb-2">
               <div>
-                <div className="text-[9px] text-[#E8200C] uppercase tracking-wider font-bold">Live Logic Feed</div>
+                <div className="text-[9px] text-[#D32028] uppercase tracking-wider font-bold">Live Logic Feed</div>
                 <div className="text-[15px] text-white font-bold mt-1">{logicSummary.modeTitle}</div>
               </div>
               <div className="text-right">
@@ -365,7 +365,7 @@ export default function AdminPanel({ state, onFieldChange, onClose }) {
           </div>
 
           <div className="bg-[#111120] rounded-lg border border-[#2a2a3a] p-3">
-            <div className="text-[9px] text-[#E8200C] uppercase tracking-wider font-bold mb-2">Why It Is Red</div>
+            <div className="text-[9px] text-[#D32028] uppercase tracking-wider font-bold mb-2">Why It Is Red</div>
             {logicSummary.redWellReasons.length === 0 ? (
               <div className="rounded border border-[#1f4d30] bg-[#0d1d14] px-2.5 py-2 text-[10px] text-[#86efac]">
                 No wells are red right now. Pad Logic currently has the pad inside target conditions.
@@ -380,7 +380,7 @@ export default function AdminPanel({ state, onFieldChange, onClose }) {
           </div>
 
           <div className="bg-[#111120] rounded-lg border border-[#2a2a3a] p-3">
-            <div className="text-[9px] text-[#E8200C] uppercase tracking-wider font-bold mb-2">Compressor Action Detail</div>
+            <div className="text-[9px] text-[#D32028] uppercase tracking-wider font-bold mb-2">Compressor Action Detail</div>
             <div className="space-y-2">
               {logicSummary.compressorExplanations.map((item) => (
                 <LogicReasonCard
@@ -395,7 +395,7 @@ export default function AdminPanel({ state, onFieldChange, onClose }) {
           </div>
 
           <div className="bg-[#111120] rounded-lg border border-[#2a2a3a] p-3">
-            <div className="text-[9px] text-[#E8200C] uppercase tracking-wider font-bold mb-2">Speed Presets</div>
+            <div className="text-[9px] text-[#D32028] uppercase tracking-wider font-bold mb-2">Speed Presets</div>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { id: 'realtime', label: 'Real-Time', desc: '30-90 sec response' },
@@ -404,7 +404,7 @@ export default function AdminPanel({ state, onFieldChange, onClose }) {
                 { id: 'instant', label: 'Instant', desc: 'Near-instant for testing' },
               ].map(p => (
                 <button key={p.id} onClick={() => applyPreset(p.id)}
-                  className="py-2 px-3 rounded border border-[#333] bg-[#0a0a14] hover:border-[#E8200C] hover:bg-[#E8200C]/5 text-left transition-colors">
+                  className="py-2 px-3 rounded border border-[#333] bg-[#03172A] hover:border-[#D32028] hover:bg-[#D32028]/5 text-left transition-colors">
                   <div className="text-[11px] text-white font-bold">{p.label}</div>
                   <div className="text-[9px] text-[#666]">{p.desc}</div>
                 </button>
@@ -428,7 +428,7 @@ export default function AdminPanel({ state, onFieldChange, onClose }) {
           ))}
 
           <button onClick={resetToDefaults}
-            className="w-full py-2 text-[11px] font-bold text-[#888] border border-[#333] rounded hover:text-white hover:border-[#E8200C] transition-colors">
+            className="w-full py-2 text-[11px] font-bold text-[#888] border border-[#333] rounded hover:text-white hover:border-[#D32028] transition-colors">
             Reset All to Defaults
           </button>
 
@@ -451,14 +451,14 @@ function TuningSlider({ param, value, defaultValue, onChange }) {
           <span className="text-[11px] text-white font-bold tabular-nums">{value.toFixed(step < 0.1 ? 3 : step < 1 ? 2 : 0)}</span>
           {unit && <span className="text-[9px] text-[#666]">{unit}</span>}
           {!isDefault && (
-            <button onClick={() => onChange(defaultValue)} className="text-[8px] text-[#E8200C] hover:text-white ml-1">Reset</button>
+            <button onClick={() => onChange(defaultValue)} className="text-[8px] text-[#D32028] hover:text-white ml-1">Reset</button>
           )}
         </div>
       </div>
       <input
         type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(Number(e.target.value))}
-        className="w-full accent-[#E8200C]" style={{ height: 4 }}
+        className="w-full accent-[#D32028]" style={{ height: 4 }}
       />
       <div className="flex justify-between text-[8px] text-[#444] mt-0.5">
         <span>Slower ({min})</span>
@@ -471,7 +471,7 @@ function TuningSlider({ param, value, defaultValue, onChange }) {
 
 function LogicStatCard({ label, value }) {
   return (
-    <div className="rounded border border-[#2a2a3a] bg-[#0a0a14] px-2.5 py-2">
+    <div className="rounded border border-[#2a2a3a] bg-[#03172A] px-2.5 py-2">
       <div className="text-[8px] text-[#666] uppercase tracking-wider">{label}</div>
       <div className="text-[12px] text-white font-bold mt-0.5">{value}</div>
     </div>
@@ -499,11 +499,11 @@ function LogicReasonCard({ title, detail, stats, tone = 'neutral' }) {
       ? 'border-[#5a1d1d] bg-[#1f0c0c]'
       : tone === 'warning'
         ? 'border-[#4f3512] bg-[#1b1308]'
-        : 'border-[#2a2a3a] bg-[#0a0a14]'
+        : 'border-[#2a2a3a] bg-[#03172A]'
 
   const badgeClass =
     tone === 'critical'
-      ? 'bg-[#E8200C]/15 text-[#fca5a5] border-[#E8200C]/30'
+      ? 'bg-[#D32028]/15 text-[#fca5a5] border-[#D32028]/30'
       : tone === 'warning'
         ? 'bg-[#f97316]/15 text-[#fdba74] border-[#f97316]/30'
         : 'bg-[#1a1a30] text-[#9ca3af] border-[#333]'

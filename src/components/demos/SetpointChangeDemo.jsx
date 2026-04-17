@@ -119,7 +119,7 @@ function MetricCard({ label, value, helper }) {
   return (
     <div className="rounded-md border border-[#d9d9d9] bg-white px-4 py-3 shadow-sm">
       <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7a7a7a]">{label}</div>
-      <div className="mt-2 text-[28px] font-black text-[#1f1f1f]" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+      <div className="mt-2 text-[28px] font-black text-[#1f1f1f]" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
         {value}
       </div>
       <div className="mt-1 text-[11px] text-[#6d6d6d]">{helper}</div>
@@ -331,7 +331,7 @@ export default function SetpointChangeDemo() {
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d6d6d6] bg-[#333] px-4 py-3 text-white">
             <div>
-              <div className="text-[22px] font-black tracking-[-0.02em]" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+              <div className="text-[22px] font-black tracking-[-0.02em]" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
                 MLink Settings Widget
               </div>
               <div className="text-[11px] text-[#d6d6d6]">
@@ -514,13 +514,13 @@ export default function SetpointChangeDemo() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <div className="text-[10px] uppercase tracking-[0.14em] text-[#888]">Desired</div>
-                      <div className="text-[18px] font-black text-[#222]" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+                      <div className="text-[18px] font-black text-[#222]" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
                         {Math.round(selectedWell.desiredFlow)} MCFD
                       </div>
                     </div>
                     <div>
                       <div className="text-[10px] uppercase tracking-[0.14em] text-[#888]">Actual</div>
-                      <div className="text-[18px] font-black text-[#222]" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+                      <div className="text-[18px] font-black text-[#222]" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
                         {Math.round(selectedWell.actualFlow)} MCFD
                       </div>
                     </div>
@@ -577,7 +577,7 @@ export default function SetpointChangeDemo() {
                   />
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-[11px] text-[#777]">300 MCFD</span>
-                    <span className="text-[18px] font-black text-[#222]" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+                    <span className="text-[18px] font-black text-[#222]" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
                       {draft.desiredFlow} MCFD
                     </span>
                     <span className="text-[11px] text-[#777]">1200 MCFD</span>

@@ -1,6 +1,6 @@
 // Small valve icon — two triangles forming a bowtie shape
 export default function ValveIcon({ x, y, openPct = 100, label, size = 12 }) {
-  const color = openPct > 80 ? '#22c55e' : openPct > 30 ? '#eab308' : '#E8200C'
+  const color = openPct > 80 ? '#22c55e' : openPct > 30 ? '#eab308' : '#D32028'
   const s = size / 2
 
   return (

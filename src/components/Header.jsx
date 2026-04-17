@@ -1,13 +1,34 @@
 import { WellLogicCompact } from './WellLogicBrand'
 
+/**
+ * Header — Service Compression treatment. Sticky navy bar with SC
+ * uppercase nav typography and red CTA accents.
+ */
 export default function Header({ onReconfigure, tutorialMode, onTutorialToggle, showTutorial }) {
   return (
-    <header className="flex items-center justify-between px-5 py-2.5 bg-sc-dark border-b border-sc-charcoal-light shrink-0"
-      style={{ minHeight: 48 }}>
-      <div className="flex items-center gap-4">
+    <header
+      className="flex items-center justify-between px-5 py-3 shrink-0"
+      style={{
+        minHeight: 56,
+        background: '#05233E',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+      }}
+    >
+      <div className="flex items-center gap-5">
         <WellLogicCompact size={34} />
-        <span className="text-sm text-sc-light tracking-wide"
-          style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+        <span
+          className="hidden sm:inline"
+          style={{
+            fontFamily: "'Montserrat', sans-serif",
+            fontWeight: 600,
+            fontSize: 11,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            color: 'rgba(255, 255, 255, 0.55)',
+            paddingLeft: 16,
+            borderLeft: '1px solid rgba(255, 255, 255, 0.15)',
+          }}
+        >
           Pad Logic Simulator
         </span>
       </div>
@@ -15,11 +36,33 @@ export default function Header({ onReconfigure, tutorialMode, onTutorialToggle, 
         {showTutorial && (
           <button
             onClick={onTutorialToggle}
-            className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors flex items-center gap-1.5 ${
-              tutorialMode
-                ? 'bg-[#E8200C] text-white border border-[#E8200C]'
-                : 'text-sc-light border border-sc-charcoal-light hover:border-[#4fc3f7] hover:text-[#4fc3f7]'
-            }`}
+            className="flex items-center gap-2 transition-colors"
+            style={{
+              fontFamily: "'Montserrat', sans-serif",
+              fontWeight: 700,
+              fontSize: 11,
+              letterSpacing: 2,
+              textTransform: 'uppercase',
+              padding: '8px 14px',
+              borderRadius: 2,
+              border: '1px solid',
+              cursor: 'pointer',
+              background: tutorialMode ? '#D32028' : 'transparent',
+              borderColor: tutorialMode ? '#D32028' : 'rgba(255, 255, 255, 0.25)',
+              color: tutorialMode ? '#FFFFFF' : 'rgba(255, 255, 255, 0.75)',
+            }}
+            onMouseEnter={e => {
+              if (!tutorialMode) {
+                e.currentTarget.style.borderColor = '#49D0E2'
+                e.currentTarget.style.color = '#49D0E2'
+              }
+            }}
+            onMouseLeave={e => {
+              if (!tutorialMode) {
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)'
+                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.75)'
+              }
+            }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="10" />
@@ -32,12 +75,23 @@ export default function Header({ onReconfigure, tutorialMode, onTutorialToggle, 
         {onReconfigure && (
           <button
             onClick={onReconfigure}
-            className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-sc-light border border-sc-charcoal-light rounded hover:border-sc-red hover:text-white transition-colors"
+            className="sc-btn-ghost"
+            style={{ padding: '8px 18px', fontSize: 11, letterSpacing: 2 }}
           >
             Reconfigure
           </button>
         )}
-        <span className="text-[10px] text-sc-gray uppercase tracking-widest">
+        <span
+          className="hidden md:inline"
+          style={{
+            fontFamily: "'Montserrat', sans-serif",
+            fontWeight: 600,
+            fontSize: 10,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            color: 'rgba(255, 255, 255, 0.4)',
+          }}
+        >
           Service Compression
         </span>
       </div>

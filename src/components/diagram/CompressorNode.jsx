@@ -1,6 +1,6 @@
 const STATUS_COLORS = {
   running: '#22c55e',
-  tripped: '#E8200C',
+  tripped: '#D32028',
   offline: '#888888',
 }
 
@@ -23,7 +23,7 @@ export default function CompressorNode({ compressor, x, y, width = 100, height =
       {/* Status indicator */}
       <circle cx={12} cy={12} r={4} fill={statusColor} />
       {/* Name */}
-      <text x={22} y={15} fill="white" fontSize={12} fontWeight="bold" fontFamily="Arial Black, Arial">{name}</text>
+      <text x={22} y={15} fill="white" fontSize={12} fontWeight="bold" fontFamily="Montserrat, sans-serif">{name}</text>
       {/* Status label */}
       <text x={width - 6} y={15} fill={statusColor} fontSize={8} fontFamily="Arial" textAnchor="end">
         {status.toUpperCase()}
@@ -52,7 +52,7 @@ export default function CompressorNode({ compressor, x, y, width = 100, height =
           <rect x={6} y={59}
             width={Math.max(0, (width - 12) * (loadPct / 100))}
             height={5} rx={2}
-            fill={loadPct > 90 ? '#E8200C' : loadPct > 70 ? '#eab308' : '#22c55e'}
+            fill={loadPct > 90 ? '#D32028' : loadPct > 70 ? '#eab308' : '#22c55e'}
           />
           <text x={width / 2} y={66} fill="white" fontSize={7} fontFamily="Arial" textAnchor="middle" dominantBaseline="hanging">
             {loadPct.toFixed(0)}%

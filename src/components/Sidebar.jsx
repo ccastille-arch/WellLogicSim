@@ -107,7 +107,7 @@ function Section({ title, children }) {
     <div>
       <h3
         className="text-[10px] font-bold uppercase tracking-wider text-sc-red mb-2"
-        style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+        style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
       >
         {title}
       </h3>

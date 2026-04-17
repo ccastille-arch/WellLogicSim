@@ -38,9 +38,9 @@ export default function CompressorTripDemo({ sim }) {
         const running = c.status === 'running'
         return (
           <div key={c.id} className="flex items-center gap-2 py-1.5">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: running ? '#22c55e' : c.status === 'tripped' ? '#E8200C' : '#888' }} />
+            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: running ? '#22c55e' : c.status === 'tripped' ? '#D32028' : '#888' }} />
             <span className="text-[11px] text-white font-bold flex-1">{c.name}</span>
-            <span className={`text-[9px] ${running ? 'text-[#22c55e]' : 'text-[#E8200C]'}`}>
+            <span className={`text-[9px] ${running ? 'text-[#22c55e]' : 'text-[#D32028]'}`}>
               {running ? `${c.loadPct.toFixed(0)}%` : c.status.toUpperCase()}
             </span>
           </div>

@@ -11,7 +11,7 @@ const TILE_LABELS = {
 function StatCard({ label, value, color }) {
   return (
     <div className="rounded-xl border border-[#1e1e30] bg-[#0c0c18] p-4 text-center">
-      <div className="text-2xl font-bold" style={{ color, fontFamily: "'Arial Black'" }}>{value}</div>
+      <div className="text-2xl font-bold" style={{ color, fontFamily: "'Montserrat'" }}>{value}</div>
       <div className="text-[9px] text-[#888] mt-1">{label}</div>
     </div>
   )
@@ -41,7 +41,7 @@ export default function AnalyticsTab() {
           <StatCard label="Total Users" value={summary.totalUsers} color="#3b82f6" />
           <StatCard label="Active (7d)" value={summary.activeUsers7d} color="#22c55e" />
           <StatCard label="Total Quotes" value={summary.totalQuotes} color="#f97316" />
-          <StatCard label="Pipeline Value" value={`$${(summary.pipelineValue || 0).toLocaleString()}`} color="#E8200C" />
+          <StatCard label="Pipeline Value" value={`$${(summary.pipelineValue || 0).toLocaleString()}`} color="#D32028" />
         </div>
       )}
 
@@ -52,7 +52,7 @@ export default function AnalyticsTab() {
           <div className="flex gap-1">
             {[7, 30, 90].map(d => (
               <button key={d} onClick={() => setDays(d)}
-                className={`px-2 py-0.5 rounded text-[9px] font-bold ${days === d ? 'bg-[#E8200C] text-white' : 'text-[#888] border border-[#1e1e30]'}`}>
+                className={`px-2 py-0.5 rounded text-[9px] font-bold ${days === d ? 'bg-[#D32028] text-white' : 'text-[#888] border border-[#1e1e30]'}`}>
                 {d}d
               </button>
             ))}
@@ -68,8 +68,8 @@ export default function AnalyticsTab() {
               return (
                 <div key={t.tile_id} className="flex items-center gap-2">
                   <span className="text-[10px] text-[#888] w-24 shrink-0 truncate">{TILE_LABELS[t.tile_id] || t.tile_id}</span>
-                  <div className="flex-1 h-4 rounded bg-[#1a1a2a] overflow-hidden">
-                    <div className="h-full rounded bg-[#E8200C]/70" style={{ width: `${pct}%` }} />
+                  <div className="flex-1 h-4 rounded bg-[#293C5B] overflow-hidden">
+                    <div className="h-full rounded bg-[#D32028]/70" style={{ width: `${pct}%` }} />
                   </div>
                   <span className="text-[9px] text-white w-12 text-right">{t.visits} <span className="text-[#555]">({t.unique_users}u)</span></span>
                 </div>
@@ -121,7 +121,7 @@ export default function AnalyticsTab() {
               <span className="text-[#555] w-28 shrink-0">{new Date(a.timestamp).toLocaleString()}</span>
               <span className="text-white font-medium w-20 shrink-0 truncate">{a.user}</span>
               {a.tile_id && (
-                <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#1a1a2a] text-[#888] shrink-0">
+                <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#293C5B] text-[#888] shrink-0">
                   {TILE_LABELS[a.tile_id] || a.tile_id}
                 </span>
               )}

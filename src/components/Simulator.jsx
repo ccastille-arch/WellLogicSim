@@ -274,7 +274,7 @@ function RegisterCard({ reg }) {
       <div className="flex-1 flex items-center justify-end">
         <span
           className="text-xl font-bold leading-none text-right"
-          style={{ fontFamily: "'Arial Black', Arial, sans-serif", color: color || '#fff' }}
+          style={{ fontFamily: "'Montserrat', Arial, sans-serif", color: color || '#fff' }}
         >
           {value}
         </span>
@@ -378,19 +378,19 @@ function buildRegisterList(state) {
 function CompressorControlPage({ state, onCompressorStatus, onCompressorMode, onCompressorCapacity }) {
   return (
     <div className="flex-1 p-4 overflow-auto bg-[#1e1e22]">
-      <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+      <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
         Compressor Control
       </h2>
       <div className="grid grid-cols-2 gap-4 max-w-[800px]">
         {state.compressors.map(c => (
           <div key={c.id} className="bg-[#2a2a2e] rounded-lg border border-[#444] p-4">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-lg font-bold text-white" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>{c.name}</span>
+              <span className="text-lg font-bold text-white" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>{c.name}</span>
               <StatusIndicator status={c.status} />
             </div>
             <div className="text-[11px] text-[#aaa] mb-3">
               {c.personnelLockout ? (
-                <span className="text-[#E8200C] font-bold">LOCKED OUT – PERSONNEL ON SITE</span>
+                <span className="text-[#D32028] font-bold">LOCKED OUT – PERSONNEL ON SITE</span>
               ) : (
                 <span>{c.status === 'running' ? 'RUNNING' : c.status === 'stopped' ? 'STOPPED' : c.status.toUpperCase()}</span>
               )}
@@ -414,7 +414,7 @@ function CompressorControlPage({ state, onCompressorStatus, onCompressorMode, on
                   step={50}
                   value={c.capacityMcfd}
                   onChange={(event) => onCompressorCapacity?.(c.id, Number(event.target.value))}
-                  className="w-24 bg-[#1a1a2a] border border-[#333] rounded px-2 py-1.5 text-white text-sm font-bold text-right outline-none focus:border-[#4fc3f7]"
+                  className="w-24 bg-[#293C5B] border border-[#333] rounded px-2 py-1.5 text-white text-sm font-bold text-right outline-none focus:border-[#4fc3f7]"
                 />
                 <span className="text-[10px] text-[#888]">MCFD</span>
               </div>
@@ -450,7 +450,7 @@ function CompressorControlPage({ state, onCompressorStatus, onCompressorMode, on
               <button
                 onClick={() => onCompressorStatus(c.id, 'stopped')}
                 disabled={c.personnelLockout}
-                className="flex-1 py-2 text-[11px] font-bold rounded bg-[#E8200C] text-white hover:bg-[#c01a0a] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="flex-1 py-2 text-[11px] font-bold rounded bg-[#D32028] text-white hover:bg-[#B01A20] disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 ■ Stop
               </button>
@@ -466,9 +466,9 @@ function StatusIndicator({ status }) {
   const colors = {
     running: '#22c55e',
     stopped: '#888',
-    tripped: '#E8200C',
+    tripped: '#D32028',
     locked_out_running: '#eab308',
-    locked_out_stopped: '#E8200C',
+    locked_out_stopped: '#D32028',
   }
   return (
     <div className="flex items-center gap-1.5">
@@ -488,7 +488,7 @@ function BottomBar({ state, onReset, running, onToggleRunning, onAdminOpen }) {
         onClick={() => onToggleRunning()}
         className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold bg-[#333] rounded border border-[#555] hover:bg-[#444]"
       >
-        <span className="w-3 h-3 rounded-full bg-[#E8200C]" />
+        <span className="w-3 h-3 rounded-full bg-[#D32028]" />
         <span className="text-[#ccc]">Stop</span>
       </button>
       <button

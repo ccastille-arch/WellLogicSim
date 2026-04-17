@@ -51,7 +51,7 @@ function XlsxViewer({ file }) {
       .catch(() => setError('Could not load file.'))
   }, [file])
 
-  if (error) return <div className="p-6 text-[#E8200C] text-sm">{error}</div>
+  if (error) return <div className="p-6 text-[#D32028] text-sm">{error}</div>
   if (!sheets) return <div className="p-6 text-[#888] text-sm">Loading…</div>
 
   const current = sheets[activeSheet]
@@ -62,12 +62,12 @@ function XlsxViewer({ file }) {
     <div className="flex flex-col h-full">
       {/* Sheet tabs */}
       {sheets.length > 1 && (
-        <div className="flex gap-1 px-4 pt-3 border-b border-[#1a1a2a] flex-wrap">
+        <div className="flex gap-1 px-4 pt-3 border-b border-[#293C5B] flex-wrap">
           {sheets.map((s, i) => (
             <button key={i} onClick={() => setActiveSheet(i)}
               className={`px-3 py-1 text-[11px] rounded-t font-bold transition-colors ${
                 i === activeSheet
-                  ? 'bg-[#E8200C] text-white'
+                  ? 'bg-[#D32028] text-white'
                   : 'text-[#888] hover:text-white border border-[#333]'
               }`}>
               {s.name}
@@ -77,7 +77,7 @@ function XlsxViewer({ file }) {
       )}
 
       {/* Download link */}
-      <div className="flex justify-end px-4 py-2 border-b border-[#1a1a2a] shrink-0">
+      <div className="flex justify-end px-4 py-2 border-b border-[#293C5B] shrink-0">
         <a href={`${BASE}docs/${file}`} download
           className="text-[10px] text-[#4fc3f7] hover:text-white flex items-center gap-1">
           ↓ Download .xlsx
@@ -90,7 +90,7 @@ function XlsxViewer({ file }) {
           <thead>
             <tr className="bg-[#111120] sticky top-0 z-10">
               {headers.map((h, i) => (
-                <th key={i} className="px-3 py-2 text-left text-[#E8200C] font-bold border-b border-[#1a1a2a] border-r border-[#1a1a2a] whitespace-nowrap">
+                <th key={i} className="px-3 py-2 text-left text-[#D32028] font-bold border-b border-[#293C5B] border-r border-[#293C5B] whitespace-nowrap">
                   {String(h)}
                 </th>
               ))}
@@ -98,7 +98,7 @@ function XlsxViewer({ file }) {
           </thead>
           <tbody>
             {body.map((row, ri) => (
-              <tr key={ri} className={ri % 2 === 0 ? 'bg-[#080810]' : 'bg-[#0c0c18]'}>
+              <tr key={ri} className={ri % 2 === 0 ? 'bg-[#05233E]' : 'bg-[#0c0c18]'}>
                 {headers.map((_, ci) => (
                   <td key={ci} className="px-3 py-1.5 text-[#ccc] border-b border-[#111] border-r border-[#111] align-top">
                     {String(row[ci] ?? '')}
@@ -120,7 +120,7 @@ function PdfViewer({ file }) {
   const url = `${BASE}docs/${file}`
   return (
     <div className="flex flex-col h-full">
-      <div className="flex justify-end px-4 py-2 border-b border-[#1a1a2a] shrink-0">
+      <div className="flex justify-end px-4 py-2 border-b border-[#293C5B] shrink-0">
         <a href={url} target="_blank" rel="noopener noreferrer"
           className="text-[10px] text-[#4fc3f7] hover:text-white flex items-center gap-1 mr-3">
           ↗ Open in new tab
@@ -145,10 +145,10 @@ export default function TechnicalDocs() {
   const [activeDoc, setActiveDoc] = useState(null)
 
   return (
-    <div className="flex-1 flex flex-col bg-[#080810] overflow-hidden">
+    <div className="flex-1 flex flex-col bg-[#05233E] overflow-hidden">
       {/* Top bar */}
-      <div className="px-6 py-4 border-b border-[#1a1a2a] shrink-0">
-        <h1 className="text-lg text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>
+      <div className="px-6 py-4 border-b border-[#293C5B] shrink-0">
+        <h1 className="text-lg text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>
           Technical Documentation
         </h1>
         <p className="text-[11px] text-[#888] mt-0.5">Engineering specifications, SCADA references, and electrical drawings</p>
@@ -156,13 +156,13 @@ export default function TechnicalDocs() {
 
       <div className="flex flex-1 min-h-0">
         {/* Sidebar — doc list */}
-        <div className="w-[260px] shrink-0 border-r border-[#1a1a2a] flex flex-col bg-[#0c0c16]">
+        <div className="w-[260px] shrink-0 border-r border-[#293C5B] flex flex-col bg-[#0F3C64]">
           {DOCS.map(doc => (
             <button key={doc.id} onClick={() => setActiveDoc(doc)}
-              className={`text-left px-4 py-4 border-b border-[#1a1a2a] transition-colors ${
+              className={`text-left px-4 py-4 border-b border-[#293C5B] transition-colors ${
                 activeDoc?.id === doc.id
-                  ? 'bg-[#111120] border-l-2 border-l-[#E8200C]'
-                  : 'hover:bg-[#111118]'
+                  ? 'bg-[#111120] border-l-2 border-l-[#D32028]'
+                  : 'hover:bg-[#0F3C64]'
               }`}>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-base">{doc.icon}</span>
@@ -170,7 +170,7 @@ export default function TechnicalDocs() {
               </div>
               <p className="text-[10px] text-[#666] leading-tight pl-6">{doc.desc}</p>
               <span className={`ml-6 mt-1 inline-block text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded font-bold ${
-                doc.type === 'pdf' ? 'bg-[#E8200C]/20 text-[#E8200C]' : 'bg-[#22c55e]/20 text-[#22c55e]'
+                doc.type === 'pdf' ? 'bg-[#D32028]/20 text-[#D32028]' : 'bg-[#22c55e]/20 text-[#22c55e]'
               }`}>
                 {doc.type}
               </span>
@@ -188,7 +188,7 @@ export default function TechnicalDocs() {
             <div className="flex-1 flex items-center justify-center text-center px-8">
               <div>
                 <div className="text-4xl mb-4">📁</div>
-                <div className="text-white font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>
+                <div className="text-white font-bold mb-2" style={{ fontFamily: "'Montserrat'" }}>
                   Select a Document
                 </div>
                 <p className="text-[12px] text-[#666]">Choose a file from the sidebar to view its contents.</p>

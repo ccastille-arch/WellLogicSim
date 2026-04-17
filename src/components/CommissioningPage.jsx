@@ -6,7 +6,7 @@ export default function CommissioningPage({ state, onFieldChange, onCompressorCa
   return (
     <div className="flex-1 overflow-auto bg-[#0e0e14] p-5">
       <div className="max-w-[850px] mx-auto">
-        <h1 className="text-lg text-white font-bold mb-1" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+        <h1 className="text-lg text-white font-bold mb-1" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
           Commissioning Setup
         </h1>
         <p className="text-[11px] text-[#888] mb-6">
@@ -104,7 +104,7 @@ export default function CommissioningPage({ state, onFieldChange, onCompressorCa
               Base SP = (Low Range) + 2 = {(state.suctionLowRange + 2).toFixed(0)} PSI
             </div>
             {state.compressors.map((c, i) => (
-              <div key={c.id} className="flex items-center justify-between py-1 border-b border-[#1a1a2a] last:border-0">
+              <div key={c.id} className="flex items-center justify-between py-1 border-b border-[#293C5B] last:border-0">
                 <span className="text-[11px] text-[#aaa]">{c.name} Speed Auto Suction SP</span>
                 <span className="text-[12px] text-white font-bold">
                   {(state.suctionLowRange + 2 + i * state.staggerOffset).toFixed(1)} PSI
@@ -172,10 +172,10 @@ export default function CommissioningPage({ state, onFieldChange, onCompressorCa
           <div className="mt-3 bg-[#12121a] rounded border border-[#2a2a3a] p-3">
             <div className="text-[9px] text-[#f97316] uppercase tracking-wider font-bold mb-2">LIVE STATUS</div>
             <div className="text-[11px] text-[#ccc]">
-              Flow Meter Temperature = <span className={`font-bold ${state.flowMeterTemp > state.maxTempAtPlate ? 'text-[#E8200C]' : 'text-[#22c55e]'}`}>
+              Flow Meter Temperature = <span className={`font-bold ${state.flowMeterTemp > state.maxTempAtPlate ? 'text-[#D32028]' : 'text-[#22c55e]'}`}>
                 {state.flowMeterTemp.toFixed(1)}°F
               </span>
-              {state.flowMeterTemp > state.maxTempAtPlate && <span className="text-[#E8200C] text-[10px] ml-2">⚠ EXCEEDS MAX — LOWERING COOLER SP</span>}
+              {state.flowMeterTemp > state.maxTempAtPlate && <span className="text-[#D32028] text-[10px] ml-2">⚠ EXCEEDS MAX — LOWERING COOLER SP</span>}
             </div>
           </div>
         </Section>
@@ -231,12 +231,12 @@ export default function CommissioningPage({ state, onFieldChange, onCompressorCa
               Scrubber Pressure = <span className="text-white font-bold">{state.scrubberPressure.toFixed(1)} PSI</span>
             </div>
             <div className="text-[11px] text-[#ccc]">
-              Rate of Change = <span className={`font-bold ${Math.abs(state.scrubberRateOfChange) > state.unloadRateThreshold ? 'text-[#E8200C]' : 'text-[#22c55e]'}`}>
+              Rate of Change = <span className={`font-bold ${Math.abs(state.scrubberRateOfChange) > state.unloadRateThreshold ? 'text-[#D32028]' : 'text-[#22c55e]'}`}>
                 {state.scrubberRateOfChange.toFixed(2)} PSI/sec
               </span>
             </div>
             <div className="text-[11px] mt-1">
-              Well Unload: <span className={`font-bold ${state.wellUnloadActive ? 'text-[#E8200C]' : 'text-[#22c55e]'}`}>
+              Well Unload: <span className={`font-bold ${state.wellUnloadActive ? 'text-[#D32028]' : 'text-[#22c55e]'}`}>
                 {state.wellUnloadActive ? '⚠ ACTIVE' : 'NONE'}
               </span>
             </div>
@@ -284,7 +284,7 @@ export default function CommissioningPage({ state, onFieldChange, onCompressorCa
               Injection control is through <span className="text-white font-bold">well injection motor valves / choke valves</span> only.
             </p>
             <p className="text-[11px] text-[#ccc] mt-1">
-              Compressors are <span className="text-[#E8200C] font-bold">NOT</span> used as injection control devices. No compressor injection logic required.
+              Compressors are <span className="text-[#D32028] font-bold">NOT</span> used as injection control devices. No compressor injection logic required.
             </p>
           </div>
         </Section>
@@ -299,12 +299,12 @@ export default function CommissioningPage({ state, onFieldChange, onCompressorCa
 
 function Section({ number, title, children }) {
   return (
-    <div className="mb-6 bg-[#111118] rounded-lg border border-[#222233] p-4">
+    <div className="mb-6 bg-[#0F3C64] rounded-lg border border-[#222233] p-4">
       <div className="flex items-baseline gap-2 mb-2">
         {number ? (
-          <span className="text-[10px] text-[#E8200C] font-bold bg-[#E8200C]/10 px-2 py-0.5 rounded">§{number}</span>
+          <span className="text-[10px] text-[#D32028] font-bold bg-[#D32028]/10 px-2 py-0.5 rounded">§{number}</span>
         ) : null}
-        <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+        <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
           {title}
         </h2>
       </div>
@@ -315,7 +315,7 @@ function Section({ number, title, children }) {
 
 function ParamInput({ label, value, unit, onChange, min, max, step = 1, description }) {
   return (
-    <div className="bg-[#0a0a14] rounded border border-[#2a2a3a] p-3">
+    <div className="bg-[#03172A] rounded border border-[#2a2a3a] p-3">
       <label className="block text-[10px] text-[#aaa] uppercase tracking-wider font-bold mb-1">{label}</label>
       {description && <p className="text-[9px] text-[#666] mb-2">{description}</p>}
       <div className="flex items-center gap-2">
@@ -324,7 +324,7 @@ function ParamInput({ label, value, unit, onChange, min, max, step = 1, descript
           value={typeof value === 'number' ? value : ''}
           onChange={e => onChange(Number(e.target.value))}
           min={min} max={max} step={step}
-          className="w-24 bg-[#1a1a2a] border border-[#333] rounded px-2 py-1.5 text-white text-sm font-bold text-right outline-none focus:border-[#4fc3f7]"
+          className="w-24 bg-[#293C5B] border border-[#333] rounded px-2 py-1.5 text-white text-sm font-bold text-right outline-none focus:border-[#4fc3f7]"
         />
         <span className="text-[10px] text-[#888]">{unit}</span>
       </div>

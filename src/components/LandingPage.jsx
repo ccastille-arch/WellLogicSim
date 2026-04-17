@@ -1,151 +1,351 @@
-﻿import { useAuth } from './auth/AuthProvider'
+import { useAuth } from './auth/AuthProvider'
 import WellLogicLogo from './WellLogicBrand'
 
+/**
+ * LandingPage — Service Compression brand treatment.
+ *
+ * Hierarchy matches the SC home page pattern (eyebrow → rule → lockup
+ * → hero CTA → secondary grid). The PadLogic logo + tagline stay as
+ * authored artwork; everything else is navy/red/cyan/Montserrat.
+ */
 export default function LandingPage({ onNavigate }) {
   const { canAccess } = useAuth()
 
   return (
-    <div className="flex-1 flex flex-col bg-[#080810] overflow-auto py-6 sm:py-10">
-      <div className="max-w-[900px] w-full px-4 sm:px-6 mx-auto">
-        <div className="text-center mb-6 sm:mb-8">
-          <div className="flex justify-center mb-3 pt-2 overflow-visible">
+    <div
+      className="flex-1 flex flex-col overflow-auto relative"
+      style={{
+        background:
+          'radial-gradient(ellipse at 50% 0%, #0F3C64 0%, #05233E 55%, #03172A 100%)',
+      }}
+    >
+      {/* Decorative cyan hex grid accent (matches SC web treatment) */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 1px 1px, rgba(73,208,226,0.07) 1px, transparent 0)',
+          backgroundSize: '22px 22px',
+          maskImage: 'linear-gradient(180deg, rgba(0,0,0,0.55), transparent 70%)',
+          WebkitMaskImage: 'linear-gradient(180deg, rgba(0,0,0,0.55), transparent 70%)',
+        }}
+      />
+
+      <div className="max-w-[960px] w-full px-4 sm:px-6 mx-auto py-8 sm:py-14 relative z-10">
+        {/* Hero lockup */}
+        <div className="text-center mb-10">
+          <div className="sc-eyebrow mb-2" style={{ display: 'inline-block' }}>
+            Service Compression · FieldTune
+          </div>
+          <div className="flex justify-center mb-1">
+            <span className="sc-rule" aria-hidden="true" />
+          </div>
+          <div className="flex justify-center mb-4 pt-1 overflow-visible">
             <WellLogicLogo size={140} />
           </div>
-          <p className="text-[11px] sm:text-[13px] text-[#888] max-w-md mx-auto leading-relaxed">
-            Automated Gas Lift Injection Optimization - built by Service Compression
+          <p
+            className="max-w-xl mx-auto"
+            style={{
+              fontFamily: "'Montserrat', sans-serif",
+              fontWeight: 500,
+              fontSize: 14,
+              lineHeight: 1.55,
+              color: 'rgba(255, 255, 255, 0.7)',
+              letterSpacing: 0.2,
+            }}
+          >
+            Automated gas lift injection optimization — built on live field data,
+            tuned to your fleet, not to a spec sheet.
           </p>
-          <div className="w-24 h-0.5 bg-[#E8200C] mx-auto mt-3" />
         </div>
 
+        {/* Admin dashboard (permission-gated) */}
         {canAccess('admin') && (
           <button
             onClick={() => onNavigate('admin')}
-            className="w-full mb-4 py-4 bg-[#f97316] hover:bg-[#ea580c] text-white font-bold rounded-xl text-base transition-all hover:scale-[1.01] shadow-xl shadow-[#f97316]/20"
-            style={{ fontFamily: "'Arial Black'" }}
+            className="w-full mb-4 transition-all hover:translate-y-[-1px]"
+            style={{
+              padding: '20px 28px',
+              background: 'linear-gradient(135deg, #0F3C64 0%, #05233E 100%)',
+              border: '1px solid rgba(249, 115, 22, 0.4)',
+              borderLeft: '3px solid #f97316',
+              borderRadius: 2,
+              color: '#FFFFFF',
+              fontFamily: "'Montserrat', sans-serif",
+              fontWeight: 700,
+              fontSize: 14,
+              letterSpacing: 2,
+              textTransform: 'uppercase',
+              textAlign: 'left',
+              cursor: 'pointer',
+            }}
           >
-            ADMIN DASHBOARD
-            <div className="text-[10px] font-normal mt-0.5 opacity-80">
-              User management | Sales pipeline | Activity logs
+            Admin Dashboard
+            <div
+              className="mt-1"
+              style={{
+                fontFamily: "'Montserrat', sans-serif",
+                fontWeight: 500,
+                fontSize: 11,
+                letterSpacing: 0.6,
+                textTransform: 'none',
+                color: 'rgba(255, 255, 255, 0.65)',
+              }}
+            >
+              User management · Sales pipeline · Activity logs
             </div>
           </button>
         )}
 
+        {/* Live data — primary narrative feature */}
         <button
           onClick={() => onNavigate('livedata')}
-          className="w-full mb-4 sm:mb-5 rounded-xl overflow-hidden border-2 border-[#22c55e]/40 hover:border-[#22c55e] transition-all hover:scale-[1.01] group"
-          style={{ background: 'linear-gradient(135deg, #0a1a0f 0%, #0d1f0d 50%, #0a1408 100%)' }}
+          className="w-full mb-4 sm:mb-5 transition-all hover:translate-y-[-1px] group text-left"
+          style={{
+            padding: 0,
+            border: '1px solid rgba(73, 208, 226, 0.35)',
+            borderRadius: 2,
+            overflow: 'hidden',
+            background: 'linear-gradient(135deg, #0F3C64 0%, #05233E 100%)',
+            cursor: 'pointer',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = '#49D0E2'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'rgba(73, 208, 226, 0.35)'
+          }}
         >
-          <div className="px-5 sm:px-8 py-5 sm:py-6 flex items-center justify-between gap-4">
-            <div className="text-left">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#22c55e] shadow-lg shadow-[#22c55e]/60 animate-pulse" />
-                <span className="text-[10px] font-bold text-[#22c55e] tracking-widest uppercase">Live Now</span>
+          <div className="px-6 sm:px-8 py-5 sm:py-6 flex items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="sc-pulse" />
+                <span
+                  style={{
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontWeight: 700,
+                    fontSize: 10,
+                    letterSpacing: 2,
+                    textTransform: 'uppercase',
+                    color: '#49D0E2',
+                  }}
+                >
+                  Live Now
+                </span>
               </div>
               <h2
-                className="text-lg sm:text-2xl text-white font-bold leading-tight mb-1"
-                style={{ fontFamily: "'Arial Black'" }}
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 800,
+                  fontSize: 22,
+                  lineHeight: 1.15,
+                  letterSpacing: '-0.3px',
+                  color: '#FFFFFF',
+                  marginBottom: 6,
+                }}
               >
                 See a Real Pad Logic System
               </h2>
-              <p className="text-[11px] sm:text-[13px] text-[#6ee7a0] leading-relaxed">
-                Live data from an active pad running in West Texas - 4 wells, 2 compressors, real injection rates right now.
+              <p
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 500,
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  color: 'rgba(255, 255, 255, 0.75)',
+                }}
+              >
+                Live data from an active pad running in West Texas — 4 wells, 2 compressors,
+                real injection rates right now.
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <div className="text-[11px] font-bold text-[#22c55e] uppercase tracking-[0.22em] mb-1">Live</div>
-              <div className="text-[11px] font-bold text-[#22c55e] group-hover:text-white transition-colors whitespace-nowrap">
-                View Live Data {'->'}
+              <div
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 700,
+                  fontSize: 11,
+                  letterSpacing: 2,
+                  textTransform: 'uppercase',
+                  color: '#49D0E2',
+                }}
+                className="group-hover:text-white transition-colors whitespace-nowrap"
+              >
+                View Live Data →
               </div>
             </div>
           </div>
-          <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, transparent, #22c55e, transparent)' }} />
+          <div
+            className="h-[2px] w-full"
+            style={{
+              background:
+                'linear-gradient(90deg, transparent, #49D0E2, transparent)',
+            }}
+          />
         </button>
 
+        {/* Hero CTA — customer presentation */}
         <button
           onClick={() => onNavigate('autopilot')}
-          className="w-full mb-5 sm:mb-6 py-4 sm:py-5 bg-[#E8200C] hover:bg-[#c01a0a] text-white font-bold rounded-xl text-base sm:text-lg transition-all hover:scale-[1.01] shadow-xl shadow-[#E8200C]/20"
-          style={{ fontFamily: "'Arial Black'" }}
+          className="sc-btn-primary w-full mb-6 sm:mb-8"
+          style={{
+            width: '100%',
+            padding: '22px 28px',
+            fontSize: 14,
+          }}
         >
-          START CUSTOMER PRESENTATION
-          <div className="text-[10px] sm:text-[11px] font-normal mt-1 opacity-80">
-            Auto-guided demo with your uploaded narration - one click, ready to present
-          </div>
+          Start Customer Presentation →
         </button>
 
-        <div className="flex items-center gap-3 mb-3 sm:mb-4">
-          <div className="flex-1 h-px bg-[#1a1a2a]" />
-          <span className="text-[9px] text-[#555] uppercase tracking-widest font-bold">Explore</span>
-          <div className="flex-1 h-px bg-[#1a1a2a]" />
+        <div
+          style={{
+            fontFamily: "'Montserrat', sans-serif",
+            fontWeight: 500,
+            fontSize: 11,
+            color: 'rgba(255, 255, 255, 0.55)',
+            textAlign: 'center',
+            marginTop: '-16px',
+            marginBottom: 24,
+            lineHeight: 1.5,
+          }}
+        >
+          Auto-guided demo with your uploaded narration · one click, ready to present
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-5 sm:mb-6">
+        {/* Section divider */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.12)' }} />
+          <span
+            style={{
+              fontFamily: "'Montserrat', sans-serif",
+              fontWeight: 600,
+              fontSize: 10,
+              letterSpacing: 2,
+              textTransform: 'uppercase',
+              color: '#49D0E2',
+            }}
+          >
+            Explore
+          </span>
+          <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.12)' }} />
+        </div>
+
+        {/* Secondary grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
           {[
             {
               id: 'marketing',
-              icon: 'MM',
+              tag: 'Marketing',
               title: 'Marketing Material',
               desc: 'Videos, sales sheets, presentation decks, and ROI templates.',
-              color: '#E8200C',
               cta: 'Get materials',
+              accent: '#D32028',
             },
             {
               id: 'sales',
-              icon: 'SD',
+              tag: 'Sales · Demo',
               title: 'Sales Demo',
-              desc: 'Interactive simulator - run scenarios live during a client call.',
-              color: '#22c55e',
+              desc: 'Interactive simulator — run scenarios live during a client call.',
               cta: 'Launch demo',
+              accent: '#49D0E2',
             },
             {
               id: 'technical',
-              icon: 'TD',
+              tag: 'Docs · SCADA',
               title: 'Technical Docs',
               desc: 'SCADA registers, electrical drawings, and wiring diagrams.',
-              color: '#4fc3f7',
               cta: 'View docs',
+              accent: '#49D0E2',
             },
             {
               id: 'quote',
-              icon: 'QT',
+              tag: 'Request',
               title: 'Request a Quote',
               desc: 'Get pricing for your pad configuration and deployment.',
-              color: '#f97316',
               cta: 'Get a quote',
+              accent: '#D32028',
             },
-          ].map((section) => (
+          ].map(section => (
             <button
               key={section.id}
               onClick={() => onNavigate(section.id)}
-              className="bg-[#111118] rounded-xl border-2 border-[#1a1a2a] p-4 sm:p-6 text-left transition-all hover:scale-[1.02] hover:shadow-xl"
-              onMouseEnter={(event) => {
-                event.currentTarget.style.borderColor = `${section.color}55`
-              }}
-              onMouseLeave={(event) => {
-                event.currentTarget.style.borderColor = '#1a1a2a'
+              className="sc-card text-left group"
+              style={{
+                borderRadius: 2,
+                cursor: 'pointer',
+                background: 'rgba(15, 60, 100, 0.5)',
               }}
             >
-              <div className="text-[18px] sm:text-[22px] mb-2 sm:mb-3 font-black tracking-[0.14em]" style={{ color: section.color }}>
-                {section.icon}
+              <div
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 700,
+                  fontSize: 10,
+                  letterSpacing: 2,
+                  textTransform: 'uppercase',
+                  color: section.accent,
+                  marginBottom: 10,
+                }}
+              >
+                {section.tag}
               </div>
-              <h2 className="text-[12px] sm:text-[15px] text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>
+              <span
+                className="inline-block"
+                style={{
+                  width: 32, height: 2, background: section.accent, marginBottom: 14,
+                }}
+                aria-hidden="true"
+              />
+              <h2
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 800,
+                  fontSize: 18,
+                  lineHeight: 1.15,
+                  letterSpacing: '-0.2px',
+                  color: '#FFFFFF',
+                  marginBottom: 8,
+                }}
+              >
                 {section.title}
               </h2>
-              <p className="text-[9px] sm:text-[11px] text-[#888] leading-relaxed mb-2 sm:mb-3">
+              <p
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 500,
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  marginBottom: 14,
+                }}
+              >
                 {section.desc}
               </p>
-              <span className="text-[9px] sm:text-[10px] font-bold" style={{ color: section.color }}>
-                {section.cta} {'->'}
+              <span
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 700,
+                  fontSize: 11,
+                  letterSpacing: 2,
+                  textTransform: 'uppercase',
+                  color: section.accent,
+                }}
+              >
+                {section.cta} →
               </span>
             </button>
           ))}
         </div>
 
+        {/* Permission-gated secondary actions */}
         {(canAccess('simulator') || canAccess('pipeline')) && (
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             {canAccess('simulator') && (
               <button
                 onClick={() => onNavigate('simulator')}
-                className="px-4 py-2 text-[10px] font-bold text-[#4fc3f7] border border-[#4fc3f7]/30 rounded-lg hover:bg-[#4fc3f7]/10 transition-colors"
+                className="sc-btn-ghost"
+                style={{ padding: '10px 20px', fontSize: 11 }}
               >
                 Tech Simulator
               </button>
@@ -153,7 +353,8 @@ export default function LandingPage({ onNavigate }) {
             {canAccess('pipeline') && (
               <button
                 onClick={() => onNavigate('pipeline')}
-                className="px-4 py-2 text-[10px] font-bold text-[#f97316] border border-[#f97316]/30 rounded-lg hover:bg-[#f97316]/10 transition-colors"
+                className="sc-btn-ghost"
+                style={{ padding: '10px 20px', fontSize: 11 }}
               >
                 Sales Pipeline
               </button>
@@ -161,9 +362,20 @@ export default function LandingPage({ onNavigate }) {
           </div>
         )}
 
-        <div className="text-center mt-6 text-[9px] text-[#2a2a3a]">Service Compression · Pad Logic</div>
+        <div
+          className="text-center mt-10"
+          style={{
+            fontFamily: "'Montserrat', sans-serif",
+            fontWeight: 600,
+            fontSize: 10,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            color: 'rgba(255, 255, 255, 0.3)',
+          }}
+        >
+          Service Compression · Pad Logic
+        </div>
       </div>
     </div>
   )
 }
-

@@ -1,19 +1,23 @@
 import { useState } from 'react'
 import { useAuth } from './AuthProvider'
 
+/**
+ * LoginModal — SC-branded team credential modal (used for gated tiles).
+ * Functional behavior unchanged; visual surface matches the SC web brand.
+ */
 export default function LoginModal({ onClose, title }) {
   const { login } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [focusedField, setFocusedField] = useState(null)
 
   const handleLogin = async () => {
     if (!username.trim() || !password) {
       setError('Username and password are required')
       return
     }
-
     setSubmitting(true)
     const result = await login(username.trim(), password)
     if (result.success) onClose(result.user)
@@ -24,26 +28,123 @@ export default function LoginModal({ onClose, title }) {
     }
   }
 
+  const inputStyle = (name) => ({
+    width: '100%',
+    background: 'rgba(0, 0, 0, 0.28)',
+    border: `1px solid ${focusedField === name ? '#49D0E2' : 'rgba(255, 255, 255, 0.15)'}`,
+    borderBottomColor: focusedField === name ? '#D32028' : 'rgba(255, 255, 255, 0.15)',
+    borderBottomWidth: focusedField === name ? 2 : 1,
+    borderRadius: 2,
+    padding: '11px 14px',
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: "'Montserrat', sans-serif",
+    fontWeight: 500,
+    outline: 'none',
+    marginBottom: 12,
+    transition: 'border-color 150ms',
+  })
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => !submitting && onClose()}>
-      <div className="bg-[#111118] border border-[#333] rounded-xl p-8 w-[380px] shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl">Lock</span>
-          <h2 className="text-lg text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>{title || 'Login'}</h2>
-        </div>
-        <p className="text-[11px] text-[#888] mb-4">Use your team credentials here. General users enter their first and last name on the welcome screen.</p>
-        <input type="text" value={username} onChange={e => { setUsername(e.target.value); setError('') }}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(3, 23, 42, 0.75)', backdropFilter: 'blur(4px)' }}
+      onClick={() => !submitting && onClose()}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: 400,
+          maxWidth: '92vw',
+          background: '#0F3C64',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderTop: '2px solid #D32028',
+          borderRadius: 2,
+          padding: 28,
+          boxShadow: '0 30px 80px rgba(0, 0, 0, 0.5)',
+        }}
+      >
+        <div className="sc-eyebrow mb-2">Restricted Access</div>
+        <h2
+          style={{
+            fontFamily: "'Montserrat', sans-serif",
+            fontWeight: 800,
+            fontSize: 22,
+            letterSpacing: '-0.3px',
+            color: '#FFFFFF',
+            marginBottom: 14,
+          }}
+        >
+          {title || 'Login'}
+        </h2>
+
+        <p
+          style={{
+            fontFamily: "'Montserrat', sans-serif",
+            fontWeight: 500,
+            fontSize: 12,
+            color: 'rgba(255, 255, 255, 0.65)',
+            marginBottom: 18,
+            lineHeight: 1.5,
+          }}
+        >
+          Use your team credentials here. General users enter their first and
+          last name on the welcome screen.
+        </p>
+
+        <input
+          type="text"
+          value={username}
+          onChange={e => { setUsername(e.target.value); setError('') }}
           onKeyDown={e => e.key === 'Enter' && handleLogin()}
-          placeholder="Username" autoFocus
-          className="w-full bg-[#1a1a2a] border border-[#333] rounded px-3 py-2.5 text-white text-sm outline-none focus:border-[#E8200C] mb-3" />
-        <input type="password" value={password} onChange={e => { setPassword(e.target.value); setError('') }}
+          onFocus={() => setFocusedField('user')}
+          onBlur={() => setFocusedField(null)}
+          placeholder="Username"
+          autoFocus
+          style={inputStyle('user')}
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={e => { setPassword(e.target.value); setError('') }}
           onKeyDown={e => e.key === 'Enter' && handleLogin()}
+          onFocus={() => setFocusedField('pass')}
+          onBlur={() => setFocusedField(null)}
           placeholder="Password"
-          className="w-full bg-[#1a1a2a] border border-[#333] rounded px-3 py-2.5 text-white text-sm outline-none focus:border-[#E8200C] mb-3" />
-        {error && <p className="text-[#E8200C] text-[11px] mb-3">{error}</p>}
-        <div className="flex gap-2">
-          <button onClick={() => onClose()} disabled={submitting} className="flex-1 py-2 text-[11px] font-bold text-[#888] border border-[#333] rounded hover:text-white disabled:opacity-60">Cancel</button>
-          <button onClick={handleLogin} disabled={submitting} className="flex-1 py-2 text-[11px] font-bold bg-[#E8200C] text-white rounded hover:bg-[#c01a0a] disabled:opacity-60">{submitting ? 'Logging in...' : 'Login'}</button>
+          style={inputStyle('pass')}
+        />
+
+        {error && (
+          <p
+            style={{
+              color: '#FF5A62',
+              fontSize: 12,
+              fontFamily: "'Montserrat', sans-serif",
+              fontWeight: 500,
+              marginBottom: 12,
+            }}
+          >
+            {error}
+          </p>
+        )}
+
+        <div className="flex gap-3 mt-2">
+          <button
+            onClick={() => onClose()}
+            disabled={submitting}
+            className="sc-btn-ghost"
+            style={{ flex: 1, padding: '11px 18px', fontSize: 11 }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleLogin}
+            disabled={submitting}
+            className="sc-btn-primary"
+            style={{ flex: 1, padding: '11px 18px', fontSize: 11 }}
+          >
+            {submitting ? 'Logging in…' : 'Login'}
+          </button>
         </div>
       </div>
     </div>

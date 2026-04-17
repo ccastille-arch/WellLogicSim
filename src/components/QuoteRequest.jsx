@@ -30,17 +30,17 @@ export default function QuoteRequest({ onBack }) {
 
   if (submitted) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#080810]">
+      <div className="flex-1 flex items-center justify-center bg-[#05233E]">
         <div className="text-center max-w-[500px] px-6">
           <div className="text-5xl mb-4">OK</div>
-          <h1 className="text-2xl text-white font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>Quote Request Submitted</h1>
+          <h1 className="text-2xl text-white font-bold mb-2" style={{ fontFamily: "'Montserrat'" }}>Quote Request Submitted</h1>
           <p className="text-sm text-[#888] mb-2">Thank you, {form.contactName}.</p>
           <p className="text-[12px] text-[#666] mb-6">
             Your request for <span className="text-white font-bold">{form.customerName}</span> has been received.
             A Service Compression representative will contact you shortly with pricing and next steps.
           </p>
           <div className="flex gap-3 justify-center">
-            <button onClick={onBack} className="px-6 py-2 text-[11px] font-bold bg-[#E8200C] text-white rounded-lg hover:bg-[#c01a0a]">Back to Home</button>
+            <button onClick={onBack} className="px-6 py-2 text-[11px] font-bold bg-[#D32028] text-white rounded-lg hover:bg-[#B01A20]">Back to Home</button>
             <button onClick={() => { setSubmitted(false); setForm(f => ({ ...f, customerName: '', padName: '', wellCount: '', compressorCount: '', additionalNotes: '' })) }}
               className="px-6 py-2 text-[11px] font-bold text-[#888] border border-[#333] rounded-lg hover:text-white">Submit Another</button>
           </div>
@@ -50,11 +50,11 @@ export default function QuoteRequest({ onBack }) {
   }
 
   return (
-    <div className="flex-1 overflow-auto bg-[#080810]">
+    <div className="flex-1 overflow-auto bg-[#05233E]">
       <div className="max-w-[650px] mx-auto py-8 px-6">
         <div className="text-center mb-6">
-          <div className="text-xl tracking-tight mb-1" style={{ fontFamily: "'Arial Black'", color: '#E8200C' }}>Service Compression</div>
-          <h1 className="text-xl text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>Request a Pad Logic Quote</h1>
+          <div className="text-xl tracking-tight mb-1" style={{ fontFamily: "'Montserrat'", color: '#D32028' }}>Service Compression</div>
+          <h1 className="text-xl text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>Request a Pad Logic Quote</h1>
           <p className="text-[12px] text-[#888] mt-1">Tell us about your pad and we'll provide custom pricing.</p>
         </div>
 
@@ -94,21 +94,21 @@ export default function QuoteRequest({ onBack }) {
               <label className="block text-[10px] text-[#aaa] uppercase tracking-wider font-bold mb-1">Additional Notes or Questions</label>
               <textarea value={form.additionalNotes} onChange={e => set('additionalNotes', e.target.value)} rows={4}
                 placeholder="Anything else we should know about your operation..."
-                className="w-full bg-[#0a0a14] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#E8200C] resize-none" />
+                className="w-full bg-[#03172A] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#D32028] resize-none" />
             </div>
           </FormSection>
         </div>
 
         <button onClick={handleSubmit} disabled={!form.customerName || !form.contactName}
-          className="w-full mt-6 py-3 bg-[#E8200C] hover:bg-[#c01a0a] text-white font-bold rounded-lg text-sm transition-colors disabled:opacity-30"
-          style={{ fontFamily: "'Arial Black'" }}>
+          className="w-full mt-6 py-3 bg-[#D32028] hover:bg-[#B01A20] text-white font-bold rounded-lg text-sm transition-colors disabled:opacity-30"
+          style={{ fontFamily: "'Montserrat'" }}>
           Submit Quote Request
         </button>
         <p className="text-[9px] text-[#444] text-center mt-2">A Service Compression representative will follow up within 1 business day.</p>
 
         {/* Deployment Process */}
-        <div className="mt-8 bg-[#111118] rounded-xl border border-[#222] p-6">
-          <h2 className="text-sm text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>
+        <div className="mt-8 bg-[#0F3C64] rounded-xl border border-[#222] p-6">
+          <h2 className="text-sm text-white font-bold mb-1" style={{ fontFamily: "'Montserrat'" }}>
             How Deployment Works
           </h2>
           <p className="text-[11px] text-[#888] mb-5">From quote to live operation - here's what to expect.</p>
@@ -134,7 +134,7 @@ export default function QuoteRequest({ onBack }) {
             </TimelineStep>
           </div>
 
-          <div className="mt-5 bg-[#0a0a14] rounded-lg border border-[#2a2a3a] p-4">
+          <div className="mt-5 bg-[#03172A] rounded-lg border border-[#2a2a3a] p-4">
             <h3 className="text-[10px] text-[#4fc3f7] font-bold uppercase tracking-wider mb-2">
               Future Enhancements
             </h3>
@@ -164,8 +164,8 @@ export default function QuoteRequest({ onBack }) {
 
 function FormSection({ title, children }) {
   return (
-    <div className="bg-[#111118] rounded-xl border border-[#222] p-5">
-      <h2 className="text-[10px] text-[#E8200C] font-bold uppercase tracking-wider mb-3">{title}</h2>
+    <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-5">
+      <h2 className="text-[10px] text-[#D32028] font-bold uppercase tracking-wider mb-3">{title}</h2>
       {children}
     </div>
   )
@@ -176,7 +176,7 @@ function Input({ label, value, onChange, placeholder, type = 'text' }) {
     <div>
       <label className="block text-[10px] text-[#aaa] uppercase tracking-wider font-bold mb-1">{label}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full bg-[#0a0a14] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#E8200C]" />
+        className="w-full bg-[#03172A] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#D32028]" />
     </div>
   )
 }
@@ -186,7 +186,7 @@ function Select({ label, value, onChange, options }) {
     <div>
       <label className="block text-[10px] text-[#aaa] uppercase tracking-wider font-bold mb-1">{label}</label>
       <select value={value} onChange={e => onChange(e.target.value)}
-        className="w-full bg-[#0a0a14] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#E8200C]">
+        className="w-full bg-[#03172A] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm outline-none focus:border-[#D32028]">
         {options.map(o => <option key={o} value={o}>{o || 'Select'}</option>)}
       </select>
     </div>
@@ -198,7 +198,7 @@ function TimelineStep({ number, title, children, active, highlight }) {
     <div className="flex gap-3">
       <div className="flex flex-col items-center">
         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
-          highlight ? 'bg-[#22c55e] text-black' : active ? 'bg-[#E8200C] text-white' : 'bg-[#1a1a2a] text-[#888] border border-[#333]'
+          highlight ? 'bg-[#22c55e] text-black' : active ? 'bg-[#D32028] text-white' : 'bg-[#293C5B] text-[#888] border border-[#333]'
         }`}>{number}</div>
         <div className="w-px flex-1 bg-[#222] min-h-[20px]" />
       </div>

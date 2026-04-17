@@ -51,18 +51,18 @@ export default function GasConstrainedDemo({ sim }) {
         <div
           className="text-2xl font-bold text-center"
           style={{
-            fontFamily: "'Arial Black', Arial, sans-serif",
-            color: pct >= 80 ? '#22c55e' : pct >= 50 ? '#eab308' : '#E8200C',
+            fontFamily: "'Montserrat', Arial, sans-serif",
+            color: pct >= 80 ? '#22c55e' : pct >= 50 ? '#eab308' : '#D32028',
           }}
         >
           {pct}%
         </div>
-        <div className="w-full bg-[#1a1a2a] rounded h-3 mt-2 overflow-hidden">
+        <div className="w-full bg-[#293C5B] rounded h-3 mt-2 overflow-hidden">
           <div
             className="h-full rounded transition-all duration-700"
             style={{
               width: `${pct}%`,
-              backgroundColor: pct >= 80 ? '#22c55e' : pct >= 50 ? '#eab308' : '#E8200C',
+              backgroundColor: pct >= 80 ? '#22c55e' : pct >= 50 ? '#eab308' : '#D32028',
             }}
           />
         </div>

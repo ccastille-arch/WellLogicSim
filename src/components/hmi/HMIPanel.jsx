@@ -114,7 +114,7 @@ function DashboardPage({ wells, compressors, flowRateMode, state, onChokeManualS
           <div
             className="text-2xl font-bold rounded-md py-1.5 px-6 mt-1"
             style={{
-              fontFamily: "'Arial Black', Arial, sans-serif",
+              fontFamily: "'Montserrat', Arial, sans-serif",
               background: flowRateMode === 'local'
                 ? 'linear-gradient(to bottom, #b3e5fc, #4fc3f7)'
                 : 'linear-gradient(to bottom, #c8e6c9, #66bb6a)',
@@ -137,7 +137,7 @@ function WellChokeRow({ well, onManualSP, onMode }) {
   const [expanded, setExpanded] = useState(false)
 
   const accuracy = desiredRate > 0 ? (actualRate / desiredRate) * 100 : 100
-  const accuracyColor = accuracy >= 95 ? '#22c55e' : accuracy >= 80 ? '#eab308' : '#E8200C'
+  const accuracyColor = accuracy >= 95 ? '#22c55e' : accuracy >= 80 ? '#eab308' : '#D32028'
 
   return (
     <div data-tutorial={`choke-row-${id}`}>
@@ -152,7 +152,7 @@ function WellChokeRow({ well, onManualSP, onMode }) {
             <div className="text-[8px] text-[#666] leading-tight truncate px-1">
               WellHead Choke Ctrl {id + 1}_Manual...
             </div>
-            <div className="text-3xl font-bold text-black leading-none" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+            <div className="text-3xl font-bold text-black leading-none" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
               {Math.round(chokeManualSP)}
             </div>
           </div>
@@ -171,7 +171,7 @@ function WellChokeRow({ well, onManualSP, onMode }) {
           <div className="text-[8px] text-[#666] leading-tight">
             WellHead Choke Ctrl {id + 1}_Mode
           </div>
-          <div className="text-2xl font-bold text-black" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+          <div className="text-2xl font-bold text-black" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
             {chokeMode === 'auto' ? 'Auto' : 'Manual'}
           </div>
         </div>
@@ -181,7 +181,7 @@ function WellChokeRow({ well, onManualSP, onMode }) {
           <div className="text-[8px] text-[#444] leading-tight">
             WellHead Control #{id + 1} AO
           </div>
-          <div className="text-3xl font-bold text-black text-right leading-none" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+          <div className="text-3xl font-bold text-black text-right leading-none" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
             {Math.round(chokeAO)}
           </div>
         </div>
@@ -202,9 +202,9 @@ function WellChokeRow({ well, onManualSP, onMode }) {
           <WellheadParam label="Inj Flow" value={actualRate?.toFixed(0)} unit="MCFD" color={accuracyColor} />
           <WellheadParam label="Static Press" value={injectionPressure?.toFixed(0)} unit="PSI" color="#eab308" />
           <WellheadParam label="Diff Press" value={diffPressure?.toFixed(1)} unit="PSI"
-            color={diffPressure > 200 ? '#E8200C' : '#4fc3f7'} />
+            color={diffPressure > 200 ? '#D32028' : '#4fc3f7'} />
           <WellheadParam label="Inj Temp" value={injectionTemp?.toFixed(1)} unit="°F"
-            color={injectionTemp > 150 ? '#E8200C' : '#a78bfa'} />
+            color={injectionTemp > 150 ? '#D32028' : '#a78bfa'} />
           <WellheadParam label="Accuracy" value={accuracy?.toFixed(1)} unit="%" color={accuracyColor} />
         </div>
       )}
@@ -217,7 +217,7 @@ function WellheadParam({ label, value, unit, color }) {
     <div className="flex-1 bg-[#1a1a22] rounded border border-[#2a2a3a] px-2 py-1">
       <div className="text-[8px] text-[#666] uppercase tracking-wider">{label}</div>
       <div className="flex items-baseline gap-0.5">
-        <span className="text-[13px] font-bold" style={{ color, fontFamily: "'Arial Black', Arial, sans-serif" }}>
+        <span className="text-[13px] font-bold" style={{ color, fontFamily: "'Montserrat', Arial, sans-serif" }}>
           {value ?? '—'}
         </span>
         <span className="text-[8px] text-[#555]">{unit}</span>
@@ -259,7 +259,7 @@ function StatusIndicatorCard({ label, sublabel, active }) {
       <div
         className="w-5 h-5 rounded-full shrink-0"
         style={{
-          backgroundColor: active ? '#22c55e' : '#E8200C',
+          backgroundColor: active ? '#22c55e' : '#D32028',
           boxShadow: active ? '0 0 8px rgba(34,197,94,0.6)' : '0 0 8px rgba(232,32,12,0.6)',
         }}
       />
@@ -288,7 +288,7 @@ function PriorityPage({ wells, onWellPriorities, onWellRate }) {
 
   return (
     <div className="max-w-[700px]">
-      <h3 className="text-xs font-bold text-[#E8200C] uppercase tracking-wider mb-3" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+      <h3 className="text-xs font-bold text-[#D32028] uppercase tracking-wider mb-3" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
         Well Priority & Injection Rates
       </h3>
       <p className="text-[10px] text-[#888] mb-3">Drag to reorder priority. Top = highest priority. Adjust injection rate per well.</p>
@@ -303,7 +303,7 @@ function PriorityPage({ wells, onWellPriorities, onWellRate }) {
             onDragEnd={() => { setDragIdx(null); setOverIdx(null) }}
             className={`flex items-center gap-3 py-2 px-3 rounded bg-[#2a2a2e] border border-[#444] cursor-grab active:cursor-grabbing ${
               dragIdx === idx ? 'opacity-50' : ''
-            } ${overIdx === idx && dragIdx !== idx ? 'border-t-2 border-t-[#E8200C]' : ''}`}
+            } ${overIdx === idx && dragIdx !== idx ? 'border-t-2 border-t-[#D32028]' : ''}`}
           >
             <span className="text-[#888] font-bold w-5 text-center text-sm">{idx + 1}</span>
             <span className="text-[10px] text-[#666]">⠿</span>
@@ -312,7 +312,7 @@ function PriorityPage({ wells, onWellPriorities, onWellRate }) {
               type="range" min={0} max={1600} step={10}
               value={w.desiredRate}
               onChange={e => onWellRate(w.id, Number(e.target.value))}
-              className="flex-1 accent-[#E8200C]"
+              className="flex-1 accent-[#D32028]"
               onClick={e => e.stopPropagation()}
             />
             <span className="text-[11px] text-white font-bold w-16 text-right">{w.desiredRate} MCFD</span>
@@ -332,12 +332,12 @@ function PriorityPage({ wells, onWellPriorities, onWellRate }) {
 function SuctionPage({ state, onTotalGas }) {
   return (
     <div className="max-w-[600px] space-y-4">
-      <h3 className="text-xs font-bold text-[#E8200C] uppercase tracking-wider mb-3" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+      <h3 className="text-xs font-bold text-[#D32028] uppercase tracking-wider mb-3" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
         Suction Header & Gas Supply
       </h3>
       <div className="grid grid-cols-3 gap-3">
         <HMIValueDisplay label="Suction Header" value={state.suctionHeaderPressure.toFixed(1)} unit="PSI"
-          color={state.suctionHeaderPressure > state.suctionTarget + state.suctionHighRange ? '#E8200C' : '#22c55e'} />
+          color={state.suctionHeaderPressure > state.suctionTarget + state.suctionHighRange ? '#D32028' : '#22c55e'} />
         <HMIValueDisplay label="Target Pressure" value={state.suctionTarget.toFixed(0)} unit="PSI" />
         <HMIValueDisplay label="Scrubber Pressure" value={state.scrubberPressure.toFixed(1)} unit="PSI" />
         <HMIValueDisplay label="Upper Limit" value={(state.suctionTarget + state.suctionHighRange).toFixed(0)} unit="PSI" />
@@ -351,7 +351,7 @@ function SuctionPage({ state, onTotalGas }) {
           <span className="text-sm font-bold text-white">{state.totalAvailableGas.toFixed(0)} MCFD</span>
         </div>
         <input type="range" min={0} max={GAS_SUPPLY_UI_MAX} step={10}
-          value={state.totalAvailableGas} onChange={e => onTotalGas(Number(e.target.value))} className="w-full accent-[#E8200C]" />
+          value={state.totalAvailableGas} onChange={e => onTotalGas(Number(e.target.value))} className="w-full accent-[#D32028]" />
       </div>
       <div className="bg-[#2a2a2e] rounded border border-[#444] p-3">
         <div className="text-[10px] text-[#888] uppercase tracking-wider mb-2">Compressor Stagger Offsets</div>
@@ -371,7 +371,7 @@ function HMIValueDisplay({ label, value, unit, color }) {
     <div className="bg-[#2a2a2e] rounded border border-[#444] p-2.5">
       <div className="text-[9px] text-[#888] uppercase tracking-wider">{label}</div>
       <div className="flex items-baseline gap-1 mt-0.5">
-        <span className="text-lg font-bold" style={{ color: color || '#fff', fontFamily: "'Arial Black', Arial, sans-serif" }}>{value}</span>
+        <span className="text-lg font-bold" style={{ color: color || '#fff', fontFamily: "'Montserrat', Arial, sans-serif" }}>{value}</span>
         <span className="text-[9px] text-[#888]">{unit}</span>
       </div>
     </div>
@@ -384,11 +384,11 @@ function HMIValueDisplay({ label, value, unit, color }) {
 function HuntSequencePage({ wells, huntEnabled, onHuntSequence }) {
   return (
     <div className="max-w-[600px]">
-      <h3 className="text-xs font-bold text-[#E8200C] uppercase tracking-wider mb-3" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+      <h3 className="text-xs font-bold text-[#D32028] uppercase tracking-wider mb-3" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
         Hunt Sequence
       </h3>
       <div className="flex items-center gap-3 mb-4 bg-[#2a2a2e] rounded border border-[#444] p-3">
-        <div className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${huntEnabled ? 'bg-[#E8200C]' : 'bg-[#555]'}`}
+        <div className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${huntEnabled ? 'bg-[#D32028]' : 'bg-[#555]'}`}
           onClick={() => onHuntSequence(!huntEnabled)}>
           <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${huntEnabled ? 'translate-x-7' : 'translate-x-1'}`} />
         </div>
@@ -424,7 +424,7 @@ function AlarmsPage({ alarms, state }) {
   ]
   return (
     <div className="max-w-[600px]">
-      <h3 className="text-xs font-bold text-[#E8200C] uppercase tracking-wider mb-3" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+      <h3 className="text-xs font-bold text-[#D32028] uppercase tracking-wider mb-3" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
         Active Alarms
       </h3>
       {allAlarms.length === 0 ? (
@@ -435,12 +435,12 @@ function AlarmsPage({ alarms, state }) {
         <div className="space-y-1">
           {allAlarms.map((a, i) => (
             <div key={i} className={`flex items-center gap-2 rounded p-2.5 border ${
-              a.type === 'critical' ? 'bg-[#E8200C]/20 border-[#E8200C]' :
+              a.type === 'critical' ? 'bg-[#D32028]/20 border-[#D32028]' :
               a.type === 'warning' ? 'bg-[#eab308]/10 border-[#eab308]' :
               'bg-[#3b82f6]/10 border-[#3b82f6]'
             }`}>
               <span className={`text-xs font-bold uppercase ${
-                a.type === 'critical' ? 'text-[#E8200C]' : a.type === 'warning' ? 'text-[#eab308]' : 'text-[#3b82f6]'
+                a.type === 'critical' ? 'text-[#D32028]' : a.type === 'warning' ? 'text-[#eab308]' : 'text-[#3b82f6]'
               }`}>{a.type}</span>
               <span className="text-[11px] text-white">{a.message}</span>
             </div>

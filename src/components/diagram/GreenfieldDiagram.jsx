@@ -189,7 +189,7 @@ export default function GreenfieldDiagram({ state }) {
         width={120} height={32}
         label="Pad Logic"
         sublabel="Gas Lift Controller"
-        color="#E8200C"
+        color="#D32028"
       />
 
       {/* Compressors */}

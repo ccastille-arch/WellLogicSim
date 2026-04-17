@@ -251,7 +251,7 @@ export default function BrownfieldDiagram({ state }) {
         width={110} height={32}
         label="Pad Logic"
         sublabel="Suction Controller Mgmt"
-        color="#E8200C"
+        color="#D32028"
       />
 
       {/* Suction Controller valves */}

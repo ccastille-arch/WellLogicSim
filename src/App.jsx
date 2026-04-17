@@ -8,13 +8,19 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex-1 flex items-center justify-center bg-[#080810] h-screen">
-          <div className="text-center">
-            <div className="text-4xl mb-4">⚠️</div>
-            <h2 className="text-lg text-white font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>Something went wrong</h2>
-            <p className="text-[12px] text-[#888] mb-4">The page encountered an error.</p>
-            <button onClick={() => { this.setState({ hasError: false }); window.location.reload() }}
-              className="px-6 py-2 bg-[#E8200C] text-white font-bold rounded-lg hover:bg-[#c01a0a]">
+        <div className="flex-1 flex items-center justify-center h-screen" style={{ background: '#05233E' }}>
+          <div className="text-center" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+            <div className="sc-eyebrow mb-3" style={{ color: '#FF5A62' }}>Error</div>
+            <h2 style={{ fontWeight: 800, fontSize: 22, color: '#FFFFFF', letterSpacing: '-0.3px', marginBottom: 10 }}>
+              Something went wrong
+            </h2>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', marginBottom: 24, fontWeight: 500 }}>
+              The page encountered an error.
+            </p>
+            <button
+              onClick={() => { this.setState({ hasError: false }); window.location.reload() }}
+              className="sc-btn-primary"
+            >
               Reload
             </button>
           </div>
@@ -62,12 +68,12 @@ function AppContent() {
   // Show spinner while restoring session from server
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#080810]">
-        <div className="text-center">
+      <div className="flex-1 flex items-center justify-center" style={{ background: '#05233E' }}>
+        <div className="text-center" style={{ fontFamily: "'Montserrat', sans-serif" }}>
           <div className="flex justify-center mb-3 animate-pulse">
             <WellLogicCompact size={46} />
           </div>
-          <div className="text-[#555] text-xs">Connecting...</div>
+          <div style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: '#49D0E2', fontWeight: 600 }}>Connecting…</div>
         </div>
       </div>
     )
@@ -156,18 +162,76 @@ function AppContent() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[#080810]">
+    <div className="flex flex-col h-screen" style={{ background: '#05233E' }}>
       {/* Header for pages that need it */}
       {(page === 'home' || page === 'technical' || page === 'quote' || page === 'admin' || page === 'pipeline' || page === 'livedata') && (
-        <header className="flex items-center justify-between px-3 sm:px-5 py-2 sm:py-2.5 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0 gap-2" style={{ minHeight: 44 }}>
+        <header
+          className="flex items-center justify-between px-3 sm:px-5 py-2 sm:py-2.5 shrink-0 gap-2"
+          style={{
+            minHeight: 48,
+            background: '#05233E',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          }}
+        >
           <div className="flex items-center gap-2 sm:gap-4 cursor-pointer shrink-0" onClick={() => { setPage('home') }}>
             <WellLogicCompact size={32} />
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap justify-end">
-            <span className="text-[9px] sm:text-[11px] text-[#888] hidden sm:inline">👤 {user.name}</span>
-            {isTech && <button onClick={() => navigate('simulator')} className="text-[9px] sm:text-[10px] text-[#4fc3f7] hover:text-white font-bold">🔧 Simulator</button>}
-            {isAdmin && <button onClick={() => navigate('admin')} className="text-[9px] sm:text-[10px] text-[#f97316] hover:text-white font-bold">⚙️ Admin</button>}
-            <button onClick={logout} className="px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-[#888] border border-[#333] rounded hover:text-white hover:border-[#E8200C]">Logout</button>
+          <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+            <span
+              className="hidden sm:inline"
+              style={{ fontSize: 11, letterSpacing: 0.6, color: 'rgba(255,255,255,0.65)', fontWeight: 500 }}
+            >
+              {user.name}
+            </span>
+            {isTech && (
+              <button
+                onClick={() => navigate('simulator')}
+                style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
+                  color: '#49D0E2', background: 'transparent', border: 0, cursor: 'pointer',
+                  padding: '4px 2px',
+                }}
+                className="hover:text-white transition-colors"
+              >
+                Simulator
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => navigate('admin')}
+                style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
+                  color: '#f97316', background: 'transparent', border: 0, cursor: 'pointer',
+                  padding: '4px 2px',
+                }}
+                className="hover:text-white transition-colors"
+              >
+                Admin
+              </button>
+            )}
+            <button
+              onClick={logout}
+              style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.7)',
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.25)',
+                padding: '6px 12px',
+                borderRadius: 2,
+                cursor: 'pointer',
+                transition: 'all 150ms',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = '#D32028'
+                e.currentTarget.style.color = '#FFFFFF'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'
+                e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
+              }}
+            >
+              Logout
+            </button>
           </div>
         </header>
       )}
@@ -176,10 +240,27 @@ function AppContent() {
 
       {/* Home button — every page except home */}
       {page !== 'home' && (
-        <button onClick={() => { setPage('home') }}
-          className="fixed bottom-5 left-5 z-40 px-4 py-2.5 bg-[#1a1a2a] hover:bg-[#E8200C] border border-[#333] hover:border-[#E8200C] text-[#ccc] hover:text-white rounded-full shadow-lg text-[11px] font-bold transition-all flex items-center gap-2"
-          style={{ fontFamily: "'Arial Black'" }}>
-          🏠 Home
+        <button
+          onClick={() => { setPage('home') }}
+          className="fixed bottom-5 left-5 z-40 flex items-center gap-2 transition-all"
+          style={{
+            fontFamily: "'Montserrat', sans-serif",
+            fontWeight: 700,
+            fontSize: 11,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+            color: '#FFFFFF',
+            background: '#D32028',
+            border: 0,
+            padding: '10px 20px',
+            borderRadius: 2,
+            cursor: 'pointer',
+            boxShadow: '0 10px 30px rgba(211, 32, 40, 0.35)',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#B01A20' }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#D32028' }}
+        >
+          ← Home
         </button>
       )}
 

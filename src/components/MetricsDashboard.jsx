@@ -22,7 +22,7 @@ export default function MetricsDashboard({ metrics, running, onToggleRunning }) 
         label="Injection Accuracy"
         value={`${injectionAccuracy.toFixed(1)}`}
         unit="%"
-        color={injectionAccuracy >= 95 ? '#22c55e' : injectionAccuracy >= 80 ? '#eab308' : '#E8200C'}
+        color={injectionAccuracy >= 95 ? '#22c55e' : injectionAccuracy >= 80 ? '#eab308' : '#D32028'}
       />
       <MetricCard
         label="Site Production"
@@ -39,7 +39,7 @@ export default function MetricsDashboard({ metrics, running, onToggleRunning }) 
         label="Wells at Target"
         value={`${wellsAtTarget}/${wellsTotal}`}
         unit=""
-        color={wellsAtTarget === wellsTotal ? '#22c55e' : wellsAtTarget >= wellsTotal * 0.5 ? '#eab308' : '#E8200C'}
+        color={wellsAtTarget === wellsTotal ? '#22c55e' : wellsAtTarget >= wellsTotal * 0.5 ? '#eab308' : '#D32028'}
       />
       <div className="ml-auto flex items-center gap-2">
         <button
@@ -62,7 +62,7 @@ function MetricCard({ label, value, unit, sub, color }) {
     <div className="bg-sc-charcoal rounded px-3 py-1.5 min-w-[120px] shrink-0">
       <div className="text-[10px] text-sc-gray uppercase tracking-wider font-bold mb-0.5">{label}</div>
       <div className="flex items-baseline gap-1">
-        <span className="text-lg font-bold" style={{ color: color || '#ffffff', fontFamily: "'Arial Black', Arial, sans-serif" }}>
+        <span className="text-lg font-bold" style={{ color: color || '#ffffff', fontFamily: "'Montserrat', Arial, sans-serif" }}>
           {value}
         </span>
         {unit && <span className="text-[10px] text-sc-gray">{unit}</span>}
