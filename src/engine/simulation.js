@@ -32,8 +32,8 @@ const DEFAULT_SUCTION_TARGET = 80
 const DEFAULT_SUCTION_HIGH_RANGE = 20
 const DEFAULT_SUCTION_LOW_RANGE = 40
 const DEFAULT_STAGGER_OFFSET = 2
-const DEFAULT_DISCHARGE_SHUTDOWN = 600
-const DEFAULT_DISCHARGE_SLOWDOWN_OFFSET = 50
+const DEFAULT_DISCHARGE_SHUTDOWN = 1200
+const DEFAULT_DISCHARGE_SLOWDOWN_OFFSET = 100
 const DEFAULT_COOLER_OUTLET_SP = 200
 const DEFAULT_MAX_TEMP_AT_PLATE = 165
 const DEFAULT_STABILITY_TIMER = 60
@@ -80,9 +80,13 @@ export function createInitialState(config) {
     autoStartAllowed: true,
     personnelLockout: false,
     capacityMcfd: compressorMaxFlowRate,
-    rpm: 1050,
+    rpm: 1000,
     suctionPsi: suctionTarget,
-    dischargePsi: 400,
+    dischargePsi: 1000,
+    dischargeTemp: 220,
+    oilPressure: 45,
+    systemVoltage: 13.2,
+    hourMeter: 5280 + Math.floor(Math.random() * 3000),
     loadPct: 0,
     actualThroughput: 0,
     speedAutoSuctionSP: suctionLowRange + 2 + i * staggerOffset,
@@ -274,7 +278,9 @@ export function tick(state) {
       : smooth(w.actualRate, allocTarget, T.flowResponseRate)
 
     // Choke position moves at realistic valve speed
-    const targetChokeAO = desired > 0 ? Math.min(100, (allocTarget / desired) * 100) : 0
+    // At full desired flow, choke sits at ~66.5% (Klondike-calibrated typical operating position)
+    // Realistic DE-4000 SOO range: 30-80% during normal operation; 0% during forced shutdown
+    const targetChokeAO = desired > 0 ? Math.min(100, (allocTarget / desired) * KLONDIKE_CHOKE_AO) : 0
     const chokeAO = fullShutdown ? 0 : smooth(w.chokeAO, targetChokeAO, T.chokeMoveRate)
 
     // Production has the most inertia
@@ -385,6 +391,10 @@ export function tick(state) {
         rpm: smooth(c.rpm, 0, T.compressorSpindownRate),
         suctionPsi: smooth(c.suctionPsi, suctionHeaderPressure, T.pressureResponse),
         dischargePsi: smooth(c.dischargePsi, 0, T.compressorSpindownRate),
+        dischargeTemp: smooth(c.dischargeTemp ?? 220, 90, T.compressorSpindownRate),
+        oilPressure: smooth(c.oilPressure ?? 45, 0, T.compressorSpindownRate),
+        systemVoltage: smooth(c.systemVoltage ?? 13.2, 11.8, T.compressorSpindownRate),
+        hourMeter: c.hourMeter ?? 5280,  // hour meter only increments while running
         loadPct: smooth(c.loadPct, 0, T.compressorSpindownRate),
         actualThroughput: smooth(c.actualThroughput, 0, T.compressorSpindownRate),
       }
@@ -402,9 +412,13 @@ export function tick(state) {
     const loadPct = c.capacityMcfd > 0 ? (boundedThroughput / c.capacityMcfd) * 100 : 0
     const clampedLoad = Math.min(100, Math.max(0, loadPct))
 
-    const rpm = 950 + (clampedLoad / 100) * 200
+    const rpm = 800 + (clampedLoad / 100) * 400           // 800-1200 RPM — DE-4000 SOO typical
     const suctionPsi = suctionHeaderPressure + (Math.random() - 0.5) * 2
-    const dischargePsi = 200 + (clampedLoad / 100) * 400
+    const dischargePsi = 800 + (clampedLoad / 100) * 400  // 800-1200 PSI — DE-4000 SOO typical
+    const dischargeTemp = 150 + (clampedLoad / 100) * 150 // 150-300°F — gas discharge before aftercooler
+    const oilPressure = 30 + (clampedLoad / 100) * 30 + (Math.random() - 0.5) * 2  // 30-60 PSI
+    const systemVoltage = 13.2 + (Math.random() - 0.5) * 0.6  // 12.9-13.5 VDC typical
+    const hourMeter = (c.hourMeter ?? 5280) + (T.tickInterval || 1050) / 3_600_000
 
     const noise = () => (Math.random() - 0.5) * 2
     const speedAutoSuctionSP = state.suctionLowRange + 2 + i * state.staggerOffset
@@ -414,6 +428,10 @@ export function tick(state) {
       rpm: smooth(c.rpm, rpm + noise() * 5, T.compressorRamp),
       suctionPsi: smooth(c.suctionPsi, suctionPsi, T.pressureResponse),
       dischargePsi: smooth(c.dischargePsi, dischargePsi + noise() * 5, T.compressorRamp),
+      dischargeTemp: smooth(c.dischargeTemp ?? 220, dischargeTemp + noise() * 3, T.compressorRamp),
+      oilPressure: smooth(c.oilPressure ?? 45, oilPressure, T.pressureResponse),
+      systemVoltage,
+      hourMeter,
       loadPct: smooth(c.loadPct, clampedLoad, T.compressorRamp),
       actualThroughput: smooth(c.actualThroughput, boundedThroughput, T.flowResponseRate),
       speedAutoSuctionSP,
