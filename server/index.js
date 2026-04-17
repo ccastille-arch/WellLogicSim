@@ -200,6 +200,12 @@ app.post('/api/mlink/history/tick', async (_req, res) => {
 })
 
 const distPath = join(__dirname, '..', 'dist')
+
+// Public live-data view — no auth required
+app.get('/live-view', (_req, res) => {
+  res.sendFile(join(distPath, 'live-view.html'))
+})
+
 app.use(express.static(distPath))
 app.get(/(.*)/, (req, res) => {
   if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' })
