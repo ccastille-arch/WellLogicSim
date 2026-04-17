@@ -164,6 +164,17 @@ function tsKey(row) {
   return String(Math.round(ms / 60_000)) // per-minute bucket
 }
 
+// Does this row carry real per-well data? Seeded compressor-only rows
+// (from comp-2073/2074 CSVs) ship wells: [null,null,null,null] — they
+// have compressor registers but no wellhead readings. Used to decide
+// when forward-fill from the nearest CSV baseline row should kick in.
+function hasWellData(row) {
+  if (!row?.wells?.length) return false
+  return row.wells.some(w => w && (
+    w.flowMmscfd != null || w.staticPressure != null || w.temp != null || w.analogOutput != null
+  ))
+}
+
 function mergeByTimestamp(csvRows, apiRows) {
   const seen = new Set()
   const merged = []
@@ -192,6 +203,53 @@ function mergeByTimestamp(csvRows, apiRows) {
     if (Number.isFinite(tb)) return 1
     return 0
   })
+
+  // Forward-fill baseline fields from the nearest CSV-sourced row into
+  // seed rows that only have compressor registers. Without this, the
+  // Field Data History playback lands on a comp-CSV bucket (wells:null,
+  // status:null, hourMeter:null) and the whole UI reads "--". The
+  // backfill uses the most-recent preceding row that had real well
+  // data, so the downstream reading is "what the pad looked like at
+  // that time" — honest, stable, and no longer blank.
+  const fillableFields = ['totalFlowMscfd', 'comp1Status', 'comp2Status', 'hourMeter', 'faultIndication', 'flowStatusMode']
+  let lastFull = null
+  for (const row of merged) {
+    if (hasWellData(row)) {
+      lastFull = row
+      continue
+    }
+    if (!lastFull) continue
+    // Clone wells — don't mutate the source CSV parse result.
+    row.wells = lastFull.wells.map(w => w ? { ...w } : w)
+    for (const field of fillableFields) {
+      if (row[field] == null && lastFull[field] != null) {
+        row[field] = lastFull[field]
+      }
+    }
+    row._wellsBackfilledFromCsv = true
+  }
+
+  // Catch the leading edge: seed rows that precede the earliest CSV
+  // row can't forward-fill from a prior one, so walk backwards and
+  // use the NEXT row with real well data. Handles the opening slice
+  // of the playback (1/4322 on the screenshot) that was all dashes.
+  let nextFull = null
+  for (let i = merged.length - 1; i >= 0; i -= 1) {
+    const row = merged[i]
+    if (hasWellData(row)) {
+      nextFull = row
+      continue
+    }
+    if (row._wellsBackfilledFromCsv || !nextFull) continue
+    row.wells = nextFull.wells.map(w => w ? { ...w } : w)
+    for (const field of fillableFields) {
+      if (row[field] == null && nextFull[field] != null) {
+        row[field] = nextFull[field]
+      }
+    }
+    row._wellsBackfilledFromCsv = true
+  }
+
   return merged
 }
 
