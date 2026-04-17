@@ -16,7 +16,7 @@ export default function DemoPage({ title, pitch, triggers, metrics, children, si
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[#080810]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[#05233E]">
       {/* Middle: Diagram + trigger sidebar - takes all available space */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Live diagram - full site visible */}
@@ -25,16 +25,16 @@ export default function DemoPage({ title, pitch, triggers, metrics, children, si
           <button
             onClick={resetAll}
             className="absolute top-3 right-3 z-10 px-4 py-2 bg-[#22c55e] hover:bg-[#16a34a] text-black text-[11px] font-bold rounded-lg shadow-lg shadow-[#22c55e]/20 transition-all active:scale-95"
-            style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+            style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
           >
             RESET ALL TO NORMAL
           </button>
         </div>
 
         {/* Trigger buttons sidebar */}
-        <div className="w-[260px] shrink-0 bg-[#0e0e18] border-l border-[#1a1a2a] flex flex-col overflow-hidden">
-          <div className="px-4 pt-3 pb-2 border-b border-[#1a1a2a] shrink-0">
-            <h2 className="text-[13px] text-white font-bold" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+        <div className="w-[260px] shrink-0 bg-[#0e0e18] border-l border-[#293C5B] flex flex-col overflow-hidden">
+          <div className="px-4 pt-3 pb-2 border-b border-[#293C5B] shrink-0">
+            <h2 className="text-[13px] text-white font-bold" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
               {title}
             </h2>
             <p className="text-[10px] text-[#999] mt-1 leading-relaxed">{pitch}</p>
@@ -42,21 +42,21 @@ export default function DemoPage({ title, pitch, triggers, metrics, children, si
 
           <div className="flex-1 overflow-y-auto p-3 space-y-2 sidebar-scroll">
             <div
-              className="text-[8px] text-[#E8200C] uppercase tracking-wider font-bold mb-1"
-              style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+              className="text-[8px] text-[#D32028] uppercase tracking-wider font-bold mb-1"
+              style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
             >
               Scenario Controls
             </div>
             {triggers.map((t, i) => (
               <TriggerButton key={i} {...t} />
             ))}
-            {children && <div className="mt-3 pt-3 border-t border-[#1a1a2a]">{children}</div>}
+            {children && <div className="mt-3 pt-3 border-t border-[#293C5B]">{children}</div>}
           </div>
         </div>
       </div>
 
       {/* Bottom: live metrics */}
-      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0c0c16] border-t border-[#1a1a2a] shrink-0 overflow-x-auto">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0F3C64] border-t border-[#293C5B] shrink-0 overflow-x-auto">
         {(metrics || defaultMetrics(m)).map((met, i) => (
           <MetricChip key={i} {...met} />
         ))}
@@ -71,14 +71,14 @@ function TriggerButton({ label, description, onClick, active, icon }) {
       onClick={onClick}
       className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${
         active
-          ? 'border-[#E8200C]'
+          ? 'border-[#D32028]'
           : 'bg-[#111120] border-[#2a2a3a] hover:border-[#444] hover:bg-[#16162a]'
       }`}
-      style={active ? { backgroundColor: '#E8200C15', borderColor: '#E8200C' } : undefined}
+      style={active ? { backgroundColor: '#D3202815', borderColor: '#D32028' } : undefined}
     >
       <div className="flex items-center gap-2">
         {icon && (
-          <span className="min-w-[30px] text-center text-[9px] font-black tracking-[0.12em] text-[#E8200C]">
+          <span className="min-w-[30px] text-center text-[9px] font-black tracking-[0.12em] text-[#D32028]">
             {icon}
           </span>
         )}
@@ -93,7 +93,7 @@ function MetricChip({ label, value, unit, color }) {
   return (
     <div className="bg-[#111120] rounded px-2.5 py-1 min-w-[100px] shrink-0">
       <div className="text-[7px] text-[#555] uppercase tracking-wider">{label}</div>
-      <span className="text-[12px] font-bold" style={{ color: color || '#fff', fontFamily: "'Arial Black', Arial, sans-serif" }}>
+      <span className="text-[12px] font-bold" style={{ color: color || '#fff', fontFamily: "'Montserrat', Arial, sans-serif" }}>
         {value}
       </span>
       {unit && <span className="text-[7px] text-[#555] ml-1">{unit}</span>}
@@ -104,9 +104,9 @@ function MetricChip({ label, value, unit, color }) {
 function defaultMetrics(m) {
   return [
     { label: 'Injection Rate', value: `${m.totalActualMcfd.toFixed(0)}`, unit: 'MCFD' },
-    { label: 'Accuracy', value: `${m.injectionAccuracy.toFixed(1)}%`, color: m.injectionAccuracy >= 95 ? '#22c55e' : m.injectionAccuracy >= 80 ? '#eab308' : '#E8200C' },
+    { label: 'Accuracy', value: `${m.injectionAccuracy.toFixed(1)}%`, color: m.injectionAccuracy >= 95 ? '#22c55e' : m.injectionAccuracy >= 80 ? '#eab308' : '#D32028' },
     { label: 'Production', value: `${m.totalProductionBoe.toFixed(0)}`, unit: 'BOE/day' },
     { label: 'Compressors', value: `${m.compressorsOnline}/${m.compressorsTotal}`, color: m.compressorsOnline === m.compressorsTotal ? '#22c55e' : '#eab308' },
-    { label: 'Wells at Target', value: `${m.wellsAtTarget}/${m.wellsTotal}`, color: m.wellsAtTarget === m.wellsTotal ? '#22c55e' : '#E8200C' },
+    { label: 'Wells at Target', value: `${m.wellsAtTarget}/${m.wellsTotal}`, color: m.wellsAtTarget === m.wellsTotal ? '#22c55e' : '#D32028' },
   ]
 }

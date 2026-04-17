@@ -25,12 +25,12 @@ export default function BreakItChallenge({ sim }) {
   const trackEvent = () => setEventCount(c => c + 1)
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[#080810]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[#05233E]">
       {/* Header */}
-      <div className="px-5 py-3 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0">
+      <div className="px-5 py-3 bg-[#0F3C64] border-b border-[#293C5B] shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg text-white font-bold flex items-center gap-2" style={{ fontFamily: "'Arial Black'" }}>
+            <h2 className="text-lg text-white font-bold flex items-center gap-2" style={{ fontFamily: "'Montserrat'" }}>
               <span className="text-2xl">BC</span> Break It Challenge
             </h2>
             <p className="text-[11px] text-[#888] mt-0.5">
@@ -40,9 +40,9 @@ export default function BreakItChallenge({ sim }) {
           <div className="flex gap-3">
             <ScoreCard label="Events Thrown" value={eventCount} color="#f97316" />
             <ScoreCard label="Auto-Recoveries" value={recoveryCount} color="#22c55e" />
-            <ScoreCard label="Worst Accuracy" value={`${worstAccuracy.toFixed(0)}%`} color={worstAccuracy > 80 ? '#22c55e' : '#E8200C'} />
+            <ScoreCard label="Worst Accuracy" value={`${worstAccuracy.toFixed(0)}%`} color={worstAccuracy > 80 ? '#22c55e' : '#D32028'} />
             <ScoreCard label="Current" value={`${m.injectionAccuracy.toFixed(0)}%`}
-              color={m.injectionAccuracy > 95 ? '#22c55e' : m.injectionAccuracy > 70 ? '#eab308' : '#E8200C'} />
+              color={m.injectionAccuracy > 95 ? '#22c55e' : m.injectionAccuracy > 70 ? '#eab308' : '#D32028'} />
           </div>
         </div>
       </div>
@@ -60,24 +60,24 @@ export default function BreakItChallenge({ sim }) {
             sim.setStateField('salesValvePosition', 0)
           }}
             className="absolute top-3 right-3 z-10 px-4 py-2 bg-[#22c55e] hover:bg-[#16a34a] text-black text-[11px] font-bold rounded-lg shadow-lg shadow-[#22c55e]/20 transition-all active:scale-95"
-            style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+            style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
             RESET ALL TO NORMAL
           </button>
         </div>
 
         {/* CHAOS CONTROL PANEL */}
-        <div className="w-[310px] shrink-0 bg-[#0a0a14] border-l border-[#1a1a2a] overflow-y-auto sidebar-scroll">
+        <div className="w-[310px] shrink-0 bg-[#03172A] border-l border-[#293C5B] overflow-y-auto sidebar-scroll">
           <div className="p-3 space-y-3">
 
             {/* Quick chaos buttons */}
-            <PanelSection title="Quick Chaos" color="#E8200C">
+            <PanelSection title="Quick Chaos" color="#D32028">
               <div className="grid grid-cols-2 gap-1.5">
                 <ChaosBtn label="Trip Random Comp" icon="TRIP" onClick={() => {
                   trackEvent()
                   const running = sim.state.compressors.filter(c => c.status === 'running')
                   if (running.length) sim.setCompressorStatus(running[Math.floor(Math.random() * running.length)].id, 'tripped')
                 }} />
-                <ChaosBtn label="Trip ALL Comps" icon="ALL" color="#E8200C" onClick={() => {
+                <ChaosBtn label="Trip ALL Comps" icon="ALL" color="#D32028" onClick={() => {
                   trackEvent()
                   sim.state.compressors.forEach(c => sim.setCompressorStatus(c.id, 'tripped'))
                 }} />
@@ -101,7 +101,7 @@ export default function BreakItChallenge({ sim }) {
                   const wells = sim.state.wells.filter(w => w.desiredRate > 0)
                   if (wells.length) sim.setWellDesiredRate(wells[Math.floor(Math.random() * wells.length)].id, 0)
                 }} />
-                <ChaosBtn label="THE BAD DAY" icon="BAD" color="#E8200C" onClick={() => {
+                <ChaosBtn label="THE BAD DAY" icon="BAD" color="#D32028" onClick={() => {
                   trackEvent(); trackEvent(); trackEvent()
                   sim.setCompressorStatus(0, 'tripped')
                   setTimeout(() => sim.setTotalAvailableGas(sim.state.maxGasCapacity * 0.4), 2000)
@@ -122,14 +122,14 @@ export default function BreakItChallenge({ sim }) {
             <PanelSection title="Gas Supply" color="#22c55e">
               <SliderControl label="Total Available Gas" value={sim.state.totalAvailableGas} min={0} max={GAS_SUPPLY_UI_MAX}
                 unit="MCFD" onChange={v => { sim.setTotalAvailableGas(v); trackEvent() }}
-                color={sim.state.totalAvailableGas > sim.state.maxGasCapacity * 0.7 ? '#22c55e' : sim.state.totalAvailableGas > sim.state.maxGasCapacity * 0.4 ? '#eab308' : '#E8200C'} />
+                color={sim.state.totalAvailableGas > sim.state.maxGasCapacity * 0.7 ? '#22c55e' : sim.state.totalAvailableGas > sim.state.maxGasCapacity * 0.4 ? '#eab308' : '#D32028'} />
             </PanelSection>
 
             {/* Compressors */}
             <PanelSection title="Compressors" color="#22c55e">
               {sim.state.compressors.map(c => (
                 <div key={c.id} className="flex items-center gap-2 py-1">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.status === 'running' ? '#22c55e' : '#E8200C' }} />
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.status === 'running' ? '#22c55e' : '#D32028' }} />
                   <span className="text-[11px] text-white font-bold flex-1">{c.name}</span>
                   <span className="text-[9px] text-[#888] w-16 text-right">{c.actualThroughput.toFixed(0)} MCFD</span>
                   <select value={c.status} onChange={e => { sim.setCompressorStatus(c.id, e.target.value); trackEvent() }}
@@ -148,7 +148,7 @@ export default function BreakItChallenge({ sim }) {
                 <SliderControl key={w.id} label={`${w.name} Desired`} value={w.desiredRate} min={0} max={400} step={10}
                   unit="MCFD" onChange={v => { sim.setWellDesiredRate(w.id, v); trackEvent() }}
                   subtext={`Actual: ${w.actualRate.toFixed(0)} MCFD`}
-                  color={w.isAtTarget ? '#22c55e' : '#E8200C'} />
+                  color={w.isAtTarget ? '#22c55e' : '#D32028'} />
               ))}
             </PanelSection>
 
@@ -163,9 +163,9 @@ export default function BreakItChallenge({ sim }) {
               <SliderControl label="Stagger Offset" value={sim.state.staggerOffset} min={0} max={20} step={0.5}
                 unit="PSI" onChange={v => sim.setStateField('staggerOffset', v)} />
               <ReadOnly label="Suction Header PSI" value={sim.state.suctionHeaderPressure.toFixed(1)} unit="PSI"
-                color={sim.state.suctionHeaderPressure > sim.state.suctionTarget + sim.state.suctionHighRange ? '#E8200C' : '#22c55e'} />
+                color={sim.state.suctionHeaderPressure > sim.state.suctionTarget + sim.state.suctionHighRange ? '#D32028' : '#22c55e'} />
               <ReadOnly label="Scrubber PSI" value={sim.state.scrubberPressure.toFixed(1)} unit="PSI"
-                color={sim.state.wellUnloadActive ? '#E8200C' : '#22c55e'} />
+                color={sim.state.wellUnloadActive ? '#D32028' : '#22c55e'} />
             </PanelSection>
 
             {/* Temperature */}
@@ -173,7 +173,7 @@ export default function BreakItChallenge({ sim }) {
               <SliderControl label="Max Temp at Plate" value={sim.state.maxTempAtPlate} min={100} max={250}
                 unit="deg F" onChange={v => sim.setStateField('maxTempAtPlate', v)} />
               <ReadOnly label="Flow Meter Temp" value={sim.state.flowMeterTemp.toFixed(0)} unit="deg F"
-                color={sim.state.flowMeterTemp > sim.state.maxTempAtPlate ? '#E8200C' : '#22c55e'} />
+                color={sim.state.flowMeterTemp > sim.state.maxTempAtPlate ? '#D32028' : '#22c55e'} />
             </PanelSection>
 
             {/* Sales Valve */}
@@ -205,15 +205,15 @@ export default function BreakItChallenge({ sim }) {
       </div>
 
       {/* Bottom metrics */}
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0c0c16] border-t border-[#1a1a2a] shrink-0">
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0F3C64] border-t border-[#293C5B] shrink-0">
         <Metric label="Injection" value={`${m.totalActualMcfd.toFixed(0)} / ${m.totalDesiredMcfd.toFixed(0)}`} unit="MCFD" />
         <Metric label="Accuracy" value={`${m.injectionAccuracy.toFixed(1)}%`}
-          color={m.injectionAccuracy >= 95 ? '#22c55e' : m.injectionAccuracy >= 70 ? '#eab308' : '#E8200C'} />
+          color={m.injectionAccuracy >= 95 ? '#22c55e' : m.injectionAccuracy >= 70 ? '#eab308' : '#D32028'} />
         <Metric label="Production" value={m.totalProductionBoe.toFixed(0)} unit="BOE/d" />
         <Metric label="Compressors" value={`${m.compressorsOnline}/${m.compressorsTotal}`}
-          color={m.compressorsOnline === m.compressorsTotal ? '#22c55e' : '#E8200C'} />
+          color={m.compressorsOnline === m.compressorsTotal ? '#22c55e' : '#D32028'} />
         <Metric label="Wells OK" value={`${m.wellsAtTarget}/${m.wellsTotal}`}
-          color={m.wellsAtTarget === m.wellsTotal ? '#22c55e' : '#E8200C'} />
+          color={m.wellsAtTarget === m.wellsTotal ? '#22c55e' : '#D32028'} />
         <div className="ml-auto text-[10px] text-[#555]">
           Break it and watch Pad Logic handle it
         </div>
@@ -228,14 +228,14 @@ function ScoreCard({ label, value, color }) {
   return (
     <div className="bg-[#111120] rounded px-3 py-1.5 text-center min-w-[80px]">
       <div className="text-[7px] text-[#555] uppercase">{label}</div>
-      <div className="text-[16px] font-bold" style={{ fontFamily: "'Arial Black'", color }}>{value}</div>
+      <div className="text-[16px] font-bold" style={{ fontFamily: "'Montserrat'", color }}>{value}</div>
     </div>
   )
 }
 
 function PanelSection({ title, color, children }) {
   return (
-    <div className="bg-[#111120] rounded-lg border border-[#1a1a2a] p-2.5">
+    <div className="bg-[#111120] rounded-lg border border-[#293C5B] p-2.5">
       <div className="text-[8px] uppercase tracking-wider font-bold mb-2" style={{ color }}>{title}</div>
       {children}
     </div>
@@ -263,7 +263,7 @@ function SliderControl({ label, value, min, max, step = 1, unit, onChange, color
       </div>
       <input type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(Number(e.target.value))}
-        className="w-full accent-[#E8200C]" style={{ height: 3 }} />
+        className="w-full accent-[#D32028]" style={{ height: 3 }} />
       {subtext && <div className="text-[8px] text-[#555] mt-0.5">{subtext}</div>}
     </div>
   )
@@ -282,7 +282,7 @@ function Metric({ label, value, unit, color }) {
   return (
     <div className="bg-[#111120] rounded px-2.5 py-1 min-w-[90px] shrink-0">
       <div className="text-[7px] text-[#555] uppercase">{label}</div>
-      <span className="text-[11px] font-bold" style={{ color: color || '#fff', fontFamily: "'Arial Black'" }}>{value}</span>
+      <span className="text-[11px] font-bold" style={{ color: color || '#fff', fontFamily: "'Montserrat'" }}>{value}</span>
       {unit && <span className="text-[7px] text-[#555] ml-1">{unit}</span>}
     </div>
   )
@@ -313,18 +313,18 @@ function PriorityList({ wells, onReorder, onEvent }) {
           onDrop={e => handleDrop(e, idx)}
           onDragEnd={() => { setDragIdx(null); setOverIdx(null) }}
           className={`flex items-center gap-2 py-1 px-2 rounded text-[10px] cursor-grab active:cursor-grabbing
-            ${dragIdx === idx ? 'opacity-50' : ''} ${overIdx === idx && dragIdx !== idx ? 'border-t border-[#E8200C]' : ''}
-            bg-[#0a0a14] hover:bg-[#1a1a2a]`}>
+            ${dragIdx === idx ? 'opacity-50' : ''} ${overIdx === idx && dragIdx !== idx ? 'border-t border-[#D32028]' : ''}
+            bg-[#03172A] hover:bg-[#293C5B]`}>
           <span className="text-[#555] w-3 text-right font-bold">{idx + 1}</span>
           <span className="text-[#555]">::</span>
           <span className="text-white font-bold">{w.name}</span>
           <div className="flex-1 bg-[#111] rounded h-1.5 overflow-hidden">
             <div className="h-full transition-all" style={{
               width: `${w.desiredRate > 0 ? (w.actualRate / w.desiredRate) * 100 : 0}%`,
-              backgroundColor: w.isAtTarget ? '#22c55e' : '#E8200C',
+              backgroundColor: w.isAtTarget ? '#22c55e' : '#D32028',
             }} />
           </div>
-          <span className={`text-[9px] ${w.isAtTarget ? 'text-[#22c55e]' : 'text-[#E8200C]'}`}>{w.actualRate.toFixed(0)}</span>
+          <span className={`text-[9px] ${w.isAtTarget ? 'text-[#22c55e]' : 'text-[#D32028]'}`}>{w.actualRate.toFixed(0)}</span>
         </div>
       ))}
     </div>

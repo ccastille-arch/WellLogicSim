@@ -21,24 +21,24 @@ export default function MarketingHub({ onClose }) {
   const [activeTab, setActiveTab] = useState('clips')
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#080810] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-[#05233E] flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0">
+      <div className="flex items-center justify-between px-6 py-3 bg-[#0F3C64] border-b border-[#293C5B] shrink-0">
         <div className="flex items-center gap-4">
           <WellLogicCompact size={34} />
-          <span className="text-sm text-white" style={{ fontFamily: "'Arial Black'" }}>Marketing Materials</span>
+          <span className="text-sm text-white" style={{ fontFamily: "'Montserrat'" }}>Marketing Materials</span>
         </div>
-        <button onClick={onClose} className="px-4 py-1.5 text-[11px] font-bold text-[#888] border border-[#333] rounded hover:text-white hover:border-[#E8200C]">
+        <button onClick={onClose} className="px-4 py-1.5 text-[11px] font-bold text-[#888] border border-[#333] rounded hover:text-white hover:border-[#D32028]">
           ← Back to Setup
         </button>
       </div>
 
       {/* Tab nav */}
-      <div className="flex gap-2 px-6 py-3 bg-[#0a0a14] border-b border-[#1a1a2a] shrink-0">
+      <div className="flex gap-2 px-6 py-3 bg-[#03172A] border-b border-[#293C5B] shrink-0">
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-bold transition-all ${
-              activeTab === tab.id ? 'bg-[#E8200C] text-white' : 'bg-[#111120] text-[#888] hover:text-white hover:bg-[#1a1a2a] border border-[#2a2a3a]'
+              activeTab === tab.id ? 'bg-[#D32028] text-white' : 'bg-[#111120] text-[#888] hover:text-white hover:bg-[#293C5B] border border-[#2a2a3a]'
             }`}>
             <span>{tab.icon}</span>
             <span>{tab.label}</span>
@@ -53,19 +53,19 @@ export default function MarketingHub({ onClose }) {
         {activeTab === 'slides' && <SlideDeck />}
         {activeTab === 'downloads' && (
           <div className="p-6 max-w-[800px] mx-auto">
-            <h2 className="text-lg text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>Downloads</h2>
+            <h2 className="text-lg text-white font-bold mb-1" style={{ fontFamily: "'Montserrat'" }}>Downloads</h2>
             <p className="text-[12px] text-[#888] mb-6">Technical documents, drawings, and datasheets — click to download directly.</p>
             <div className="space-y-3">
               {DOWNLOADS.map(d => (
                 <a key={d.file} href={`/docs/${d.file}`} download
-                  className="flex items-center gap-4 bg-[#111118] border border-[#222] hover:border-[#E8200C]/50 rounded-xl px-5 py-4 transition-colors group">
+                  className="flex items-center gap-4 bg-[#0F3C64] border border-[#222] hover:border-[#D32028]/50 rounded-xl px-5 py-4 transition-colors group">
                   <span className="text-3xl">{d.icon}</span>
                   <div className="flex-1">
-                    <div className="text-[13px] text-white font-bold group-hover:text-[#E8200C] transition-colors">{d.label}</div>
+                    <div className="text-[13px] text-white font-bold group-hover:text-[#D32028] transition-colors">{d.label}</div>
                     <div className="text-[10px] text-[#555] mt-0.5">{d.file}</div>
                   </div>
                   <span className="text-[9px] font-bold px-2 py-1 rounded border border-[#333] text-[#888]">{d.type}</span>
-                  <span className="text-[11px] font-bold text-[#E8200C] group-hover:text-white transition-colors">↓ Download</span>
+                  <span className="text-[11px] font-bold text-[#D32028] group-hover:text-white transition-colors">↓ Download</span>
                 </a>
               ))}
             </div>

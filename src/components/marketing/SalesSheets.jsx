@@ -16,7 +16,7 @@ export default function SalesSheets() {
         <div className="flex items-center justify-between mb-4">
           <button onClick={() => setViewing(null)} className="text-[11px] text-[#888] hover:text-white flex items-center gap-1">Back to all sheets</button>
           <button onClick={() => window.print()}
-            className="px-4 py-1.5 text-[11px] font-bold text-white bg-[#E8200C] hover:bg-[#c01a0a] rounded-lg flex items-center gap-2">
+            className="px-4 py-1.5 text-[11px] font-bold text-white bg-[#D32028] hover:bg-[#B01A20] rounded-lg flex items-center gap-2">
             Download / Print
           </button>
         </div>
@@ -30,16 +30,16 @@ export default function SalesSheets() {
 
   return (
     <div className="p-6 max-w-[1100px] mx-auto">
-      <h2 className="text-lg text-white font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>Sales Sheets & Leave-Behinds</h2>
+      <h2 className="text-lg text-white font-bold mb-1" style={{ fontFamily: "'Montserrat'" }}>Sales Sheets & Leave-Behinds</h2>
       <p className="text-[12px] text-[#888] mb-6">Professional one-pagers ready to share with prospects. Click to preview.</p>
       <div className="grid grid-cols-2 gap-4">
         {SHEETS.map(s => (
           <button key={s.id} onClick={() => setViewing(s.id)}
-            className="bg-[#111118] rounded-xl border border-[#222] p-5 text-left hover:border-[#E8200C]/50 transition-colors">
+            className="bg-[#0F3C64] rounded-xl border border-[#222] p-5 text-left hover:border-[#D32028]/50 transition-colors">
             <div className="text-3xl mb-3">DOC</div>
             <h3 className="text-[13px] text-white font-bold">{s.title}</h3>
             <p className="text-[11px] text-[#888] mt-1">{s.desc}</p>
-            <div className="mt-3 text-[10px] text-[#E8200C] font-bold">View</div>
+            <div className="mt-3 text-[10px] text-[#D32028] font-bold">View</div>
           </button>
         ))}
       </div>
@@ -51,13 +51,13 @@ function SheetPage({ children }) {
   return (
     <div className="bg-white rounded-lg shadow-2xl p-8 text-black max-w-[800px] mx-auto" style={{ fontFamily: 'Arial, sans-serif' }}>
       {/* Letterhead */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-[#E8200C]">
+      <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-[#D32028]">
         <div>
-          <div className="text-xl font-bold" style={{ fontFamily: "'Arial Black'", color: '#E8200C' }}>Service Compression</div>
+          <div className="text-xl font-bold" style={{ fontFamily: "'Montserrat'", color: '#D32028' }}>Service Compression</div>
           <div className="text-[10px] text-gray-500 tracking-wider">SERVICE COMPRESSION</div>
         </div>
         <div className="text-right">
-          <div className="text-sm font-bold" style={{ fontFamily: "'Arial Black'" }}>Pad Logic TM</div>
+          <div className="text-sm font-bold" style={{ fontFamily: "'Montserrat'" }}>Pad Logic TM</div>
           <div className="text-[10px] text-gray-500">Gas Lift Optimization</div>
         </div>
       </div>
@@ -74,12 +74,12 @@ function SheetPage({ children }) {
 function OverviewSheet() {
   return (
     <SheetPage>
-      <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>Pad Logic TM Pad Optimization</h1>
+      <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "'Montserrat'" }}>Pad Logic TM Pad Optimization</h1>
       <p className="text-sm text-gray-600 mb-6">Automated gas lift injection control for maximum production uptime.</p>
 
       <div className="grid grid-cols-2 gap-6 mb-6">
         <div>
-          <h3 className="text-sm font-bold text-[#E8200C] mb-2">What It Does</h3>
+          <h3 className="text-sm font-bold text-[#D32028] mb-2">What It Does</h3>
           <ul className="text-[11px] text-gray-700 space-y-1.5">
             <li>Automatically controls well injection choke valves</li>
             <li>Prioritizes gas to your highest-value wells</li>
@@ -90,7 +90,7 @@ function OverviewSheet() {
           </ul>
         </div>
         <div>
-          <h3 className="text-sm font-bold text-[#E8200C] mb-2">Why It Matters</h3>
+          <h3 className="text-sm font-bold text-[#D32028] mb-2">Why It Matters</h3>
           <ul className="text-[11px] text-gray-700 space-y-1.5">
             <li>Eliminates 2-4 hour manual response gaps</li>
             <li>Protects production during nighttime/weekend events</li>
@@ -117,21 +117,21 @@ function OverviewSheet() {
 function ROISheet() {
   return (
     <SheetPage>
-      <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "'Arial Black'" }}>ROI Analysis</h1>
+      <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: "'Montserrat'" }}>ROI Analysis</h1>
       <p className="text-sm text-gray-600 mb-6">Estimated annual savings from Pad Logic deployment.</p>
 
       <table className="w-full text-[11px] mb-6">
-        <thead><tr className="border-b-2 border-[#E8200C]">
+        <thead><tr className="border-b-2 border-[#D32028]">
           <th className="text-left py-2 font-bold">Savings Category</th>
           <th className="text-right py-2 font-bold">Assumptions</th>
           <th className="text-right py-2 font-bold">Annual Savings</th>
         </tr></thead>
         <tbody className="text-gray-700">
-          <tr className="border-b border-gray-100"><td className="py-2">Compressor Trip Recovery</td><td className="text-right">4 trips/mo x 3hr avg response</td><td className="text-right font-bold text-[#E8200C]">$180K - $350K</td></tr>
-          <tr className="border-b border-gray-100"><td className="py-2">Gas Constraint Protection</td><td className="text-right">2 events/wk x 25% production affected</td><td className="text-right font-bold text-[#E8200C]">$120K - $280K</td></tr>
-          <tr className="border-b border-gray-100"><td className="py-2">Avoided Shutdowns</td><td className="text-right">~24 prevented/yr</td><td className="text-right font-bold text-[#E8200C]">$80K - $180K</td></tr>
-          <tr className="border-b border-gray-100"><td className="py-2">Labor Savings</td><td className="text-right">30% fewer site visits x $85/hr burden</td><td className="text-right font-bold text-[#E8200C]">$40K - $90K</td></tr>
-          <tr className="border-t-2 border-[#E8200C]"><td className="py-2 font-bold text-black">Total Estimated Savings</td><td></td><td className="text-right font-bold text-[#E8200C] text-lg">$420K - $900K</td></tr>
+          <tr className="border-b border-gray-100"><td className="py-2">Compressor Trip Recovery</td><td className="text-right">4 trips/mo x 3hr avg response</td><td className="text-right font-bold text-[#D32028]">$180K - $350K</td></tr>
+          <tr className="border-b border-gray-100"><td className="py-2">Gas Constraint Protection</td><td className="text-right">2 events/wk x 25% production affected</td><td className="text-right font-bold text-[#D32028]">$120K - $280K</td></tr>
+          <tr className="border-b border-gray-100"><td className="py-2">Avoided Shutdowns</td><td className="text-right">~24 prevented/yr</td><td className="text-right font-bold text-[#D32028]">$80K - $180K</td></tr>
+          <tr className="border-b border-gray-100"><td className="py-2">Labor Savings</td><td className="text-right">30% fewer site visits x $85/hr burden</td><td className="text-right font-bold text-[#D32028]">$40K - $90K</td></tr>
+          <tr className="border-t-2 border-[#D32028]"><td className="py-2 font-bold text-black">Total Estimated Savings</td><td></td><td className="text-right font-bold text-[#D32028] text-lg">$420K - $900K</td></tr>
         </tbody>
       </table>
 
@@ -145,12 +145,12 @@ function ROISheet() {
 function ComparisonSheet() {
   return (
     <SheetPage>
-      <h1 className="text-2xl font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>Manual vs Pad Logic</h1>
+      <h1 className="text-2xl font-bold mb-4" style={{ fontFamily: "'Montserrat'" }}>Manual vs Pad Logic</h1>
 
       <table className="w-full text-[11px]">
         <thead><tr className="border-b-2 border-gray-300">
           <th className="text-left py-2 w-1/3">Scenario</th>
-          <th className="text-left py-2 w-1/3 text-[#E8200C]">Manual Operations</th>
+          <th className="text-left py-2 w-1/3 text-[#D32028]">Manual Operations</th>
           <th className="text-left py-2 w-1/3 text-[#22c55e]">With Pad Logic</th>
         </tr></thead>
         <tbody className="text-gray-700">
@@ -164,7 +164,7 @@ function ComparisonSheet() {
           ].map(([scenario, manual, wl], i) => (
             <tr key={i} className="border-b border-gray-100">
               <td className="py-2 font-bold text-black">{scenario}</td>
-              <td className="py-2 text-[#E8200C]">{manual}</td>
+              <td className="py-2 text-[#D32028]">{manual}</td>
               <td className="py-2 text-[#22c55e]">{wl}</td>
             </tr>
           ))}
@@ -177,11 +177,11 @@ function ComparisonSheet() {
 function SpecsSheet() {
   return (
     <SheetPage>
-      <h1 className="text-2xl font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>Technical Specifications</h1>
+      <h1 className="text-2xl font-bold mb-4" style={{ fontFamily: "'Montserrat'" }}>Technical Specifications</h1>
 
       <div className="grid grid-cols-2 gap-6">
         <div>
-          <h3 className="text-sm font-bold text-[#E8200C] mb-2">Panel</h3>
+          <h3 className="text-sm font-bold text-[#D32028] mb-2">Panel</h3>
           <table className="text-[11px] w-full">
             <tbody>{[
               ['Controller', 'SC DE-4000'],
@@ -193,7 +193,7 @@ function SpecsSheet() {
           </table>
         </div>
         <div>
-          <h3 className="text-sm font-bold text-[#E8200C] mb-2">I/O Capacity</h3>
+          <h3 className="text-sm font-bold text-[#D32028] mb-2">I/O Capacity</h3>
           <table className="text-[11px] w-full">
             <tbody>{[
               ['Analog Inputs', 'Up to 32'],
@@ -205,7 +205,7 @@ function SpecsSheet() {
           </table>
         </div>
         <div>
-          <h3 className="text-sm font-bold text-[#E8200C] mb-2">Communications</h3>
+          <h3 className="text-sm font-bold text-[#D32028] mb-2">Communications</h3>
           <table className="text-[11px] w-full">
             <tbody>{[
               ['Compressor Comms', 'Modbus RTU/TCP'],
@@ -216,7 +216,7 @@ function SpecsSheet() {
           </table>
         </div>
         <div>
-          <h3 className="text-sm font-bold text-[#E8200C] mb-2">Deployment</h3>
+          <h3 className="text-sm font-bold text-[#D32028] mb-2">Deployment</h3>
           <table className="text-[11px] w-full">
             <tbody>{[
               ['Engineering', '2 weeks'],

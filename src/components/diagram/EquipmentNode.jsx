@@ -13,7 +13,7 @@ export default function EquipmentNode({ x, y, width = 110, height = 36, label, s
       />
       <text
         x={width / 2} y={sublabel ? height / 2 - 2 : height / 2 + 1}
-        fill="white" fontSize={9} fontWeight="bold" fontFamily="Arial Black, Arial"
+        fill="white" fontSize={9} fontWeight="bold" fontFamily="Montserrat, sans-serif"
         textAnchor="middle" dominantBaseline="middle"
       >
         {label}

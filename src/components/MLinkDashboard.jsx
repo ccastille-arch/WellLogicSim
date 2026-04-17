@@ -227,12 +227,12 @@ export default function MLinkDashboard({ onBack }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#080810] overflow-hidden">
+    <div className="flex-1 flex flex-col bg-[#05233E] overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0">
+      <div className="px-6 py-4 bg-[#0F3C64] border-b border-[#293C5B] shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg text-white font-bold flex items-center gap-2" style={{ fontFamily: "'Arial Black'" }}>
+            <h1 className="text-lg text-white font-bold flex items-center gap-2" style={{ fontFamily: "'Montserrat'" }}>
               <span className="text-[#22c55e]">ON</span> Live Field Data - Pad Logic in Production
             </h1>
             <p className="text-[11px] text-[#888]">
@@ -255,9 +255,9 @@ export default function MLinkDashboard({ onBack }) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 px-6 py-2 bg-[#0a0a14] border-b border-[#1a1a2a] shrink-0">
-        <button onClick={() => setTab('live')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'live' ? 'bg-[#E8200C] text-white' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Live Data</button>
-        <button onClick={() => setTab('history')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'history' ? 'bg-[#E8200C] text-white' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Run History</button>
+      <div className="flex gap-2 px-6 py-2 bg-[#03172A] border-b border-[#293C5B] shrink-0">
+        <button onClick={() => setTab('live')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'live' ? 'bg-[#D32028] text-white' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Live Data</button>
+        <button onClick={() => setTab('history')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'history' ? 'bg-[#D32028] text-white' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>Run History</button>
         <button onClick={() => setTab('klondike')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'klondike' ? 'bg-[#4fc3f7] text-black' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>30-Day Field Data</button>
       </div>
 
@@ -293,8 +293,8 @@ export default function MLinkDashboard({ onBack }) {
                 </div>
 
                 {/* Well Flow Rates */}
-                <div className="bg-[#111118] rounded-xl border border-[#222] p-5 mb-4">
-                  <h2 className="text-sm text-white font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>
+                <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-5 mb-4">
+                  <h2 className="text-sm text-white font-bold mb-4" style={{ fontFamily: "'Montserrat'" }}>
                     Well Injection Flow Rates
                   </h2>
                   <div className="grid grid-cols-4 gap-4">
@@ -306,24 +306,24 @@ export default function MLinkDashboard({ onBack }) {
                       const maxFlow = 1.2
                       const widthPct = val != null && !Number.isNaN(val) ? Math.max(0, Math.min(100, (val / maxFlow) * 100)) : 0
                       return (
-                        <div key={i} className="bg-[#0a0a14] rounded-lg border border-[#2a2a3a] p-4 text-center">
+                        <div key={i} className="bg-[#03172A] rounded-lg border border-[#2a2a3a] p-4 text-center">
                           <div className="text-[10px] text-[#888] mb-1">Well {i + 1}</div>
-                          <div className="text-2xl text-[#22c55e] font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>
+                          <div className="text-2xl text-[#22c55e] font-bold mb-2" style={{ fontFamily: "'Montserrat'" }}>
                             {val != null && !Number.isNaN(val) ? val.toFixed(3) : '--'}
                           </div>
                           <div className="text-[9px] text-[#888]">MMSCFD</div>
-                          <div className="w-full bg-[#1a1a2a] rounded h-2 mt-2 overflow-hidden">
+                          <div className="w-full bg-[#293C5B] rounded h-2 mt-2 overflow-hidden">
                             <div className="h-full bg-[#22c55e] rounded transition-all" style={{ width: `${widthPct}%` }} />
                           </div>
-                          <div className="mt-3 pt-2 border-t border-[#1a1a2a]">
+                          <div className="mt-3 pt-2 border-t border-[#293C5B]">
                             <div className="text-[8px] text-[#666] uppercase tracking-wider">Yesterday Flow</div>
-                            <div className="text-[12px] text-white font-bold mt-0.5" style={{ fontFamily: "'Arial Black'" }}>
+                            <div className="text-[12px] text-white font-bold mt-0.5" style={{ fontFamily: "'Montserrat'" }}>
                               {yesterdayVal != null && !Number.isNaN(yesterdayVal) ? yesterdayVal.toFixed(3) : '--'}
                             </div>
                             <div className="text-[8px] text-[#666]">MMSCFD</div>
                           </div>
                           {additionalWellRegisters[i].length > 0 && (
-                            <div className="mt-3 pt-2 border-t border-[#1a1a2a] space-y-1.5 text-left">
+                            <div className="mt-3 pt-2 border-t border-[#293C5B] space-y-1.5 text-left">
                               {additionalWellRegisters[i].map(meta => (
                                 <LiveRegisterRow
                                   key={meta.id}
@@ -340,7 +340,7 @@ export default function MLinkDashboard({ onBack }) {
                   </div>
                   <div className="mt-3 text-center">
                     <span className="text-[#888] text-[11px]">Total Injection: </span>
-                    <span className="text-white font-bold text-[14px]" style={{ fontFamily: "'Arial Black'" }}>
+                    <span className="text-white font-bold text-[14px]" style={{ fontFamily: "'Montserrat'" }}>
                       {LIVE_WELL_FLOW_KEYS
                         .reduce((sum, keys) => {
                           const dp = getFirstDatapoint(panel, keys)
@@ -351,15 +351,15 @@ export default function MLinkDashboard({ onBack }) {
                 </div>
 
                 {padRegisters.length > 0 && (
-                  <div className="bg-[#111118] rounded-xl border border-[#222] p-5 mb-4">
-                    <h2 className="text-sm text-white font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>
+                  <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-5 mb-4">
+                    <h2 className="text-sm text-white font-bold mb-4" style={{ fontFamily: "'Montserrat'" }}>
                       Pad / Header Registers
                     </h2>
                     <div className="grid grid-cols-3 gap-3">
                       {padRegisters.map(meta => (
-                        <div key={meta.id} className="bg-[#0a0a14] rounded-lg border border-[#2a2a3a] p-3">
+                        <div key={meta.id} className="bg-[#03172A] rounded-lg border border-[#2a2a3a] p-3">
                           <div className="text-[9px] text-[#888] uppercase tracking-wider">{meta.label}</div>
-                          <div className="text-[16px] text-white font-bold mt-1" style={{ fontFamily: "'Arial Black'" }}>
+                          <div className="text-[16px] text-white font-bold mt-1" style={{ fontFamily: "'Montserrat'" }}>
                             {formatLiveRegisterValue(meta, meta.datapoint)}
                           </div>
                           <div className="text-[8px] text-[#666] mt-0.5">
@@ -396,7 +396,7 @@ export default function MLinkDashboard({ onBack }) {
         ) : tab === 'history' ? (
           /* Run History Tab */
           <div className="max-w-[1000px] mx-auto">
-            <h2 className="text-sm text-white font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>
+            <h2 className="text-sm text-white font-bold mb-4" style={{ fontFamily: "'Montserrat'" }}>
               Yesterday's Run Report
             </h2>
             <div className="grid grid-cols-2 gap-4 mb-6">
@@ -426,11 +426,11 @@ function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers 
   const actualFlowValue = formatFlowValue(actualFlow?.value)
 
   return (
-    <div className="bg-[#111118] rounded-xl border border-[#222] p-5">
+    <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-5">
       <div className="flex items-center gap-2 mb-3">
-        <div className={`w-3 h-3 rounded-full ${isRunning ? 'bg-[#22c55e] shadow-lg shadow-[#22c55e]/50' : 'bg-[#E8200C]'}`} />
-        <h3 className="text-[13px] text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>{label}</h3>
-        <span className={`text-[9px] font-bold ml-auto ${isRunning ? 'text-[#22c55e]' : 'text-[#E8200C]'}`}>
+        <div className={`w-3 h-3 rounded-full ${isRunning ? 'bg-[#22c55e] shadow-lg shadow-[#22c55e]/50' : 'bg-[#D32028]'}`} />
+        <h3 className="text-[13px] text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>{label}</h3>
+        <span className={`text-[9px] font-bold ml-auto ${isRunning ? 'text-[#22c55e]' : 'text-[#D32028]'}`}>
           {isRunning ? 'RUNNING' : 'STOPPED'}
         </span>
       </div>
@@ -486,7 +486,7 @@ function LivePerformanceHero({ metrics, wells, timestamp }) {
           <div className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#ff6b57]">
             Does your SCADA do this?
           </div>
-          <h2 className="text-[30px] font-black leading-none text-white" style={{ fontFamily: "'Arial Black'" }}>
+          <h2 className="text-[30px] font-black leading-none text-white" style={{ fontFamily: "'Montserrat'" }}>
             {headline}
           </h2>
           <p className="mt-2 max-w-[680px] text-[13px] leading-relaxed text-[#a0a7b5]">
@@ -572,7 +572,7 @@ function WowMetricCard({ label, value, helper, tone }) {
   return (
     <div className={`rounded-2xl border bg-gradient-to-br p-4 ${tones[tone] || tones.green}`}>
       <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">{label}</div>
-      <div className="mt-2 text-[28px] font-black leading-none text-white" style={{ fontFamily: "'Arial Black'" }}>
+      <div className="mt-2 text-[28px] font-black leading-none text-white" style={{ fontFamily: "'Montserrat'" }}>
         {value}
       </div>
       <div className="mt-2 text-[11px] leading-relaxed text-white/65">{helper}</div>
@@ -615,16 +615,16 @@ function getCompressorColor(label, value) {
   if (!Number.isFinite(numeric)) return '#fff'
 
   if (/stage 3 discharge prs/i.test(label)) {
-    return numeric > 900 ? '#E8200C' : '#22c55e'
+    return numeric > 900 ? '#D32028' : '#22c55e'
   }
   if (/stage 1 suction prs/i.test(label)) {
     return numeric < 30 ? '#eab308' : '#22c55e'
   }
   if (/3rd stage discharge temperature/i.test(label)) {
-    return numeric > 275 ? '#E8200C' : '#22c55e'
+    return numeric > 275 ? '#D32028' : '#22c55e'
   }
   if (/skid - shutdown/i.test(label)) {
-    return numeric > 0 ? '#E8200C' : '#22c55e'
+    return numeric > 0 ? '#D32028' : '#22c55e'
   }
 
   return '#fff'
@@ -632,10 +632,10 @@ function getCompressorColor(label, value) {
 
 function DataPoint({ label, value, unit, color, compact = false }) {
   return (
-    <div className={`bg-[#0a0a14] rounded border border-[#2a2a3a] ${compact ? 'p-2' : 'p-2'}`}>
+    <div className={`bg-[#03172A] rounded border border-[#2a2a3a] ${compact ? 'p-2' : 'p-2'}`}>
       <div className="text-[8px] text-[#888] uppercase tracking-wider">{label}</div>
       <div className="flex items-baseline gap-1">
-        <span className={compact ? 'text-[16px] font-bold' : 'text-[14px] font-bold'} style={{ color: color || '#fff', fontFamily: "'Arial Black'" }}>
+        <span className={compact ? 'text-[16px] font-bold' : 'text-[14px] font-bold'} style={{ color: color || '#fff', fontFamily: "'Montserrat'" }}>
           {value || '--'}
         </span>
         <span className="text-[8px] text-[#666]">{unit}</span>
@@ -727,7 +727,7 @@ function KlondikeHistoryTab({ klondike }) {
   }, [playing, data])
 
   if (loading) return <div className="flex items-center justify-center h-40 text-[#888] text-sm">Loading field data...</div>
-  if (error) return <div className="p-6 text-[#E8200C] text-sm">Error: {error}</div>
+  if (error) return <div className="p-6 text-[#D32028] text-sm">Error: {error}</div>
   if (!data?.length) return <div className="p-6 text-[#888] text-sm">No data available.</div>
 
   const row = data[cursor]
@@ -750,7 +750,7 @@ function KlondikeHistoryTab({ klondike }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>
+          <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>
             Klondike COP0001 - 30-Day Field Data
           </h2>
           <p className="text-[10px] text-[#888]">{data.length} samples - 15-min intervals - {data[0]?.timestamp} to {data[data.length-1]?.timestamp}</p>
@@ -769,7 +769,7 @@ function KlondikeHistoryTab({ klondike }) {
       </div>
 
       {/* Playback controls */}
-      <div className="bg-[#0c0c18] rounded-lg border border-[#1a1a2a] p-3 mb-4 flex items-center gap-3">
+      <div className="bg-[#0c0c18] rounded-lg border border-[#293C5B] p-3 mb-4 flex items-center gap-3">
         <button onClick={() => setCursor(0)} className="text-[10px] text-[#888] border border-[#333] rounded px-2 py-1 hover:text-white">Start</button>
         <button onClick={() => setCursor(c => Math.max(0, c - 1))} className="text-[10px] text-[#888] border border-[#333] rounded px-2 py-1 hover:text-white">Prev</button>
         <button onClick={() => setPlaying(p => !p)}
@@ -782,7 +782,7 @@ function KlondikeHistoryTab({ klondike }) {
         <div className="flex-1 mx-2">
           <input type="range" min={0} max={data.length - 1} value={cursor}
             onChange={e => { setCursor(+e.target.value); setPlaying(false) }}
-            className="w-full accent-[#E8200C]" />
+            className="w-full accent-[#D32028]" />
         </div>
 
         <div className="text-right shrink-0">
@@ -809,33 +809,33 @@ function KlondikeOverview({ row, prev, windowData }) {
     <div className="space-y-4">
       {/* Pad Summary */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-[#111118] rounded-lg border border-[#222] p-4 col-span-1">
+        <div className="bg-[#0F3C64] rounded-lg border border-[#222] p-4 col-span-1">
           <div className="text-[9px] text-[#888] uppercase tracking-wider mb-1">Total Pad Injection</div>
-          <div className="text-3xl font-bold text-[#22c55e]" style={{ fontFamily: "'Arial Black'" }}>
+          <div className="text-3xl font-bold text-[#22c55e]" style={{ fontFamily: "'Montserrat'" }}>
             {totalFlow?.toLocaleString() ?? '--'}
           </div>
           <div className="text-[9px] text-[#888]">MSCFD</div>
-          {prev && <div className={`text-[9px] mt-1 ${totalFlow > prev.totalFlowMscfd ? 'text-[#22c55e]' : totalFlow < prev.totalFlowMscfd ? 'text-[#E8200C]' : 'text-[#888]'}`}>
+          {prev && <div className={`text-[9px] mt-1 ${totalFlow > prev.totalFlowMscfd ? 'text-[#22c55e]' : totalFlow < prev.totalFlowMscfd ? 'text-[#D32028]' : 'text-[#888]'}`}>
             {totalFlow > prev.totalFlowMscfd ? 'UP' : totalFlow < prev.totalFlowMscfd ? 'DOWN' : 'SAME'} {Math.abs(totalFlow - prev.totalFlowMscfd).toFixed(0)} from prev
           </div>}
           <MiniSparkline data={windowData.map(r => r.totalFlowMscfd)} color="#22c55e" />
         </div>
 
-        <div className="bg-[#111118] rounded-lg border border-[#222] p-4">
+        <div className="bg-[#0F3C64] rounded-lg border border-[#222] p-4">
           <div className="text-[9px] text-[#888] uppercase tracking-wider mb-1">Compressor Status</div>
           <div className="space-y-2 mt-2">
             {[row.comp1Status, row.comp2Status].map((s, i) => (
               <div key={i} className="flex items-center gap-2">
-                <div className={`w-2.5 h-2.5 rounded-full ${s === 'Running' ? 'bg-[#22c55e]' : 'bg-[#E8200C]'}`} />
+                <div className={`w-2.5 h-2.5 rounded-full ${s === 'Running' ? 'bg-[#22c55e]' : 'bg-[#D32028]'}`} />
                 <span className="text-[11px] text-white">Comp {i+1}</span>
-                <span className={`text-[10px] font-bold ml-auto ${s === 'Running' ? 'text-[#22c55e]' : 'text-[#E8200C]'}`}>{s || '--'}</span>
+                <span className={`text-[10px] font-bold ml-auto ${s === 'Running' ? 'text-[#22c55e]' : 'text-[#D32028]'}`}>{s || '--'}</span>
               </div>
             ))}
           </div>
           <div className="mt-3 text-[9px] text-[#888]">Hour Meter: <span className="text-white">{row.hourMeter?.toLocaleString()} hrs</span></div>
         </div>
 
-        <div className="bg-[#111118] rounded-lg border border-[#222] p-4">
+        <div className="bg-[#0F3C64] rounded-lg border border-[#222] p-4">
           <div className="text-[9px] text-[#888] uppercase tracking-wider mb-2">Well Flow Distribution</div>
           {row.wells.map((w, i) => {
             const flow = w.flowMmscfd ?? 0
@@ -847,7 +847,7 @@ function KlondikeOverview({ row, prev, windowData }) {
                   <span className="text-[#888]">W{i+1}</span>
                   <span className="text-white">{flow.toFixed(3)} MMSCFD</span>
                 </div>
-                <div className="w-full bg-[#1a1a2a] rounded-full h-1.5">
+                <div className="w-full bg-[#293C5B] rounded-full h-1.5">
                   <div className="h-full rounded-full bg-[#22c55e]" style={{ width: `${pct}%` }} />
                 </div>
               </div>
@@ -857,22 +857,22 @@ function KlondikeOverview({ row, prev, windowData }) {
       </div>
 
       {/* 4-well summary table */}
-      <div className="bg-[#111118] rounded-lg border border-[#222] overflow-hidden">
-        <div className="px-4 py-2 border-b border-[#1a1a2a] bg-[#0c0c18]">
+      <div className="bg-[#0F3C64] rounded-lg border border-[#222] overflow-hidden">
+        <div className="px-4 py-2 border-b border-[#293C5B] bg-[#0c0c18]">
           <span className="text-[10px] text-white font-bold uppercase tracking-wider">Per-Well Parameters - {row.timestamp}</span>
         </div>
         <table className="w-full text-[10px]">
           <thead>
-            <tr className="bg-[#0a0a14]">
+            <tr className="bg-[#03172A]">
               {['Well', 'Flow (MMSCFD)', 'Desired Rate', 'Static Pres (PSI)', 'Diff Pres (PSI)', 'Temp (deg F)', 'Choke AO (%)', 'Run Status'].map(h => (
-                <th key={h} className="px-3 py-2 text-left text-[#888] font-normal border-b border-[#1a1a2a]">{h}</th>
+                <th key={h} className="px-3 py-2 text-left text-[#888] font-normal border-b border-[#293C5B]">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {row.wells.map((w, i) => (
-              <tr key={i} className={i % 2 === 0 ? 'bg-[#080810]' : 'bg-[#0c0c18]'}>
-                <td className="px-3 py-2 text-[#E8200C] font-bold">Well {i+1}</td>
+              <tr key={i} className={i % 2 === 0 ? 'bg-[#05233E]' : 'bg-[#0c0c18]'}>
+                <td className="px-3 py-2 text-[#D32028] font-bold">Well {i+1}</td>
                 <td className="px-3 py-2 text-[#22c55e] font-bold">{w.flowMmscfd?.toFixed(3) ?? '--'}</td>
                 <td className="px-3 py-2 text-[#888]">{(w.desiredInjectionRateMmscfd ?? w.setpointMmscfd)?.toFixed(3) ?? '--'}</td>
                 <td className="px-3 py-2 text-white">{w.staticPressure ?? '--'}</td>
@@ -902,7 +902,7 @@ function KlondikeWellDetail({ row, prev, wellIdx, windowData }) {
     { label: 'Desired Rate', value: (w.desiredInjectionRateMmscfd ?? w.setpointMmscfd)?.toFixed(3), unit: 'MMSCFD', color: '#4fc3f7', spark: windowData.map(r => r.wells[wellIdx]?.desiredInjectionRateMmscfd ?? r.wells[wellIdx]?.setpointMmscfd ?? 0) },
     { label: 'Static Pressure', value: w.staticPressure, unit: 'PSI', color: '#eab308', spark: windowData.map(r => r.wells[wellIdx]?.staticPressure ?? 0) },
     { label: 'Differential Pres', value: w.diffPressure, unit: 'PSI', color: '#f97316', spark: windowData.map(r => r.wells[wellIdx]?.diffPressure ?? 0) },
-    { label: 'Injection Temp', value: w.temp, unit: 'deg F', color: '#E8200C', spark: windowData.map(r => r.wells[wellIdx]?.temp ?? 0) },
+    { label: 'Injection Temp', value: w.temp, unit: 'deg F', color: '#D32028', spark: windowData.map(r => r.wells[wellIdx]?.temp ?? 0) },
     { label: 'Choke AO', value: w.analogOutput, unit: '%', color: '#a78bfa', spark: windowData.map(r => r.wells[wellIdx]?.analogOutput ?? 0) },
   ]
 
@@ -910,16 +910,16 @@ function KlondikeWellDetail({ row, prev, wellIdx, windowData }) {
     <div>
       <div className="flex items-center gap-3 mb-4">
         <div className={`w-3 h-3 rounded-full ${w.runStatus === 'Online' ? 'bg-[#22c55e]' : 'bg-[#555]'}`} />
-        <span className="text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>Well {wellIdx + 1}</span>
+        <span className="text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>Well {wellIdx + 1}</span>
         <span className={`text-[10px] font-bold ${w.runStatus === 'Online' ? 'text-[#22c55e]' : 'text-[#888]'}`}>{w.runStatus || '--'}</span>
         <span className="text-[9px] text-[#555] ml-auto">{row.timestamp}</span>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
         {params.map(p => (
-          <div key={p.label} className="bg-[#111118] rounded-lg border border-[#222] p-4">
+          <div key={p.label} className="bg-[#0F3C64] rounded-lg border border-[#222] p-4">
             <div className="text-[9px] text-[#888] uppercase tracking-wider mb-1">{p.label}</div>
-            <div className="text-2xl font-bold mb-0.5" style={{ color: p.color, fontFamily: "'Arial Black'" }}>
+            <div className="text-2xl font-bold mb-0.5" style={{ color: p.color, fontFamily: "'Montserrat'" }}>
               {p.value ?? '--'}
             </div>
             <div className="text-[9px] text-[#888]">{p.unit}</div>
@@ -928,7 +928,7 @@ function KlondikeWellDetail({ row, prev, wellIdx, windowData }) {
         ))}
       </div>
 
-      <div className="mt-3 bg-[#0c0c18] rounded border border-[#1a1a2a] p-3 text-[10px] text-[#888]">
+      <div className="mt-3 bg-[#0c0c18] rounded border border-[#293C5B] p-3 text-[10px] text-[#888]">
         Yesterday total: <span className="text-white">{w.yesterdayTotal?.toFixed(3) ?? '--'} MMSCFD</span>
         &nbsp;-&nbsp; Desired: <span className="text-white">{w.calcDesiredFlow?.toFixed(3) ?? '--'} MMSCFD</span>
         &nbsp;-&nbsp; Max rate: <span className="text-white">{w.maxFlowRate?.toFixed(3) ?? '--'} MMSCFD</span>
@@ -954,7 +954,7 @@ function KlondikeCompressorDetail({ row, compressorIdx, windowData }) {
       label: 'Run Status',
       value: runStatus || '--',
       unit: '',
-      color: runStatus === 'Running' ? '#22c55e' : '#E8200C',
+      color: runStatus === 'Running' ? '#22c55e' : '#D32028',
       spark: windowData.map(r => ((compressorIdx === 0 ? r.comp1Status : r.comp2Status) === 'Running' ? 1 : 0)),
     },
     {
@@ -977,16 +977,16 @@ function KlondikeCompressorDetail({ row, compressorIdx, windowData }) {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className={`w-3 h-3 rounded-full ${runStatus === 'Running' ? 'bg-[#22c55e]' : 'bg-[#555]'}`} />
-        <span className="text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>Compressor {compressorNumber}</span>
+        <span className="text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>Compressor {compressorNumber}</span>
         <span className={`text-[10px] font-bold ${runStatus === 'Running' ? 'text-[#22c55e]' : 'text-[#888]'}`}>{runStatus || '--'}</span>
         <span className="text-[9px] text-[#555] ml-auto">{row.timestamp}</span>
       </div>
 
       <div className="grid grid-cols-4 gap-3">
         {params.map(p => (
-          <div key={p.label} className="bg-[#111118] rounded-lg border border-[#222] p-4">
+          <div key={p.label} className="bg-[#0F3C64] rounded-lg border border-[#222] p-4">
             <div className="text-[9px] text-[#888] uppercase tracking-wider mb-1">{p.label}</div>
-            <div className="text-2xl font-bold mb-0.5" style={{ color: p.color, fontFamily: "'Arial Black'" }}>
+            <div className="text-2xl font-bold mb-0.5" style={{ color: p.color, fontFamily: "'Montserrat'" }}>
               {p.value ?? '--'}
             </div>
             {p.unit && <div className="text-[9px] text-[#888]">{p.unit}</div>}
@@ -995,22 +995,22 @@ function KlondikeCompressorDetail({ row, compressorIdx, windowData }) {
         ))}
       </div>
 
-      <div className="bg-[#111118] rounded-lg border border-[#222] overflow-hidden">
-        <div className="px-4 py-2 border-b border-[#1a1a2a] bg-[#0c0c18]">
+      <div className="bg-[#0F3C64] rounded-lg border border-[#222] overflow-hidden">
+        <div className="px-4 py-2 border-b border-[#293C5B] bg-[#0c0c18]">
           <span className="text-[10px] text-white font-bold uppercase tracking-wider">
             Compressor {compressorNumber} 30-Day History Coverage
           </span>
         </div>
         <table className="w-full text-[10px]">
           <thead>
-            <tr className="bg-[#0a0a14]">
+            <tr className="bg-[#03172A]">
               {['Parameter', 'Current 30-Day Value', 'Unit', 'Coverage'].map(h => (
-                <th key={h} className="px-3 py-2 text-left text-[#888] font-normal border-b border-[#1a1a2a]">{h}</th>
+                <th key={h} className="px-3 py-2 text-left text-[#888] font-normal border-b border-[#293C5B]">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            <tr className="bg-[#080810]">
+            <tr className="bg-[#05233E]">
               <td className="px-3 py-2 text-white font-bold">Desired Flow SP For PID Murphy</td>
               <td className="px-3 py-2 text-[#4fc3f7] font-bold">{desiredFlow?.toFixed(3) ?? '--'}</td>
               <td className="px-3 py-2 text-[#888]">MMSCFD</td>
@@ -1023,7 +1023,7 @@ function KlondikeCompressorDetail({ row, compressorIdx, windowData }) {
               <td className="px-3 py-2 text-[#22c55e]">In 30-day panel export</td>
             </tr>
             {COMPRESSOR_DEFAULT_VISIBLE_LABELS.map(label => (
-              <tr key={label} className="bg-[#080810]">
+              <tr key={label} className="bg-[#05233E]">
                 <td className="px-3 py-2 text-white">{label}</td>
                 <td className="px-3 py-2 text-[#666]">--</td>
                 <td className="px-3 py-2 text-[#666]">{getCompressorUnit(label) || '--'}</td>
@@ -1034,7 +1034,7 @@ function KlondikeCompressorDetail({ row, compressorIdx, windowData }) {
         </table>
       </div>
 
-      <div className="bg-[#0c0c18] rounded border border-[#1a1a2a] p-3 text-[10px] text-[#888]">
+      <div className="bg-[#0c0c18] rounded border border-[#293C5B] p-3 text-[10px] text-[#888]">
         The current 30-day panel export carries compressor run status and desired-flow history. Full trends for compressor temperatures, speeds, and pressures require stored MLINK compressor snapshots over the same 30-day window.
       </div>
     </div>
@@ -1134,9 +1134,9 @@ function WellAchievementSection({ klondike }) {
   }
 
   return (
-    <div className="bg-[#111118] rounded-xl border border-[#222] p-5">
+    <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-5">
       <div className="flex items-center justify-between mb-1">
-        <h3 className="text-[13px] text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>
+        <h3 className="text-[13px] text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>
           Well Injection Rate Achievement
         </h3>
         {isAdmin && (
@@ -1154,23 +1154,23 @@ function WellAchievementSection({ klondike }) {
             <div className="text-[9px] text-[#888] mb-1">Well {i + 1}</div>
             {s.pct === null ? (
               <>
-                <div className="text-2xl font-bold mb-1 text-[#555]" style={{ fontFamily: "'Arial Black'" }}>N/A</div>
-                <div className="w-full bg-[#1a1a2a] rounded h-2 overflow-hidden mb-1" />
+                <div className="text-2xl font-bold mb-1 text-[#555]" style={{ fontFamily: "'Montserrat'" }}>N/A</div>
+                <div className="w-full bg-[#293C5B] rounded h-2 overflow-hidden mb-1" />
                 <div className="text-[8px] text-[#666]">avg {s.avg.toFixed(3)}</div>
                 <div className="text-[8px] text-[#555]">no setpoint data</div>
               </>
             ) : (
               <>
                 <div className="text-2xl font-bold mb-1" style={{
-                  fontFamily: "'Arial Black'",
-                  color: s.pct >= 90 ? '#22c55e' : s.pct >= 70 ? '#eab308' : '#E8200C'
+                  fontFamily: "'Montserrat'",
+                  color: s.pct >= 90 ? '#22c55e' : s.pct >= 70 ? '#eab308' : '#D32028'
                 }}>
                   {s.pct.toFixed(0)}%
                 </div>
-                <div className="w-full bg-[#1a1a2a] rounded h-2 overflow-hidden mb-1">
+                <div className="w-full bg-[#293C5B] rounded h-2 overflow-hidden mb-1">
                   <div className="h-full rounded transition-all" style={{
                     width: `${s.pct}%`,
-                    background: s.pct >= 90 ? '#22c55e' : s.pct >= 70 ? '#eab308' : '#E8200C'
+                    background: s.pct >= 90 ? '#22c55e' : s.pct >= 70 ? '#eab308' : '#D32028'
                   }} />
                 </div>
                 <div className="text-[8px] text-[#666]">avg {s.avg.toFixed(3)}</div>
@@ -1225,15 +1225,15 @@ function WellAchievementSection({ klondike }) {
 
 function RunReportCard({ label, report, loading }) {
   if (loading) return (
-    <div className="bg-[#111118] rounded-xl border border-[#222] p-5 text-center">
+    <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-5 text-center">
       <h3 className="text-[13px] text-white font-bold mb-2">{label}</h3>
       <div className="text-[#555] text-sm animate-pulse">Loading report...</div>
     </div>
   )
   if (!report) return (
-    <div className="bg-[#111118] rounded-xl border border-[#222] p-5 text-center">
+    <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-5 text-center">
       <h3 className="text-[13px] text-white font-bold mb-2">{label}</h3>
-      <div className="text-[#E8200C] text-[11px]">No data available</div>
+      <div className="text-[#D32028] text-[11px]">No data available</div>
       <div className="text-[9px] text-[#555] mt-1">Report may not be ready yet - check back after midnight UTC</div>
     </div>
   )
@@ -1245,18 +1245,18 @@ function RunReportCard({ label, report, loading }) {
   const faultHrs = summary?.Faulted?.Hrs || 0
 
   return (
-    <div className="bg-[#111118] rounded-xl border border-[#222] p-5">
-      <h3 className="text-[13px] text-white font-bold mb-3" style={{ fontFamily: "'Arial Black'" }}>{label}</h3>
+    <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-5">
+      <h3 className="text-[13px] text-white font-bold mb-3" style={{ fontFamily: "'Montserrat'" }}>{label}</h3>
 
       {/* Uptime gauge */}
       <div className="text-center mb-3">
-        <div className="text-3xl font-bold" style={{ fontFamily: "'Arial Black'", color: runPct >= 0.95 ? '#22c55e' : runPct >= 0.8 ? '#eab308' : '#E8200C' }}>
+        <div className="text-3xl font-bold" style={{ fontFamily: "'Montserrat'", color: runPct >= 0.95 ? '#22c55e' : runPct >= 0.8 ? '#eab308' : '#D32028' }}>
           {(runPct * 100).toFixed(1)}%
         </div>
         <div className="text-[10px] text-[#888]">Uptime</div>
       </div>
 
-      <div className="w-full bg-[#1a1a2a] rounded h-4 overflow-hidden mb-3">
+      <div className="w-full bg-[#293C5B] rounded h-4 overflow-hidden mb-3">
         <div className="h-full bg-[#22c55e] rounded-l" style={{ width: `${runPct * 100}%` }} />
       </div>
 
@@ -1270,7 +1270,7 @@ function RunReportCard({ label, report, loading }) {
           <div className="text-[#888]">Stopped</div>
         </div>
         <div>
-          <div className="text-[#E8200C] font-bold">{faultHrs.toFixed(1)}h</div>
+          <div className="text-[#D32028] font-bold">{faultHrs.toFixed(1)}h</div>
           <div className="text-[#888]">Faulted</div>
         </div>
       </div>
@@ -1280,11 +1280,11 @@ function RunReportCard({ label, report, loading }) {
         <div className="mt-3 space-y-1">
           <div className="text-[8px] text-[#888] uppercase tracking-wider font-bold">Events</div>
           {report.ReportDetail.map((event, i) => (
-            <div key={i} className="flex items-center gap-2 text-[10px] py-0.5 border-b border-[#1a1a2a] last:border-0">
-              <div className={`w-2 h-2 rounded-full ${event.StatusStr === 'Running' ? 'bg-[#22c55e]' : event.StatusStr === 'Faulted' ? 'bg-[#E8200C]' : 'bg-[#eab308]'}`} />
+            <div key={i} className="flex items-center gap-2 text-[10px] py-0.5 border-b border-[#293C5B] last:border-0">
+              <div className={`w-2 h-2 rounded-full ${event.StatusStr === 'Running' ? 'bg-[#22c55e]' : event.StatusStr === 'Faulted' ? 'bg-[#D32028]' : 'bg-[#eab308]'}`} />
               <span className="text-white font-bold">{event.StatusStr}</span>
               <span className="text-[#888]">{event.DurationHrs?.toFixed(1)}h</span>
-              {event.Reason && <span className="text-[#E8200C] text-[9px] ml-auto">{event.Reason}</span>}
+              {event.Reason && <span className="text-[#D32028] text-[9px] ml-auto">{event.Reason}</span>}
             </div>
           ))}
         </div>

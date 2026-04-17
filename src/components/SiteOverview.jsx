@@ -22,10 +22,10 @@ export default function SiteOverview({ state, animateFlow = true, verticalOffset
   const L = useMemo(() => computeLayout(nc, nw), [nc, nw])
 
   const scrubberLevel = 35 + Math.sin(state.tickCount * 0.05) * 10
-  const scrubberLevelColor = scrubberLevel > 60 ? '#E8200C' : scrubberLevel > 40 ? '#eab308' : '#22c55e'
+  const scrubberLevelColor = scrubberLevel > 60 ? '#D32028' : scrubberLevel > 40 ? '#eab308' : '#22c55e'
 
   return (
-    <div className="flex-1 overflow-hidden bg-[#080810]">
+    <div className="flex-1 overflow-hidden bg-[#05233E]">
       <svg viewBox={`0 0 ${L.W} ${L.H}`} className="w-full h-full" preserveAspectRatio="xMidYMid meet"
         style={{ fontFamily: "Arial, sans-serif" }}>
         <defs>
@@ -175,7 +175,7 @@ export default function SiteOverview({ state, animateFlow = true, verticalOffset
 
         {/* Legend */}
         <g transform={`translate(15, ${L.H - 58})`}>
-          <rect x={0} y={0} width={160} height={52} rx={4} fill="#0a0a14" stroke="#1a1a2a" strokeWidth={0.5} />
+          <rect x={0} y={0} width={160} height={52} rx={4} fill="#03172A" stroke="#293C5B" strokeWidth={0.5} />
           <text x={80} y={13} textAnchor="middle" fill="#444" fontSize={8} fontWeight="bold" letterSpacing="1">LEGEND</text>
           <line x1={10} y1={24} x2={38} y2={24} stroke="#22c55e" strokeWidth={2} className={animateFlow ? 'flow-line-animated' : ''} style={animateFlow ? { '--flow-speed': '2s' } : undefined} strokeDasharray={animateFlow ? '6 4' : undefined} />
           <text x={44} y={27} fill="#777" fontSize={7}>Gas / Injection</text>
@@ -271,14 +271,14 @@ function AnimPipe({ points, rate, color, animate = true }) {
 }
 
 function WellBox({ x, y, well, alarmed, pri }) {
-  const bc = alarmed ? '#E8200C' : '#22c55e'
+  const bc = alarmed ? '#D32028' : '#22c55e'
   const w = 90, h = 65
   return (
     <g transform={`translate(${x},${y})`}>
       <text x={w / 2} y={-10} textAnchor="middle" fill="#fff" fontSize={13} fontWeight="bold">{well.name}</text>
       <text x={w / 2} y={2} textAnchor="middle" fill="#888" fontSize={8}>Priority {pri}</text>
       <rect x={0} y={8} width={w} height={h} rx={4} fill="#0a0a16" stroke={bc} strokeWidth={alarmed ? 2.5 : 1.5} />
-      {alarmed && <rect x={0} y={8} width={w} height={h} rx={4} fill="#E8200C" opacity={0.1} />}
+      {alarmed && <rect x={0} y={8} width={w} height={h} rx={4} fill="#D32028" opacity={0.1} />}
       <path d="M 25 18 L 25 27 L 21 32 L 29 37 L 21 42 L 29 47 L 25 50 L 25 58" stroke="#555" strokeWidth={1.5} fill="none" />
       <path d="M 65 18 L 65 27 L 61 32 L 69 37 L 61 42 L 69 47 L 65 50 L 65 58" stroke="#555" strokeWidth={1.5} fill="none" />
       {/* Desired vs Actual — plain English */}
@@ -292,7 +292,7 @@ function WellBox({ x, y, well, alarmed, pri }) {
 }
 
 function Valve({ x, y, openPct, label, alarmed }) {
-  const c = alarmed ? '#E8200C' : openPct > 80 ? '#22c55e' : openPct > 30 ? '#eab308' : '#E8200C'
+  const c = alarmed ? '#D32028' : openPct > 80 ? '#22c55e' : openPct > 30 ? '#eab308' : '#D32028'
   return (
     <g transform={`translate(${x},${y})`}>
       <polygon points="-9,-9 0,0 -9,9" fill={c} opacity={0.8} />
@@ -327,11 +327,11 @@ function WitchHat({ x, y }) {
 
 function Scrubber({ x, y, pressure, level, levelColor, alarmed }) {
   const w = 120, h = 70
-  const bc = alarmed ? '#E8200C' : '#888'
+  const bc = alarmed ? '#D32028' : '#888'
   return (
     <g transform={`translate(${x},${y})`}>
       <rect x={0} y={0} width={w} height={h} rx={8} fill="#0a0a16" stroke={bc} strokeWidth={alarmed ? 2.5 : 1.5} />
-      {alarmed && <rect x={0} y={0} width={w} height={h} rx={8} fill="#E8200C" opacity={0.12} />}
+      {alarmed && <rect x={0} y={0} width={w} height={h} rx={8} fill="#D32028" opacity={0.12} />}
       <rect x={3} y={h - (h * level / 100)} width={w - 6} height={h * level / 100 - 3} rx={5} fill={levelColor} opacity={0.2} />
       <text x={w / 2} y={17} textAnchor="middle" fill="#fff" fontSize={10} fontWeight="bold">HP SCRUBBER</text>
       <text x={w / 2} y={30} textAnchor="middle" fill="#ccc" fontSize={8}>SEPARATOR</text>
@@ -344,13 +344,13 @@ function Scrubber({ x, y, pressure, level, levelColor, alarmed }) {
 function CompBox({ x, y, comp, alarmed }) {
   const w = 100, h = 78
   const running = comp.status === 'running' || comp.status === 'locked_out_running'
-  const bc = alarmed ? '#E8200C' : running ? '#22c55e' : '#555'
+  const bc = alarmed ? '#D32028' : running ? '#22c55e' : '#555'
   const flowMcfd = comp.actualThroughput || 0
   const capacityMcfd = comp.capacityMcfd || 400
   return (
     <g transform={`translate(${x},${y})`}>
       <rect x={0} y={0} width={w} height={h} rx={5} fill="#0a0a16" stroke={bc} strokeWidth={alarmed ? 2.5 : 1.5} />
-      {alarmed && <rect x={0} y={0} width={w} height={h} rx={5} fill="#E8200C" opacity={0.12} />}
+      {alarmed && <rect x={0} y={0} width={w} height={h} rx={5} fill="#D32028" opacity={0.12} />}
       <circle cx={16} cy={14} r={5} fill={bc} />
       <text x={27} y={17} fill="#fff" fontSize={11} fontWeight="bold">{comp.name}</text>
       <text x={w - 5} y={17} textAnchor="end" fill={bc} fontSize={7} fontWeight="bold">
@@ -366,7 +366,7 @@ function CompBox({ x, y, comp, alarmed }) {
           {/* Load bar */}
           <rect x={7} y={67} width={w - 14} height={4} rx={2} fill="#111" />
           <rect x={7} y={67} width={Math.max(0, (w - 14) * (comp.loadPct / 100))} height={4} rx={2}
-            fill={comp.loadPct > 90 ? '#E8200C' : comp.loadPct > 70 ? '#eab308' : '#22c55e'} />
+            fill={comp.loadPct > 90 ? '#D32028' : comp.loadPct > 70 ? '#eab308' : '#22c55e'} />
         </>
       ) : (
         <text x={w / 2} y={50} textAnchor="middle" fill={bc} fontSize={11} opacity={0.7}>

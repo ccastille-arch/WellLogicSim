@@ -61,11 +61,11 @@ export default function WellPriorityDemo({ sim }) {
               className="h-full transition-all duration-500"
               style={{
                 width: `${w.desiredRate > 0 ? (w.actualRate / w.desiredRate) * 100 : 0}%`,
-                backgroundColor: w.isAtTarget ? '#22c55e' : '#E8200C',
+                backgroundColor: w.isAtTarget ? '#22c55e' : '#D32028',
               }}
             />
           </div>
-          <span className={`text-[9px] w-8 text-right ${w.isAtTarget ? 'text-[#22c55e]' : 'text-[#E8200C]'}`}>
+          <span className={`text-[9px] w-8 text-right ${w.isAtTarget ? 'text-[#22c55e]' : 'text-[#D32028]'}`}>
             {w.actualRate.toFixed(0)}
           </span>
         </div>

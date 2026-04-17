@@ -92,13 +92,13 @@ export default function WellUnloadDemo({ sim }) {
       label: 'Scrubber PSI',
       value: sim.state.scrubberPressure.toFixed(0),
       unit: 'PSI',
-      color: sim.state.wellUnloadActive ? '#E8200C' : '#22c55e',
+      color: sim.state.wellUnloadActive ? '#D32028' : '#22c55e',
     },
     {
       label: 'Rate of Change',
       value: `${sim.state.scrubberRateOfChange.toFixed(1)}`,
       unit: 'PSI/s',
-      color: Math.abs(sim.state.scrubberRateOfChange) > 3 ? '#E8200C' : '#22c55e',
+      color: Math.abs(sim.state.scrubberRateOfChange) > 3 ? '#D32028' : '#22c55e',
     },
     {
       label: 'Sales Valve',
@@ -109,7 +109,7 @@ export default function WellUnloadDemo({ sim }) {
     {
       label: 'Unload Status',
       value: sim.state.wellUnloadActive ? 'ACTIVE' : 'CLEAR',
-      color: sim.state.wellUnloadActive ? '#E8200C' : '#22c55e',
+      color: sim.state.wellUnloadActive ? '#D32028' : '#22c55e',
     },
   ]
 

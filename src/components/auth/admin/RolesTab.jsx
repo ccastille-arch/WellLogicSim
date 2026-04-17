@@ -75,7 +75,7 @@ export default function RolesTab() {
             <label key={p} className="flex items-center gap-1.5 text-[10px] text-white cursor-pointer">
               <input type="checkbox" checked={perms.includes(p)} disabled={disabled}
                 onChange={() => togglePerm(perms, setPerms, p)}
-                className="accent-[#E8200C]" />
+                className="accent-[#D32028]" />
               {PERM_LABELS[p] || p}
             </label>
           ))}
@@ -88,7 +88,7 @@ export default function RolesTab() {
             <label key={p} className="flex items-center gap-1.5 text-[10px] text-white cursor-pointer">
               <input type="checkbox" checked={perms.includes(p)} disabled={disabled}
                 onChange={() => togglePerm(perms, setPerms, p)}
-                className="accent-[#E8200C]" />
+                className="accent-[#D32028]" />
               {PERM_LABELS[p] || p}
             </label>
           ))}
@@ -102,7 +102,7 @@ export default function RolesTab() {
       {/* Create role */}
       {!showCreate ? (
         <button onClick={() => setShowCreate(true)}
-          className="w-full mb-4 py-2.5 rounded-xl text-[11px] font-bold text-white bg-[#E8200C] hover:opacity-90">
+          className="w-full mb-4 py-2.5 rounded-xl text-[11px] font-bold text-white bg-[#D32028] hover:opacity-90">
           + Create New Role
         </button>
       ) : (
@@ -110,19 +110,19 @@ export default function RolesTab() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[9px] text-[#888] mb-1 block">Role ID (slug)</label>
-              <input className="w-full rounded-lg px-3 py-2 text-[11px] text-white bg-[#080810] border border-[#1e1e30]"
+              <input className="w-full rounded-lg px-3 py-2 text-[11px] text-white bg-[#05233E] border border-[#1e1e30]"
                 value={newId} onChange={e => setNewId(e.target.value)} placeholder="field_tech" />
             </div>
             <div>
               <label className="text-[9px] text-[#888] mb-1 block">Display Name</label>
-              <input className="w-full rounded-lg px-3 py-2 text-[11px] text-white bg-[#080810] border border-[#1e1e30]"
+              <input className="w-full rounded-lg px-3 py-2 text-[11px] text-white bg-[#05233E] border border-[#1e1e30]"
                 value={newName} onChange={e => setNewName(e.target.value)} placeholder="Field Tech" />
             </div>
           </div>
           <PermCheckboxes perms={newPerms} setPerms={setNewPerms} disabled={false} />
           {error && <p className="text-[10px] text-red-400">{error}</p>}
           <div className="flex gap-2">
-            <button onClick={handleCreate} className="px-4 py-2 rounded-lg text-[11px] font-bold text-white bg-[#E8200C]">Create Role</button>
+            <button onClick={handleCreate} className="px-4 py-2 rounded-lg text-[11px] font-bold text-white bg-[#D32028]">Create Role</button>
             <button onClick={() => { setShowCreate(false); setError('') }}
               className="px-4 py-2 rounded-lg text-[11px] text-[#888] border border-[#1e1e30]">Cancel</button>
           </div>
@@ -136,7 +136,7 @@ export default function RolesTab() {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 {editingId === role.id ? (
-                  <input className="rounded px-2 py-0.5 text-[12px] font-bold text-white bg-[#080810] border border-[#1e1e30] w-32"
+                  <input className="rounded px-2 py-0.5 text-[12px] font-bold text-white bg-[#05233E] border border-[#1e1e30] w-32"
                     value={editName} onChange={e => setEditName(e.target.value)} />
                 ) : (
                   <span className="text-[12px] font-bold text-white">{role.name}</span>
@@ -175,12 +175,12 @@ export default function RolesTab() {
             {editingId !== role.id && (
               <div className="flex flex-wrap gap-1 mt-1">
                 {role.permissions.slice(0, 8).map(p => (
-                  <span key={p} className="text-[8px] px-1.5 py-0.5 rounded bg-[#1a1a2a] text-[#888]">
+                  <span key={p} className="text-[8px] px-1.5 py-0.5 rounded bg-[#293C5B] text-[#888]">
                     {PERM_LABELS[p] || p}
                   </span>
                 ))}
                 {role.permissions.length > 8 && (
-                  <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#1a1a2a] text-[#888]">
+                  <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#293C5B] text-[#888]">
                     +{role.permissions.length - 8} more
                   </span>
                 )}

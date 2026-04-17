@@ -141,7 +141,7 @@ export function RevenueTicker({ sim, customerData, brentPrice }) {
       <div className="grid grid-cols-4 gap-2">
         <MiniStat label="Pad Value" value={`$${productionValuePerHour.toFixed(0)}`} sub="/hr" color="#22c55e" />
         <MiniStat label="Lost Revenue" value={`$${lostPerHour.toFixed(0)}`} sub="/hr"
-          color={lostPerHour > 50 ? '#E8200C' : '#22c55e'} />
+          color={lostPerHour > 50 ? '#D32028' : '#22c55e'} />
         <MiniStat label="Session Saved" value={`$${cumulativeSaved.toFixed(0)}`} color="#4fc3f7" />
         <MiniStat label="Per-Trip Savings" value={`$${econ.tripRevenueSavedPerEvent.toFixed(0)}`} color="#f97316" />
       </div>
@@ -153,7 +153,7 @@ function MiniStat({ label, value, sub, color }) {
   return (
     <div>
       <div className="text-[7px] text-[#666]">{label}</div>
-      <span className="text-[13px] font-bold" style={{ fontFamily: "'Arial Black'", color }}>{value}</span>
+      <span className="text-[13px] font-bold" style={{ fontFamily: "'Montserrat'", color }}>{value}</span>
       {sub && <span className="text-[8px] text-[#666]">{sub}</span>}
     </div>
   )
@@ -281,12 +281,12 @@ export function BeforeAfterOverlay({ sim, customerData }) {
       </div>
       <div className="grid grid-cols-2 gap-2">
         {/* MANUAL SIDE */}
-        <div className="bg-[#1a0808] rounded p-2 border border-[#E8200C]/20">
-          <div className="text-[9px] text-[#E8200C] font-bold mb-1">TODAY - Manual Response</div>
+        <div className="bg-[#1a0808] rounded p-2 border border-[#D32028]/20">
+          <div className="text-[9px] text-[#D32028] font-bold mb-1">TODAY - Manual Response</div>
           <div className="w-full bg-[#200] rounded h-3 overflow-hidden">
-            <div className="h-full bg-[#E8200C] transition-all duration-1000" style={{ width: `${manualProdPct}%` }} />
+            <div className="h-full bg-[#D32028] transition-all duration-1000" style={{ width: `${manualProdPct}%` }} />
           </div>
-          <div className="text-[10px] text-[#E8200C] font-bold mt-1">{manualProdPct.toFixed(0)}% production</div>
+          <div className="text-[10px] text-[#D32028] font-bold mt-1">{manualProdPct.toFixed(0)}% production</div>
           <div className="text-[8px] text-[#ccc] mt-1 leading-relaxed">{phaseLabels[phase]}</div>
           {/* Timeline steps */}
           <div className="mt-1.5 space-y-0.5">
@@ -304,7 +304,7 @@ export function BeforeAfterOverlay({ sim, customerData }) {
               const done = current > stepIdx
               const active = current === stepIdx
               return (
-                <div key={i} className={`text-[7px] flex items-center gap-1 ${done ? 'text-[#E8200C]' : active ? 'text-white' : 'text-[#444]'}`}>
+                <div key={i} className={`text-[7px] flex items-center gap-1 ${done ? 'text-[#D32028]' : active ? 'text-white' : 'text-[#444]'}`}>
                   <span>{done ? 'DONE' : active ? 'NOW' : 'WAIT'}</span>
                   <span>{step.t}</span>
                 </div>
@@ -373,7 +373,7 @@ export function BadDayButton({ sim }) {
   return (
     <div className="space-y-1.5">
       <button onClick={trigger} disabled={chaosActive}
-        className={`w-full py-2.5 rounded-lg font-bold text-[11px] transition-all ${chaosActive ? 'bg-[#E8200C] text-white animate-pulse' : 'bg-[#E8200C]/20 border-2 border-[#E8200C] text-[#E8200C] hover:bg-[#E8200C] hover:text-white'}`}>
+        className={`w-full py-2.5 rounded-lg font-bold text-[11px] transition-all ${chaosActive ? 'bg-[#D32028] text-white animate-pulse' : 'bg-[#D32028]/20 border-2 border-[#D32028] text-[#D32028] hover:bg-[#D32028] hover:text-white'}`}>
         {chaosActive ? 'CHAOS IN PROGRESS...' : 'THE BAD DAY'}
       </button>
       <button onClick={reset} className="w-full py-1.5 rounded text-[10px] text-[#888] border border-[#333] hover:text-white">Reset</button>
@@ -403,7 +403,7 @@ export function ROICalculator({ customerData, brentPrice }) {
         <ROILine label={`Labor Savings (${econ.avoidedVisitsWeek.toFixed(0)} fewer visits/wk)`} value={econ.laborAnnualSaved} />
         <div className="border-t border-[#333] pt-1.5 flex justify-between items-baseline">
           <span className="text-white font-bold">Estimated Annual Savings</span>
-          <span className="text-[16px] text-[#4fc3f7] font-bold" style={{ fontFamily: "'Arial Black'" }}>
+          <span className="text-[16px] text-[#4fc3f7] font-bold" style={{ fontFamily: "'Montserrat'" }}>
             ${(econ.totalAnnualSaved / 1000).toFixed(0)}K
           </span>
         </div>
@@ -477,21 +477,21 @@ export function ResponseTimer({ sim, customerData }) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         {/* MANUAL */}
-        <div className="text-center bg-[#1a0808] rounded p-2 border border-[#E8200C]/20">
-          <div className="text-[8px] text-[#E8200C] font-bold mb-0.5">Manual - Operator + Mechanic</div>
-          <div className="text-[20px] text-[#E8200C] font-bold" style={{ fontFamily: "'Arial Black'" }}>
+        <div className="text-center bg-[#1a0808] rounded p-2 border border-[#D32028]/20">
+          <div className="text-[8px] text-[#D32028] font-bold mb-0.5">Manual - Operator + Mechanic</div>
+          <div className="text-[20px] text-[#D32028] font-bold" style={{ fontFamily: "'Montserrat'" }}>
             {totalManualMin} min
           </div>
           <div className="text-[7px] text-[#888] leading-relaxed mt-1">
-            Drive out ({drive1}m) + Diagnose ({diagnose}m) + Wait for mechanic ({mechWait}m) + Repair ({fix}m) + <span className="text-[#E8200C]">Operator drives BACK ({drive2}m)</span> + Readjust chokes ({chokeAdj}m)
+            Drive out ({drive1}m) + Diagnose ({diagnose}m) + Wait for mechanic ({mechWait}m) + Repair ({fix}m) + <span className="text-[#D32028]">Operator drives BACK ({drive2}m)</span> + Readjust chokes ({chokeAdj}m)
           </div>
-          <div className="text-[8px] text-[#E8200C] font-bold mt-1">= {(totalManualMin / 60).toFixed(1)} hours of lost production</div>
+          <div className="text-[8px] text-[#D32028] font-bold mt-1">= {(totalManualMin / 60).toFixed(1)} hours of lost production</div>
         </div>
 
         {/* WELLLOGIC */}
         <div className="text-center bg-[#081a08] rounded p-2 border border-[#22c55e]/20">
           <div className="text-[8px] text-[#22c55e] font-bold mb-0.5">Pad Logic - Fully Automatic</div>
-          <div className="text-[20px] font-bold" style={{ fontFamily: "'Arial Black'", color: recovered ? '#22c55e' : '#eab308' }}>
+          <div className="text-[20px] font-bold" style={{ fontFamily: "'Montserrat'", color: recovered ? '#22c55e' : '#eab308' }}>
             {recovered ? fmt(Math.min(elapsed, 60)) : fmt(elapsed)}
           </div>
           <div className="text-[7px] text-[#888] leading-relaxed mt-1">
@@ -552,10 +552,10 @@ export function FeatureToggles({ features, onToggle }) {
   ]
   return (
     <div className="bg-[#111120] border border-[#2a2a3a] rounded-lg p-3 mb-3">
-      <div className="text-[8px] text-[#E8200C] uppercase tracking-wider font-bold mb-2">Sales Features</div>
+      <div className="text-[8px] text-[#D32028] uppercase tracking-wider font-bold mb-2">Sales Features</div>
       {items.map(item => (
         <label key={item.key} className="flex items-center gap-2 py-1 cursor-pointer">
-          <div className={`w-8 h-4 rounded-full transition-colors shrink-0 relative ${features[item.key] ? 'bg-[#E8200C]' : 'bg-[#333]'}`}
+          <div className={`w-8 h-4 rounded-full transition-colors shrink-0 relative ${features[item.key] ? 'bg-[#D32028]' : 'bg-[#333]'}`}
             onClick={() => onToggle(item.key)}>
             <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-transform ${features[item.key] ? 'translate-x-4' : 'translate-x-0.5'}`} />
           </div>

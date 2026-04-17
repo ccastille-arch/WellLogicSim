@@ -74,7 +74,7 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl text-white mb-1 tracking-tight" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+          <h1 className="text-2xl text-white mb-1 tracking-tight" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
             Commissioning Setup
           </h1>
           <p className="text-sm text-[#888]">
@@ -101,11 +101,11 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
         </div>
 
         {/* ═══════ SALES DEMO MODE — TOP OF PAGE ═══════ */}
-        <div className="mb-5 bg-[#111118] rounded-lg border-2 border-[#E8200C]/30 p-5">
+        <div className="mb-5 bg-[#0F3C64] rounded-lg border-2 border-[#D32028]/30 p-5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm text-white font-bold flex items-center gap-2" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
-                <span className="text-[#E8200C]">★</span> Sales Demo Mode
+              <h2 className="text-sm text-white font-bold flex items-center gap-2" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
+                <span className="text-[#D32028]">★</span> Sales Demo Mode
               </h2>
               <p className="text-[11px] text-[#888] mt-1">
                 Interactive presentation mode for client meetings. Walks through each Pad Logic capability with
@@ -113,15 +113,15 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
               </p>
             </div>
             <div
-              className={`relative w-14 h-7 rounded-full transition-colors cursor-pointer shrink-0 ml-4 ${cfg.salesMode ? 'bg-[#E8200C]' : 'bg-[#333]'}`}
+              className={`relative w-14 h-7 rounded-full transition-colors cursor-pointer shrink-0 ml-4 ${cfg.salesMode ? 'bg-[#D32028]' : 'bg-[#333]'}`}
               onClick={() => set('salesMode', !cfg.salesMode)}
             >
               <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${cfg.salesMode ? 'translate-x-7' : 'translate-x-1'}`} />
             </div>
           </div>
           {cfg.salesMode && (
-            <div className="mt-3 bg-[#E8200C]/5 rounded p-3 border border-[#E8200C]/20">
-              <p className="text-[11px] text-[#E8200C]">
+            <div className="mt-3 bg-[#D32028]/5 rounded p-3 border border-[#D32028]/20">
+              <p className="text-[11px] text-[#D32028]">
                 Sales Mode will launch with guided demo scenarios. Each scenario has interactive trigger buttons
                 your prospect can click to see Pad Logic respond in real time.
               </p>
@@ -132,13 +132,13 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
         {/* ═══════ MARKETING MATERIALS ═══════ */}
         <button
           onClick={() => setShowMarketing(true)}
-          className="w-full mb-5 bg-[#111118] rounded-lg border border-[#222] p-4 flex items-center gap-4 hover:border-[#4fc3f7]/50 transition-colors text-left"
+          className="w-full mb-5 bg-[#0F3C64] rounded-lg border border-[#222] p-4 flex items-center gap-4 hover:border-[#4fc3f7]/50 transition-colors text-left"
         >
           <div className="w-12 h-12 rounded-lg bg-[#4fc3f7]/10 border border-[#4fc3f7]/30 flex items-center justify-center shrink-0">
             <span className="text-2xl">📦</span>
           </div>
           <div className="flex-1">
-            <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+            <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
               Pad Logic Marketing Hub
             </h2>
             <p className="text-[11px] text-[#888] mt-0.5">
@@ -163,7 +163,7 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
                     onClick={() => set('compressorCount', n)}
                     className={`flex-1 py-2.5 rounded text-sm font-bold transition-all ${
                       cfg.compressorCount === n
-                        ? 'bg-[#E8200C] text-white'
+                        ? 'bg-[#D32028] text-white'
                         : 'bg-[#1a1a24] text-[#888] hover:bg-[#222] hover:text-white border border-[#333]'
                     }`}
                   >
@@ -182,7 +182,7 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
                 <input
                   type="range" min={1} max={10} value={cfg.wellCount}
                   onChange={e => set('wellCount', Number(e.target.value))}
-                  className="flex-1 accent-[#E8200C]"
+                  className="flex-1 accent-[#D32028]"
                 />
                 <span className="text-xl font-bold text-white w-8 text-center">{cfg.wellCount}</span>
               </div>
@@ -217,7 +217,7 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
                   onClick={() => set('siteType', opt.value)}
                   className={`flex-1 py-3 px-4 rounded text-left transition-all border ${
                     cfg.siteType === opt.value
-                      ? 'border-[#E8200C] bg-[#E8200C]/10'
+                      ? 'border-[#D32028] bg-[#D32028]/10'
                       : 'border-[#333] bg-[#1a1a24] hover:border-[#555]'
                   }`}
                 >
@@ -346,7 +346,7 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
               Injection control through <span className="text-white font-bold">well injection motor valves / choke valves</span> only.
             </p>
             <p className="text-[11px] text-[#ccc] mt-1">
-              Compressors are <span className="text-[#E8200C] font-bold">NOT</span> injection control devices. No compressor injection logic required.
+              Compressors are <span className="text-[#D32028] font-bold">NOT</span> injection control devices. No compressor injection logic required.
             </p>
           </div>
         </Section>
@@ -355,8 +355,8 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
         <div className="mt-6 mb-10">
           <button
             onClick={handleLaunch}
-            className="w-full py-4 bg-[#E8200C] hover:bg-[#c01a0a] text-white font-bold rounded-lg text-sm uppercase tracking-widest transition-colors"
-            style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+            className="w-full py-4 bg-[#D32028] hover:bg-[#B01A20] text-white font-bold rounded-lg text-sm uppercase tracking-widest transition-colors"
+            style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
           >
             Launch Simulator
           </button>
@@ -373,10 +373,10 @@ export default function ConfigPanel({ onLaunch, forceSalesMode }) {
 
 function Section({ number, title, children }) {
   return (
-    <div className="mb-5 bg-[#111118] rounded-lg border border-[#222233] p-4">
+    <div className="mb-5 bg-[#0F3C64] rounded-lg border border-[#222233] p-4">
       <div className="flex items-baseline gap-2 mb-2">
-        {number && <span className="text-[10px] text-[#E8200C] font-bold bg-[#E8200C]/10 px-2 py-0.5 rounded">§{number}</span>}
-        <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+        {number && <span className="text-[10px] text-[#D32028] font-bold bg-[#D32028]/10 px-2 py-0.5 rounded">§{number}</span>}
+        <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
           {title}
         </h2>
       </div>
@@ -387,7 +387,7 @@ function Section({ number, title, children }) {
 
 function ParamInput({ label, value, unit, onChange, min, max, step = 1, description }) {
   return (
-    <div className="bg-[#0a0a14] rounded border border-[#2a2a3a] p-3">
+    <div className="bg-[#03172A] rounded border border-[#2a2a3a] p-3">
       <label className="block text-[10px] text-[#aaa] uppercase tracking-wider font-bold mb-1">{label}</label>
       {description && <p className="text-[9px] text-[#555] mb-2">{description}</p>}
       <div className="flex items-center gap-2">
@@ -395,7 +395,7 @@ function ParamInput({ label, value, unit, onChange, min, max, step = 1, descript
           type="number" value={value}
           onChange={e => onChange(Number(e.target.value))}
           min={min} max={max} step={step}
-          className="w-24 bg-[#1a1a2a] border border-[#333] rounded px-2 py-1.5 text-white text-sm font-bold text-right outline-none focus:border-[#4fc3f7]"
+          className="w-24 bg-[#293C5B] border border-[#333] rounded px-2 py-1.5 text-white text-sm font-bold text-right outline-none focus:border-[#4fc3f7]"
         />
         <span className="text-[10px] text-[#888]">{unit}</span>
       </div>

@@ -12,7 +12,7 @@ function savePosts(posts) { localStorage.setItem('welllogic_forum', JSON.stringi
 export function ForumButton({ onClick }) {
   return (
     <button onClick={onClick}
-      className="fixed bottom-5 right-5 z-40 w-14 h-14 bg-[#E8200C] hover:bg-[#c01a0a] text-white rounded-full shadow-lg shadow-[#E8200C]/30 flex items-center justify-center text-2xl transition-all hover:scale-110 active:scale-95"
+      className="fixed bottom-5 right-5 z-40 w-14 h-14 bg-[#D32028] hover:bg-[#B01A20] text-white rounded-full shadow-lg shadow-[#D32028]/30 flex items-center justify-center text-2xl transition-all hover:scale-110 active:scale-95"
       title="Feedback & Discussion">
       💬
     </button>
@@ -83,9 +83,9 @@ export function ForumPanel({ onClose }) {
       <div className="w-[420px] h-full bg-[#0e0e18] border-l border-[#2a2a3a] shadow-2xl flex flex-col"
         onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="px-4 py-3 bg-[#0c0c16] border-b border-[#2a2a3a] shrink-0">
+        <div className="px-4 py-3 bg-[#0F3C64] border-b border-[#2a2a3a] shrink-0">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>💬 Feedback & Discussion</h2>
+            <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Montserrat'" }}>💬 Feedback & Discussion</h2>
             <button onClick={onClose} className="text-[#888] hover:text-white text-lg">✕</button>
           </div>
           <p className="text-[10px] text-[#666] mt-1">Share feedback, ask questions, or suggest improvements.</p>
@@ -94,12 +94,12 @@ export function ForumPanel({ onClose }) {
         {/* New post form */}
         <div className="px-4 py-3 bg-[#111120] border-b border-[#2a2a3a] shrink-0">
           <input type="text" value={name} onChange={e => setName(e.target.value)}
-            placeholder="Your name" className="w-full bg-[#0a0a14] border border-[#333] rounded px-3 py-2 text-white text-sm outline-none focus:border-[#E8200C] mb-2" />
+            placeholder="Your name" className="w-full bg-[#03172A] border border-[#333] rounded px-3 py-2 text-white text-sm outline-none focus:border-[#D32028] mb-2" />
           <textarea value={comment} onChange={e => setComment(e.target.value)}
             placeholder="Your feedback or question..." rows={3}
-            className="w-full bg-[#0a0a14] border border-[#333] rounded px-3 py-2 text-white text-sm outline-none focus:border-[#E8200C] mb-2 resize-none" />
+            className="w-full bg-[#03172A] border border-[#333] rounded px-3 py-2 text-white text-sm outline-none focus:border-[#D32028] mb-2 resize-none" />
           <button onClick={submitPost} disabled={!name.trim() || !comment.trim()}
-            className="w-full py-2 text-[11px] font-bold bg-[#E8200C] text-white rounded hover:bg-[#c01a0a] disabled:opacity-30">
+            className="w-full py-2 text-[11px] font-bold bg-[#D32028] text-white rounded hover:bg-[#B01A20] disabled:opacity-30">
             Post
           </button>
         </div>
@@ -114,18 +114,18 @@ export function ForumPanel({ onClose }) {
                 <span className="text-[12px] text-white font-bold">{post.name}</span>
                 <div className="flex items-center gap-2">
                   <span className="text-[9px] text-[#555]">{formatTime(post.timestamp)}</span>
-                  {isAdmin && <button onClick={() => deletePost(post.id)} className="text-[9px] text-[#E8200C] hover:text-white">✕</button>}
+                  {isAdmin && <button onClick={() => deletePost(post.id)} className="text-[9px] text-[#D32028] hover:text-white">✕</button>}
                 </div>
               </div>
               <p className="text-[11px] text-[#ccc] leading-relaxed">{post.comment}</p>
 
               {/* Replies */}
               {post.replies?.length > 0 && (
-                <div className="mt-2 space-y-1.5 pl-3 border-l-2 border-[#E8200C]/30">
+                <div className="mt-2 space-y-1.5 pl-3 border-l-2 border-[#D32028]/30">
                   {post.replies.map((reply, i) => (
                     <div key={i}>
                       <div className="flex items-center gap-1">
-                        <span className={`text-[10px] font-bold ${reply.isAdmin ? 'text-[#E8200C]' : 'text-[#4fc3f7]'}`}>
+                        <span className={`text-[10px] font-bold ${reply.isAdmin ? 'text-[#D32028]' : 'text-[#4fc3f7]'}`}>
                           {reply.author} {reply.isAdmin && '(Admin)'}
                         </span>
                         <span className="text-[8px] text-[#555]">{formatTime(reply.timestamp)}</span>
@@ -142,12 +142,12 @@ export function ForumPanel({ onClose }) {
                   <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && submitReply(post.id)}
                     placeholder="Your reply..." autoFocus
-                    className="flex-1 bg-[#0a0a14] border border-[#333] rounded px-2 py-1 text-white text-[10px] outline-none focus:border-[#E8200C]" />
-                  <button onClick={() => submitReply(post.id)} className="px-2 py-1 text-[9px] font-bold bg-[#E8200C] text-white rounded">Reply</button>
+                    className="flex-1 bg-[#03172A] border border-[#333] rounded px-2 py-1 text-white text-[10px] outline-none focus:border-[#D32028]" />
+                  <button onClick={() => submitReply(post.id)} className="px-2 py-1 text-[9px] font-bold bg-[#D32028] text-white rounded">Reply</button>
                   <button onClick={() => setReplyTo(null)} className="px-2 py-1 text-[9px] text-[#888] border border-[#333] rounded">✕</button>
                 </div>
               ) : (
-                <button onClick={() => setReplyTo(post.id)} className="mt-1 text-[9px] text-[#888] hover:text-[#E8200C]">
+                <button onClick={() => setReplyTo(post.id)} className="mt-1 text-[9px] text-[#888] hover:text-[#D32028]">
                   Reply
                 </button>
               )}

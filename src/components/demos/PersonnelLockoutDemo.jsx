@@ -68,7 +68,7 @@ export default function PersonnelLockoutDemo({ sim }) {
     {
       label: 'Remote Control',
       value: lockedCount === sim.state.compressors.length ? 'DISABLED' : 'ACTIVE',
-      color: lockedCount === sim.state.compressors.length ? '#E8200C' : '#22c55e',
+      color: lockedCount === sim.state.compressors.length ? '#D32028' : '#22c55e',
     },
     ...sim.state.compressors.map(c => ({
       label: c.name,

@@ -107,7 +107,7 @@ export default function SettingsTab() {
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={!!settings.forumPublic}
             onChange={e => updateSettings('forumPublic', e.target.checked)}
-            className="accent-[#E8200C]" />
+            className="accent-[#D32028]" />
           <span className="text-[11px] text-white">Forum visible to all users</span>
         </label>
       </div>
@@ -157,7 +157,7 @@ export default function SettingsTab() {
                           type="checkbox"
                           checked={isVisible}
                           onChange={e => toggleRegister(meta, e.target.checked)}
-                          className="mt-0.5 accent-[#E8200C]"
+                          className="mt-0.5 accent-[#D32028]"
                         />
                         <div className="min-w-0">
                           <div className="text-[11px] text-white font-bold">{meta.label}</div>
@@ -207,7 +207,7 @@ export default function SettingsTab() {
                     type="checkbox"
                     checked={isVisible}
                     onChange={e => toggleCompressorRegister(meta, e.target.checked)}
-                    className="mt-0.5 accent-[#E8200C]"
+                    className="mt-0.5 accent-[#D32028]"
                   />
                   <div className="min-w-0">
                     <div className="text-[11px] text-white font-bold">{meta.label}</div>

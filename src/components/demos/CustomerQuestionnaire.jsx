@@ -59,14 +59,14 @@ export default function CustomerQuestionnaire({ data, onChange, onComplete }) {
   const isComplete = true
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-[#080810] overflow-auto py-8">
+    <div className="flex-1 flex items-center justify-center bg-[#05233E] overflow-auto py-8">
       <div className="w-[600px] max-w-full px-4">
         {/* Header */}
         <div className="text-center mb-6">
           <div className="flex justify-center">
             <WellLogicCompact size={42} />
           </div>
-          <h1 className="text-xl text-white mt-2" style={{ fontFamily: "'Arial Black'" }}>
+          <h1 className="text-xl text-white mt-2" style={{ fontFamily: "'Montserrat'" }}>
             Pad Logic Custom Demo Setup
           </h1>
           <p className="text-[12px] text-[#888] mt-1">
@@ -78,15 +78,15 @@ export default function CustomerQuestionnaire({ data, onChange, onComplete }) {
         <div className="flex gap-1 mb-6">
           {QUESTIONS.map((_, i) => (
             <div key={i} className={`flex-1 h-1 rounded-full transition-colors ${
-              i <= currentSection ? 'bg-[#E8200C]' : 'bg-[#333]'
+              i <= currentSection ? 'bg-[#D32028]' : 'bg-[#333]'
             }`} />
           ))}
         </div>
 
         {/* Current section */}
-        <div className="bg-[#111118] rounded-xl border border-[#222] p-6">
-          <h2 className="text-sm text-[#E8200C] font-bold uppercase tracking-wider mb-4"
-            style={{ fontFamily: "'Arial Black'" }}>
+        <div className="bg-[#0F3C64] rounded-xl border border-[#222] p-6">
+          <h2 className="text-sm text-[#D32028] font-bold uppercase tracking-wider mb-4"
+            style={{ fontFamily: "'Montserrat'" }}>
             {QUESTIONS[currentSection].section}
           </h2>
 
@@ -112,7 +112,7 @@ export default function CustomerQuestionnaire({ data, onChange, onComplete }) {
           {currentSection < totalSections - 1 ? (
             <button
               onClick={() => setCurrentSection(s => Math.min(totalSections - 1, s + 1))}
-              className="px-4 py-2 text-[11px] font-bold bg-[#E8200C] text-white rounded hover:bg-[#c01a0a]"
+              className="px-4 py-2 text-[11px] font-bold bg-[#D32028] text-white rounded hover:bg-[#B01A20]"
             >
               Next
             </button>
@@ -120,8 +120,8 @@ export default function CustomerQuestionnaire({ data, onChange, onComplete }) {
             <button
               type="button"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onComplete() }}
-              className="px-8 py-3 text-sm font-bold bg-[#E8200C] text-white rounded-lg hover:bg-[#ff2510] shadow-lg shadow-[#E8200C]/30 transition-all cursor-pointer select-none"
-              style={{ fontFamily: "'Arial Black', Arial, sans-serif", pointerEvents: 'auto', zIndex: 10, position: 'relative' }}
+              className="px-8 py-3 text-sm font-bold bg-[#D32028] text-white rounded-lg hover:bg-[#ff2510] shadow-lg shadow-[#D32028]/30 transition-all cursor-pointer select-none"
+              style={{ fontFamily: "'Montserrat', Arial, sans-serif", pointerEvents: 'auto', zIndex: 10, position: 'relative' }}
             >
               Launch Demo
             </button>
@@ -149,16 +149,16 @@ function QuestionField({ question, value, onChange }) {
       <div className="flex items-center gap-2">
         {type === 'text' ? (
           <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-            className="flex-1 bg-[#0a0a14] border border-[#333] rounded px-3 py-2 text-white text-sm outline-none focus:border-[#E8200C]" />
+            className="flex-1 bg-[#03172A] border border-[#333] rounded px-3 py-2 text-white text-sm outline-none focus:border-[#D32028]" />
         ) : type === 'select' ? (
           <select value={value} onChange={e => onChange(e.target.value)}
-            className="flex-1 bg-[#0a0a14] border border-[#333] rounded px-3 py-2 text-white text-sm outline-none focus:border-[#E8200C]">
+            className="flex-1 bg-[#03172A] border border-[#333] rounded px-3 py-2 text-white text-sm outline-none focus:border-[#D32028]">
             {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
           </select>
         ) : (
           <input type="number" value={value} onChange={e => onChange(Number(e.target.value))}
             min={min} max={max} step={step || 1}
-            className="w-28 bg-[#0a0a14] border border-[#333] rounded px-3 py-2 text-white text-sm text-right outline-none focus:border-[#E8200C]" />
+            className="w-28 bg-[#03172A] border border-[#333] rounded px-3 py-2 text-white text-sm text-right outline-none focus:border-[#D32028]" />
         )}
         {unit && <span className="text-[10px] text-[#666] shrink-0">{unit}</span>}
       </div>

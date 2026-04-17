@@ -203,7 +203,7 @@ export default function TutorialOverlay({ active, onEnd }) {
               >X</button>
             </div>
             {/* Title */}
-            <h4 className="text-sm font-bold text-white mb-2" style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}>
+            <h4 className="text-sm font-bold text-white mb-2" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
               {currentStep.title}
             </h4>
             {/* Description */}

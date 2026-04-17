@@ -118,13 +118,13 @@ export default function SalesMode({ sim, config }) {
 
   // Safety check — make sure simulation is ready
   if (!sim?.state?.wells) {
-    return <div className="flex-1 flex items-center justify-center bg-[#080810] text-white">Loading simulation...</div>
+    return <div className="flex-1 flex items-center justify-center bg-[#05233E] text-white">Loading simulation...</div>
   }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-2 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0">
+      <div className="flex items-center justify-between px-5 py-2 bg-[#0F3C64] border-b border-[#293C5B] shrink-0">
         <div className="flex items-center gap-3">
           <WellLogicCompact size={32} />
           {customerData.customerName && (
@@ -137,13 +137,13 @@ export default function SalesMode({ sim, config }) {
         <div className="flex items-center gap-2">
           <button onClick={() => setShowFeaturePanel(f => !f)}
             className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded border transition-colors ${
-              showFeaturePanel ? 'bg-[#E8200C] text-white border-[#E8200C]' : 'text-[#888] border-[#333] hover:border-[#E8200C] hover:text-white'
+              showFeaturePanel ? 'bg-[#D32028] text-white border-[#D32028]' : 'text-[#888] border-[#333] hover:border-[#D32028] hover:text-white'
             }`}>Features</button>
           <button onClick={() => { setQuestionnaireComplete(false) }}
             className="px-3 py-1 text-[10px] font-bold text-[#888] border border-[#333] rounded hover:text-white hover:border-[#555]">
             Edit Inputs
           </button>
-          <div className="px-3 py-1 bg-[#E8200C]/10 border border-[#E8200C]/30 rounded text-[10px] text-[#E8200C] font-bold uppercase tracking-wider">
+          <div className="px-3 py-1 bg-[#D32028]/10 border border-[#D32028]/30 rounded text-[10px] text-[#D32028] font-bold uppercase tracking-wider">
             Sales Demo
           </div>
           <button onClick={() => setShowAdmin(true)} className="p-1.5 text-[#555] hover:text-white" title="Admin">
@@ -156,18 +156,18 @@ export default function SalesMode({ sim, config }) {
 
       {/* Revenue ticker */}
       {features.revenueTicker && sim?.state?.wells?.length > 0 && (
-        <div className="px-3 py-1.5 bg-[#060610] border-b border-[#1a1a2a] shrink-0">
+        <div className="px-3 py-1.5 bg-[#060610] border-b border-[#293C5B] shrink-0">
           <SafeWrapper><RevenueTicker sim={sim} customerData={customerData} brentPrice={brentPrice} /></SafeWrapper>
         </div>
       )}
 
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Demo nav */}
-        <div className="w-[80px] shrink-0 bg-[#0a0a14] border-r border-[#1a1a2a] flex flex-col items-center py-1 gap-0 overflow-y-auto">
+        <div className="w-[80px] shrink-0 bg-[#03172A] border-r border-[#293C5B] flex flex-col items-center py-1 gap-0 overflow-y-auto">
           {DEMOS.map(demo => (
             <button key={demo.id} onClick={() => setActiveDemo(demo.id)}
               className={`w-full flex flex-col items-center gap-0.5 py-2 px-1 text-center transition-all border-l-2 ${
-                activeDemo === demo.id ? 'bg-[#1a1a30] text-white border-l-[#E8200C]' : 'text-[#888] hover:bg-[#111120] hover:text-[#ccc] border-l-transparent'
+                activeDemo === demo.id ? 'bg-[#1a1a30] text-white border-l-[#D32028]' : 'text-[#888] hover:bg-[#111120] hover:text-[#ccc] border-l-transparent'
               }`}>
               <span className="text-base leading-none">{demo.icon}</span>
               <span className="text-[7px] font-bold leading-tight whitespace-pre-line mt-0.5">{demo.label}</span>
@@ -180,7 +180,7 @@ export default function SalesMode({ sim, config }) {
           <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
             {currentDemo && <currentDemo.Component sim={sim} />}
             {(features.beforeAfter || features.responseTimer) && (
-              <div className="px-3 pb-2 bg-[#080810] shrink-0 flex gap-2 overflow-x-auto" style={{ maxHeight: 160 }}>
+              <div className="px-3 pb-2 bg-[#05233E] shrink-0 flex gap-2 overflow-x-auto" style={{ maxHeight: 160 }}>
                 {features.beforeAfter && <div className="flex-1 min-w-[250px]"><SafeWrapper><BeforeAfterOverlay sim={sim} customerData={customerData} /></SafeWrapper></div>}
                 {features.responseTimer && <div className="flex-1 min-w-[250px]"><SafeWrapper><ResponseTimer sim={sim} customerData={customerData} /></SafeWrapper></div>}
               </div>
@@ -189,7 +189,7 @@ export default function SalesMode({ sim, config }) {
 
           {/* Feature panel */}
           {showFeaturePanel && (
-            <div className="w-[250px] shrink-0 bg-[#0a0a14] border-l border-[#1a1a2a] overflow-y-auto p-3 sidebar-scroll">
+            <div className="w-[250px] shrink-0 bg-[#03172A] border-l border-[#293C5B] overflow-y-auto p-3 sidebar-scroll">
               <FeatureToggles features={features} onToggle={toggleFeature} />
               {features.badDay && <BadDayButton sim={sim} />}
               {features.saturdayNight && <div className="mt-2"><SaturdayNightButton sim={sim} customerData={customerData} /></div>}

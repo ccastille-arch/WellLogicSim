@@ -35,7 +35,7 @@ export function WellLogicCompact({ size = 38 }) {
       <div className="leading-none">
         <div
           className="text-[15px] text-white font-black uppercase tracking-[0.14em]"
-          style={{ fontFamily: "'Arial Black', Arial, sans-serif" }}
+          style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
         >
           Pad Logic
         </div>
