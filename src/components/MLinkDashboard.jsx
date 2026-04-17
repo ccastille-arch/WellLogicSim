@@ -1100,11 +1100,27 @@ function KlondikeHistoryTab({ klondike }) {
   // partial day still shows as "1 day" rather than "0 days". This
   // replaces the old hardcoded "30-Day" label so the header reflects
   // what the user is actually looking at.
+  //
+  // IMPORTANT: data is now merged CSV + API rows. The merge sorts by
+  // numeric Date.parse so data[0] is genuinely the earliest row and
+  // data[length-1] the latest regardless of timestamp string format.
   const firstTs = data[0]?.timestamp ? Date.parse(data[0].timestamp) : NaN
   const lastTs = data[data.length - 1]?.timestamp ? Date.parse(data[data.length - 1].timestamp) : NaN
-  const daysOfData = Number.isFinite(firstTs) && Number.isFinite(lastTs)
+  const daysOfData = Number.isFinite(firstTs) && Number.isFinite(lastTs) && lastTs >= firstTs
     ? Math.max(1, Math.ceil((lastTs - firstTs) / 86400_000) + 1)
     : data.length
+
+  // Render timestamps in a consistent human format so the subtitle
+  // doesn't show a raw ISO string next to a US locale string.
+  const fmtTs = (raw) => {
+    if (!raw) return '--'
+    const ms = Date.parse(raw)
+    if (!Number.isFinite(ms)) return String(raw)
+    return new Date(ms).toLocaleString(undefined, {
+      month: 'numeric', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    })
+  }
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'well1', label: 'Well 1' },

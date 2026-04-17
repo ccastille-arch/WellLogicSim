@@ -141,23 +141,57 @@ async function fetchLiveHistory() {
   }
 }
 
+// Timestamps arrive in two shapes: CSV rows carry the exporter's
+// US-locale string ("4/12/2026 12:53:33 AM") and API rows carry ISO
+// ("2026-04-17T12:45:00.000Z"). String-comparison between those two
+// formats orders all ISO rows before all locale rows regardless of
+// actual time — which is how the Field Data tab ended up showing
+// "1-Day" and the cursor landing on April 17 instead of April 6.
+// Compare numerically via Date.parse so the merged array is actually
+// chronological.
+function tsMs(row) {
+  if (!row?.timestamp) return NaN
+  const ms = Date.parse(row.timestamp)
+  return Number.isFinite(ms) ? ms : NaN
+}
+
+// Dedupe key needs to span both formats too. Normalize to a numeric
+// ms bucket (rounded to the nearest minute) so a CSV row and an API
+// row that describe the same sample collide cleanly.
+function tsKey(row) {
+  const ms = tsMs(row)
+  if (!Number.isFinite(ms)) return String(row?.timestamp || '')
+  return String(Math.round(ms / 60_000)) // per-minute bucket
+}
+
 function mergeByTimestamp(csvRows, apiRows) {
   const seen = new Set()
   const merged = []
   // API rows first so their `registers` map wins on collision; the CSV
   // baseline fills in anywhere the live scheduler hasn't observed yet.
   for (const row of apiRows) {
-    if (!row?.timestamp) continue
-    seen.add(row.timestamp)
+    const key = tsKey(row)
+    if (!key) continue
+    seen.add(key)
     merged.push(row)
   }
   for (const row of csvRows) {
-    if (!row?.timestamp) continue
-    if (seen.has(row.timestamp)) continue
-    seen.add(row.timestamp)
+    const key = tsKey(row)
+    if (!key) continue
+    if (seen.has(key)) continue
+    seen.add(key)
     merged.push(row)
   }
-  merged.sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)))
+  // Rows without a parseable timestamp sort to the tail rather than
+  // blocking the valid ones at the head.
+  merged.sort((a, b) => {
+    const ta = tsMs(a)
+    const tb = tsMs(b)
+    if (Number.isFinite(ta) && Number.isFinite(tb)) return ta - tb
+    if (Number.isFinite(ta)) return -1
+    if (Number.isFinite(tb)) return 1
+    return 0
+  })
   return merged
 }
 

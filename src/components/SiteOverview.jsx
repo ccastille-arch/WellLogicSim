@@ -25,7 +25,11 @@ export default function SiteOverview({ state, animateFlow = true, verticalOffset
   const scrubberLevelColor = scrubberLevel > 60 ? '#D32028' : scrubberLevel > 40 ? '#eab308' : '#22c55e'
 
   return (
-    <div className="flex-1 overflow-hidden bg-[#05233E]">
+    // overflow-auto rather than overflow-hidden so narrow-viewport
+    // presentations (Sales Demo with both sidebars visible) never
+    // clip outer SVG labels off the left edge — users can scroll to
+    // reach them instead of losing content entirely.
+    <div className="flex-1 overflow-auto bg-[#05233E]">
       <svg viewBox={`0 0 ${L.W} ${L.H}`} className="w-full h-full" preserveAspectRatio="xMidYMid meet"
         style={{ fontFamily: "Arial, sans-serif" }}>
         <defs>
@@ -161,10 +165,59 @@ export default function SiteOverview({ state, animateFlow = true, verticalOffset
         })}
 
         {/* ═══════════ BOTTOM: SUCTION HEADER ═══════════ */}
-        <HdrPipe x1={L.suctionHdrX1} y={L.suctionHdrY} x2={L.suctionHdrX2 + 10} label="SUCTION HEADER" color="#f97316" animate={animateFlow} />
-        <text x={L.suctionHdrX1 - 4} y={L.suctionHdrY + 16} textAnchor="end" fill="#f97316" fontSize={11} fontWeight="bold">
-          {suctionHeaderPressure.toFixed(0)} PSI
-        </text>
+        {/* Line draws without its HdrPipe label (passing '' suppresses
+             the default "to the left of x1" text that was getting
+             clipped off the viewport). The chip below replaces it
+             with an in-bounds label + live pressure readout. */}
+        <HdrPipe x1={L.suctionHdrX1} y={L.suctionHdrY} x2={L.suctionHdrX2 + 10} label="" color="#f97316" animate={animateFlow} />
+        {/* SUCTION HEADER chip — sits ABOVE the pipe so it's always
+             within the viewport regardless of screen width. Dark-filled
+             so it stays legible over the navy background, orange
+             border matches the pipe color. Pressure reading is the
+             bright white value viewers read at a glance. */}
+        {(() => {
+          const chipX = L.suctionHdrX1 + 30
+          const chipY = L.suctionHdrY - 26
+          const chipW = 240
+          const chipH = 24
+          return (
+            <g>
+              <rect
+                x={chipX} y={chipY} width={chipW} height={chipH}
+                fill="#03172A" stroke="#f97316" strokeWidth={1.5} rx={2}
+              />
+              <text
+                x={chipX + 12}
+                y={chipY + chipH / 2 + 4}
+                fill="#f97316"
+                fontSize={11}
+                fontWeight="bold"
+                letterSpacing={1.5}
+              >
+                SUCTION HEADER
+              </text>
+              <line
+                x1={chipX + 140}
+                y1={chipY + 5}
+                x2={chipX + 140}
+                y2={chipY + chipH - 5}
+                stroke="#f97316"
+                strokeOpacity={0.35}
+                strokeWidth={1}
+              />
+              <text
+                x={chipX + chipW - 12}
+                y={chipY + chipH / 2 + 4}
+                textAnchor="end"
+                fill="#FFFFFF"
+                fontSize={13}
+                fontWeight="bold"
+              >
+                {suctionHeaderPressure.toFixed(0)} PSI
+              </text>
+            </g>
+          )
+        })()}
 
         {/* Title */}
         <text x={15} y={18} fill="#333" fontSize={10} fontWeight="bold" letterSpacing="3">
