@@ -55,8 +55,8 @@ export default function LandingPage({ onNavigate }) {
               letterSpacing: 0.2,
             }}
           >
-            Automated gas lift injection optimization — built on live field data,
-            tuned to your fleet, not to a spec sheet.
+            Sits on top of the SCADA you already run. Your PID loops handle
+            steady flow. Well Logic handles the moments they can't.
           </p>
         </div>
 
@@ -311,7 +311,7 @@ export default function LandingPage({ onNavigate }) {
               id: 'sales',
               tag: 'Sales · Demo',
               title: 'Sales Demo',
-              desc: 'Interactive simulator — run scenarios live during a client call.',
+              desc: 'Run the scenarios pads actually face. See what steady control holds — and what it can\u2019t.',
               cta: 'Launch demo',
               accent: '#49D0E2',
             },

@@ -91,6 +91,20 @@ export default function MLinkDashboard({ onBack }) {
   const [tab, setTab] = useState('live') // live | history | klondike
   const klondike = useKlondikeData()
 
+  // Admin-configured per-well setpoint overrides — same settings key
+  // used by WellAchievementSection so there's a single source of truth
+  // for "what the wells should be targeting". Used as a fallback here
+  // when the live MLink panel isn't returning the
+  // "Wellhead #N Calculated Desired Flow" register (which has been
+  // intermittent during the 2-sec pull-rate transition with Murphy).
+  const [wellSetpointOverrides, setWellSetpointOverrides] = useState(null)
+  useEffect(() => {
+    fetch('/api/data/settings', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : {})
+      .then(s => setWellSetpointOverrides(s.well_setpoint_overrides || null))
+      .catch(() => {})
+  }, [])
+
   // Guard against overlapping fetches when the interval fires faster
   // than the network can return. With 2-second polling on a slow
   // connection we can't let requests pile up — keep the newest one
@@ -101,26 +115,33 @@ export default function MLinkDashboard({ onBack }) {
     if (inFlightRef.current) return
     inFlightRef.current = true
     if (!silent) setLoading(true)
-    setLiveError('')
     try {
       const [panelResult, compAResult, compBResult] = await Promise.all([
         fetchDevice(LIVE_DATA_DEVICES.panel),
         fetchDevice(LIVE_DATA_DEVICES.compA),
         fetchDevice(LIVE_DATA_DEVICES.compB),
       ])
-      setPanelData(panelResult.data)
-      setCompAData(compAResult.data)
-      setCompBData(compBResult.data)
 
+      // HOLD LAST KNOWN GOOD: if a specific device's fetch returned
+      // null (network blip, MLink timeout, transient 5xx), keep the
+      // previous state for that device instead of blanking the UI.
+      // The presenter should never see a room-full of "--" just
+      // because one 2-second tick didn't make it back in time.
+      if (panelResult.data) setPanelData(panelResult.data)
+      if (compAResult.data) setCompAData(compAResult.data)
+      if (compBResult.data) setCompBData(compBResult.data)
+
+      const gotAny = !!(panelResult.data || compAResult.data || compBResult.data)
       const errors = [panelResult.error, compAResult.error, compBResult.error].filter(Boolean)
-      if (!panelResult.data && !compAResult.data && !compBResult.data) {
-        setLiveError(
-          errors.length > 0
-            ? `No live MLINK data is coming back right now. ${errors.join(' | ')}`
-            : 'No live MLINK data is coming back right now. Check the MLINK proxy route, Railway environment variables, and field comms.',
-        )
+      if (gotAny) {
+        // At least one device landed — clear any lingering error and
+        // stamp lastRefresh only on actually-new data so the "Auto ·
+        // HH:MM:SS" chip reflects data freshness, not poll attempts.
+        setLiveError('')
+        setLastRefresh(new Date())
+      } else if (errors.length > 0) {
+        setLiveError(`Live MLink tick didn't return — holding last known good reading. ${errors.join(' | ')}`)
       }
-      setLastRefresh(new Date())
     } finally {
       setLoading(false)
       inFlightRef.current = false
@@ -199,6 +220,18 @@ export default function MLinkDashboard({ onBack }) {
   const compressorActualFlowDatapoints = [compA, compB].map((compressorData) =>
     findCompressorActualFlow(compressorData),
   )
+  // Historical per-well average desired (used as the final baseline
+  // when panel + override + latest history are all silent). Computed
+  // once per render off the full merged klondike dataset.
+  const klondikeAvgDesired = (idx) => {
+    if (!klondike.data?.length) return null
+    const samples = klondike.data
+      .map(r => r.wells?.[idx]?.desiredInjectionRateMmscfd ?? r.wells?.[idx]?.setpointMmscfd ?? r.wells?.[idx]?.calcDesiredFlow)
+      .filter(v => v != null && v > 0)
+    if (!samples.length) return null
+    return samples.reduce((a, b) => a + b, 0) / samples.length
+  }
+
   const liveWellPerformance = LIVE_WELL_FLOW_KEYS.map((keys, index) => {
     const wellNumber = index + 1
     const actual = parseLiveNumeric(getFirstDatapoint(panel, keys)?.value)
@@ -208,9 +241,28 @@ export default function MLinkDashboard({ onBack }) {
       `Well ${wellNumber} Calculated Desired Flow`,
       `Well ${wellNumber} Setpoint From Customer PLC`,
     ])
+
+    // Desired-flow fallback chain — broken from most-authoritative to
+    // most-forgiving. Any one succeeding short-circuits the rest so a
+    // live read stays "live" and we only degrade when we have to.
+    //   1. Live panel register — what Murphy is pushing right now.
+    //   2. Admin override — set explicitly on the Well Achievement
+    //      edit UI; reflects customer intent even when comms drop.
+    //   3. Latest history row — the most recent observed setpoint
+    //      we have from CSV baseline or API snapshot.
+    //   4. Full-dataset average — last resort so the UI never shows
+    //      "-- match" / "Chasing" indefinitely.
+    const panelDesired = parseLiveNumeric(desiredDatapoint?.value)
+    const overrideDesired = wellSetpointOverrides?.[index] ?? wellSetpointOverrides?.[String(index)]
     const historicalDesired = latestHistoryRow?.wells?.[index]?.desiredInjectionRateMmscfd
       ?? latestHistoryRow?.wells?.[index]?.setpointMmscfd
-    const desired = parseLiveNumeric(desiredDatapoint?.value) ?? historicalDesired ?? null
+    const avgDesired = klondikeAvgDesired(index)
+    const desired = panelDesired
+      ?? (overrideDesired != null && overrideDesired > 0 ? overrideDesired : null)
+      ?? historicalDesired
+      ?? avgDesired
+      ?? null
+
     const gap = actual != null && desired != null ? actual - desired : null
     return {
       wellNumber,
@@ -221,9 +273,21 @@ export default function MLinkDashboard({ onBack }) {
       atTarget: isWithinTarget(actual, desired),
     }
   })
+  // Full-dataset average compressor desired (last-resort fallback).
+  const klondikeAvgCompDesired = (compIdx) => {
+    if (!klondike.data?.length) return null
+    const key = `comp${compIdx + 1}DesiredFlow`
+    const samples = klondike.data
+      .map(r => r?.[key])
+      .filter(v => v != null && v > 0)
+    if (!samples.length) return null
+    return samples.reduce((a, b) => a + b, 0) / samples.length
+  }
+
   const liveCompressorPerformance = [compA, compB].map((compressorData, index) => ({
     desired: parseLiveNumeric(compressorDesiredDatapoints[index]?.value)
       ?? latestHistoryRow?.[`comp${index + 1}DesiredFlow`]
+      ?? klondikeAvgCompDesired(index)
       ?? null,
     actual: parseLiveNumeric(compressorActualFlowDatapoints[index]?.value),
   }))
