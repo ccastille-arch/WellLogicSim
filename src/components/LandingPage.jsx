@@ -36,7 +36,7 @@ export default function LandingPage({ onNavigate }) {
         {/* Hero lockup */}
         <div className="text-center mb-10">
           <div className="sc-eyebrow mb-2" style={{ display: 'inline-block' }}>
-            Service Compression · FieldTune
+            Service Compression
           </div>
           <div className="flex justify-center mb-1">
             <span className="sc-rule" aria-hidden="true" />
