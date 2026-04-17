@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Well Logic — Automated Gas Lift Optimization | FieldTune by Service Compression</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Montserrat',sans-serif;background:#000;color:#fff;overflow:hidden;height:100vh;display:flex;align-items:center;justify-content:center}
+#vc{position:relative;width:100vw;height:100vh;overflow:hidden;background:#05233E}
+canvas{width:100%;height:100%;display:block}
+#ctrls{position:absolute;top:20px;left:24px;display:flex;align-items:center;gap:10px;z-index:100;opacity:0;transition:opacity .4s}
+#vc:hover #ctrls{opacity:1}
+#ctrls button{font-family:'Montserrat',sans-serif;font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase;border:none;cursor:pointer;padding:14px 32px;transition:all .2s}
+#pbtn{background:#D32028;color:#fff}
+#pbtn:hover{background:#b91c23}
+#rbtn{background:transparent;color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.15)}
+#rbtn:hover{color:#fff;border-color:rgba(255,255,255,.4)}
+#tbtn{background:#49D0E2;color:#05233E}
+#tbtn:hover{background:#76ddeb}
+#pbar{position:absolute;bottom:0;left:0;height:3px;background:#D32028;z-index:99;transition:width .05s linear}
+#snum{position:absolute;top:24px;right:28px;font-size:10px;font-weight:600;letter-spacing:3px;color:rgba(255,255,255,.2);z-index:50}
+</style>
+</head>
+<body>
+<script src="narration_audio.js"></script>
+<div id="vc">
+<canvas id="cv"></canvas>
+<div id="pbar"></div>
+<div id="snum"></div>
+<div id="ctrls">
+<button id="pbtn">PLAY</button>
+<button id="rbtn">RESTART</button>
+<button id="tbtn">TEST SPEAKERS</button>
+</div>
+</div>
+<script>
+// ════════════════════════════════════════════════════════════════════════
+//  SERVICE COMPRESSION BRAND KIT — verified April 2026
+// ════════════════════════════════════════════════════════════════════════
+const B = {
+  navy: '#05233E', navyRgb: [5, 35, 62],
+  navyL: '#0F3C64', navyM: '#293C5B',
+  red: '#D32028', redRgb: [211, 32, 40],
+  wht: '#FFFFFF', off: '#EDEDED',
+  gray: '#474444', lgray: '#C1C1C1',
+  cyan: '#49D0E2', cyanRgb: [73, 208, 226],
+  dk: '#212121', green: '#22c55e',
+};
+const FONT = 'Montserrat';
+
+// ════════════════════════════════════════════════════════════════════════
+//  SCENE DEFINITIONS
+// ════════════════════════════════════════════════════════════════════════
+// Caption and timing constants
+const CAPTION_DELAY = 1.5; // seconds before caption/voice starts (let title appear first)
+
+// Scene durations are set from MEASURED audio file lengths + delay + 2s buffer.
+// Audio generated at -5% rate with en-US-GuyNeural.
+// Measured via mutagen + 3.5s buffer after audio ends to prevent cutoff
+// Scene duration = ceil(1.5s delay + audio_length + 3.5s buffer)
+const AUDIO_DURATIONS = { 1: 23.81, 2: 27.19, 3: 22.85, 4: 19.37, 5: 18.65 };
+
+const SCENES = [
+  { d: 10, v: 'intro', t: '', n: '' },
+  { d: 29, v: 'desert', t: 'THE 80/20 PROBLEM',
+    n: 'Your SCADA system does a good job eighty percent of the time. Normal operations. Steady-state conditions. But the other twenty percent is where production gets lost. Compressor trips. Pressure swings. Overnight events no one catches in time. That twenty percent is the problem.' },
+  { d: 33, v: 'pad', t: 'ISOLATED PLAYERS',
+    n: 'Today, every piece of equipment on your pad runs its own isolated control loop. Your compressors. Your chokes. Your scrubber. Your sales valve. Each one reacts to what is right in front of it. No coordination. No awareness of what is happening upstream or downstream. When a receiver does not know the play is coming, he fumbles.' },
+  { d: 28, v: 'comp', t: 'THE QUARTERBACK',
+    n: 'Well Logic is the quarterback. It connects to every piece of equipment on your pad — compressors, choke valves, suction header, scrubber, sales valve, cooler — and teaches them to work together as a team. When every player knows their role, the quarterback can call an audible. Well Logic sees what is coming and adjusts the whole team before the hit arrives.' },
+  { d: 25, v: 'well', t: 'PROACTIVE, NOT REACTIVE',
+    n: 'Imagine having your most experienced production foreman standing on your well pad day and night. And your most experienced compressor operator at the panel around the clock. Each one constantly adjusting equipment for what they see coming — instead of leaving each device to react on its own isolated PID loop.' },
+  { d: 24, v: 'data', t: 'STOP FUMBLING THE TWENTY PERCENT',
+    n: 'Your SCADA handles the routine. Well Logic handles the moments that matter. The trips. The swings. The two A.M. events that cost you production. Let Well Logic help your team stop fumbling on the twenty percent conditions.' },
+  { d: 10, v: 'close', t: '', n: '' },
+];
+
+console.log('Scene durations (synced to measured audio):',
+  SCENES.map((s, i) => {
+    const ad = AUDIO_DURATIONS[i];
+    return `${s.v}: ${s.d}s${ad ? ` (audio: ${ad}s)` : ' (visual)'}`;
+  }));
+
+// ════════════════════════════════════════════════════════════════════════
+//  CANVAS SETUP
+// ════════════════════════════════════════════════════════════════════════
+const cv = document.getElementById('cv');
+const c = cv.getContext('2d');
+const W = 1920, H = 1080;
+cv.width = W; cv.height = H;
+const LB = 76; // letterbox height
+const FPS = 30;
+let playing = false, si = 0, sf = 0, gf = 0, raf = null;
+const totalFrames = SCENES.reduce((a, s) => a + s.d * FPS, 0);
+let testToneCtx = null;
+
+// ════════════════════════════════════════════════════════════════════════
+//  EASING FUNCTIONS
+// ════════════════════════════════════════════════════════════════════════
+function easeInOut(t) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
+function easeOut(t) { return 1 - (1 - t) * (1 - t); }
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function easeInCubic(t) { return t * t * t; }
+function clamp(v, lo = 0, hi = 1) { return Math.max(lo, Math.min(hi, v)); }
+function remap(v, a, b, c2, d) { return c2 + (d - c2) * clamp((v - a) / (b - a)); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+// ════════════════════════════════════════════════════════════════════════
+//  PARTICLE SYSTEM — ambient floating dust motes
+// ════════════════════════════════════════════════════════════════════════
+const particles = [];
+for (let i = 0; i < 150; i++) {
+  particles.push({
+    x: Math.random() * W, y: Math.random() * H,
+    vx: (Math.random() - 0.5) * 0.35, vy: (Math.random() - 0.5) * 0.2,
+    r: Math.random() * 1.6 + 0.3,
+    a: Math.random() * 0.12 + 0.02,
+    col: Math.random() > 0.75 ? B.cyan : B.wht,
+    phase: Math.random() * Math.PI * 2,
+  });
+}
+
+function tickParticles() {
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < -10) p.x = W + 10;
+    if (p.x > W + 10) p.x = -10;
+    if (p.y < -10) p.y = H + 10;
+    if (p.y > H + 10) p.y = -10;
+  });
+}
+
+function drawParticles(alpha = 1, tick = 0) {
+  c.save();
+  particles.forEach(p => {
+    const twinkle = 0.6 + 0.4 * Math.sin(tick * 0.03 + p.phase);
+    c.globalAlpha = p.a * alpha * twinkle;
+    c.fillStyle = p.col;
+    c.beginPath();
+    c.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    c.fill();
+  });
+  c.restore();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  DATA STREAM LINES — flowing network data effect
+// ════════════════════════════════════════════════════════════════════════
+const streams = [];
+for (let i = 0; i < 30; i++) {
+  streams.push({
+    x: Math.random() * W, y: Math.random() * H,
+    len: 80 + Math.random() * 200,
+    speed: 0.8 + Math.random() * 1.8,
+    angle: Math.random() * Math.PI * 2,
+    a: Math.random() * 0.05 + 0.01,
+  });
+}
+
+function drawStreams(tick, alpha = 1) {
+  c.save();
+  streams.forEach(s => {
+    const offset = (tick * s.speed) % (s.len + 500) - 250;
+    const dx = Math.cos(s.angle), dy = Math.sin(s.angle);
+    const x1 = s.x + dx * offset, y1 = s.y + dy * offset;
+    const x2 = s.x + dx * (offset + s.len), y2 = s.y + dy * (offset + s.len);
+    const g = c.createLinearGradient(x1, y1, x2, y2);
+    g.addColorStop(0, 'transparent');
+    g.addColorStop(0.5, `rgba(${B.cyanRgb.join(',')},${s.a * alpha})`);
+    g.addColorStop(1, 'transparent');
+    c.strokeStyle = g; c.lineWidth = 0.7;
+    c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+  });
+  c.restore();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  CINEMATIC POST-PROCESSING
+// ════════════════════════════════════════════════════════════════════════
+
+// Film grain overlay
+function drawFilmGrain(intensity = 0.03) {
+  const imageData = c.getImageData(0, 0, W, H);
+  const data = imageData.data;
+  // Sample every 4th pixel for performance
+  for (let i = 0; i < data.length; i += 16) {
+    const noise = (Math.random() - 0.5) * 255 * intensity;
+    data[i] += noise;
+    data[i + 1] += noise;
+    data[i + 2] += noise;
+  }
+  c.putImageData(imageData, 0, 0);
+}
+
+// Vignette — darkened corners for cinematic depth
+function drawVignette(strength = 0.4) {
+  const g = c.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.85);
+  g.addColorStop(0, 'transparent');
+  g.addColorStop(1, `rgba(0,0,0,${strength})`);
+  c.fillStyle = g;
+  c.fillRect(0, 0, W, H);
+}
+
+// Subtle camera drift — simulates handheld micro-movement
+function applyCameraDrift(tick, amount = 2) {
+  const dx = Math.sin(tick * 0.008) * amount;
+  const dy = Math.cos(tick * 0.006 + 0.5) * amount * 0.7;
+  c.translate(dx, dy);
+}
+
+// Ken Burns slow zoom
+function applyKenBurns(tick, duration, zoomStart = 1.0, zoomEnd = 1.03) {
+  const progress = clamp(tick / duration);
+  const scale = lerp(zoomStart, zoomEnd, progress);
+  c.translate(W / 2, H / 2);
+  c.scale(scale, scale);
+  c.translate(-W / 2, -H / 2);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  TEXT RENDERING — with proper letter-spacing that handles word gaps
+// ════════════════════════════════════════════════════════════════════════
+function txt(text, x, y, opts = {}) {
+  const { sz = 16, wt = 400, col = B.wht, al = 'center', bl = 'middle', sp = 0, mw = 0, lh = 0 } = opts;
+  c.save();
+  c.fillStyle = col;
+  c.font = `${wt} ${sz}px ${FONT}`;
+  c.textAlign = al;
+  c.textBaseline = bl;
+
+  if (sp > 0 && al === 'center') {
+    // Letter-spacing: uniform gap between all chars.
+    // Space chars already have natural width, so word gaps = natural_space_width + sp
+    // which is visibly larger than the sp-only gap between letters within a word.
+    const chars = text.split('');
+    let totalW = 0;
+    chars.forEach((ch, i) => {
+      totalW += c.measureText(ch).width;
+      if (i < chars.length - 1) totalW += sp;
+    });
+    let cx = x - totalW / 2;
+    chars.forEach((ch, i) => {
+      c.fillText(ch, cx, y);
+      cx += c.measureText(ch).width;
+      if (i < chars.length - 1) cx += sp;
+    });
+  } else if (mw > 0) {
+    // Multi-line word wrap
+    const words = text.split(' ');
+    const lines = [];
+    let line = '';
+    words.forEach(w => {
+      const test = line ? line + ' ' + w : w;
+      if (c.measureText(test).width > mw && line) {
+        lines.push(line);
+        line = w;
+      } else {
+        line = test;
+      }
+    });
+    if (line) lines.push(line);
+    const lineH = lh || (sz * 1.5);
+    const startY = y - ((lines.length - 1) * lineH) / 2;
+    lines.forEach((l, i) => c.fillText(l, x, startY + i * lineH));
+  } else {
+    c.fillText(text, x, y);
+  }
+  c.restore();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  OVERLAY SYSTEM — letterbox, watermark, titles, captions
+// ════════════════════════════════════════════════════════════════════════
+function drawLetterbox() {
+  c.fillStyle = '#000';
+  c.fillRect(0, 0, W, LB);
+  c.fillRect(0, H - LB, W, LB);
+}
+
+function drawWatermark(tick) {
+  c.save();
+  const pulse = 0.9 + 0.1 * Math.sin(tick * 0.015);
+  c.globalAlpha = 0.4 * pulse;
+  txt('FIELDTUNE', W - 32, LB / 2 - 2, { sz: 11, wt: 700, col: B.red, al: 'right', sp: 2 });
+  c.globalAlpha = 0.2 * pulse;
+  txt('SERVICE COMPRESSION', W - 32, LB / 2 + 14, { sz: 8, wt: 600, col: B.wht, al: 'right', sp: 1.5 });
+  c.restore();
+}
+
+function drawSceneTitle(title, progress, sceneDuration) {
+  if (!title) return;
+  // Title appears early and stays until near end
+  const fadeInEnd = Math.min(0.12, 2 / sceneDuration); // ~2 seconds to fade in
+  const fadeOutStart = 1 - (2 / sceneDuration); // fade out ~2 seconds before end
+  const fadeIn = easeOut(clamp(remap(progress, 0.01, fadeInEnd, 0, 1)));
+  const fadeOut = clamp(remap(progress, fadeOutStart, fadeOutStart + 0.04, 1, 0));
+  const a = fadeIn * fadeOut;
+  if (a <= 0) return;
+  c.save(); c.globalAlpha = a;
+  // Animated red accent line
+  const lineW = easeOutCubic(clamp(remap(progress, 0.03, 0.16, 0, 1))) * 50;
+  c.strokeStyle = B.red; c.lineWidth = 2.5;
+  c.beginPath(); c.moveTo(64, H - LB - 78); c.lineTo(64 + lineW, H - LB - 78); c.stroke();
+  // Title text
+  txt(title, 64 + lineW + 18, H - LB - 76, { sz: 12, wt: 600, col: 'rgba(255,255,255,0.5)', al: 'left', sp: 2.5 });
+  c.restore();
+}
+
+function drawCaption(text, progress, sceneDuration, sceneIndex) {
+  if (!text) return;
+  const totalFrames = sceneDuration * FPS;
+  const delayFrames = CAPTION_DELAY * FPS;
+  const currentFrame = progress * totalFrames;
+  const words = text.split(' ');
+  const wordCount = words.length;
+  // Use MEASURED audio duration if available, otherwise estimate
+  const audioDur = AUDIO_DURATIONS[sceneIndex] || (wordCount / 2.5);
+  const speechDuration = audioDur;
+  const speechFrames = speechDuration * FPS;
+
+  // Caption appears after CAPTION_DELAY, stays until speech ends + small linger
+  const captionStart = delayFrames / totalFrames;
+  const captionEnd = (delayFrames + speechFrames + FPS * 1.5) / totalFrames; // 1.5s linger after last word
+  const fadeIn = easeOut(clamp(remap(progress, captionStart, captionStart + 0.03, 0, 1)));
+  const fadeOut = clamp(remap(progress, captionEnd, captionEnd + 0.03, 1, 0));
+  const a = fadeIn * fadeOut;
+  if (a <= 0) return;
+  c.save(); c.globalAlpha = a * 0.94;
+  // Gradient backdrop
+  const capY = H - LB - 8, capH = 58;
+  const g = c.createLinearGradient(0, capY - capH - 35, 0, capY);
+  g.addColorStop(0, `rgba(${B.navyRgb.join(',')},0)`);
+  g.addColorStop(0.25, `rgba(${B.navyRgb.join(',')},0.85)`);
+  g.addColorStop(1, `rgba(${B.navyRgb.join(',')},0.96)`);
+  c.fillStyle = g;
+  c.fillRect(0, capY - capH - 35, W, capH + 35);
+  // Red accent bar
+  c.fillStyle = B.red;
+  c.fillRect(64, capY - capH + 8, 3, 40);
+  // Word reveal synced to measured audio duration
+  const elapsedSinceSpeechStart = Math.max(0, currentFrame - delayFrames) / FPS; // seconds
+  const revealFraction = clamp(elapsedSinceSpeechStart / speechDuration); // 0-1 over audio length
+  const wordsToShow = Math.min(wordCount, Math.ceil(wordCount * revealFraction));
+  const shown = words.slice(0, wordsToShow).join(' ');
+  c.fillStyle = 'rgba(255,255,255,0.93)';
+  c.font = `400 15px ${FONT}`;
+  c.textAlign = 'left';
+  const maxW = W - 180;
+  let line = '', lines = [];
+  shown.split(' ').forEach(w => {
+    const test = line ? line + ' ' + w : w;
+    if (c.measureText(test).width > maxW && line) { lines.push(line); line = w; }
+    else line = test;
+  });
+  if (line) lines.push(line);
+  lines.slice(0, 3).forEach((l, i) => c.fillText(l, 84, capY - capH + 26 + i * 22));
+  c.restore();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  UTILITY DRAWING — glow, flow dashes, boxes, gauges
+// ════════════════════════════════════════════════════════════════════════
+function drawGlow(x, y, r, col, alpha = 1) {
+  c.save(); c.globalAlpha = alpha;
+  const g = c.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, col); g.addColorStop(1, 'transparent');
+  c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+  c.restore();
+}
+
+function drawRedLine(x, y, w, prog = 1) {
+  if (prog <= 0) return;
+  c.save(); c.strokeStyle = B.red; c.lineWidth = 3;
+  c.beginPath(); c.moveTo(x - w / 2, y); c.lineTo(x - w / 2 + w * clamp(prog), y); c.stroke();
+  c.restore();
+}
+
+function drawBox(x, y, w, h, bg, border, radius = 4) {
+  c.fillStyle = bg; c.strokeStyle = border; c.lineWidth = 2;
+  c.beginPath(); c.roundRect(x - w / 2, y - h / 2, w, h, radius); c.fill(); c.stroke();
+}
+
+function flowDash(x1, y1, x2, y2, col, tick, alpha = 1, width = 2) {
+  c.save(); c.globalAlpha = alpha;
+  c.strokeStyle = col; c.lineWidth = width;
+  c.setLineDash([8, 6]); c.lineDashOffset = -tick * 1.5;
+  c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+  c.setLineDash([]); c.restore();
+}
+
+function drawGauge(x, y, r, val, max, label, unit, col, tick) {
+  c.save();
+  // Background arc
+  c.strokeStyle = 'rgba(255,255,255,0.06)'; c.lineWidth = 6;
+  c.beginPath(); c.arc(x, y, r, Math.PI * 0.75, Math.PI * 2.25); c.stroke();
+  // Value arc
+  const angle = Math.PI * 0.75 + (Math.PI * 1.5) * (val / max);
+  c.strokeStyle = col; c.lineWidth = 5;
+  c.shadowColor = col; c.shadowBlur = 14;
+  c.beginPath(); c.arc(x, y, r, Math.PI * 0.75, angle); c.stroke();
+  c.shadowBlur = 0;
+  // Needle
+  c.strokeStyle = col; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(x, y);
+  c.lineTo(x + Math.cos(angle) * (r - 8), y + Math.sin(angle) * (r - 8));
+  c.stroke();
+  // Center dot
+  c.fillStyle = col; c.beginPath(); c.arc(x, y, 4, 0, Math.PI * 2); c.fill();
+  // Text labels
+  txt(label, x, y + r + 20, { sz: 8, wt: 700, col: col, sp: 1 });
+  txt(val.toFixed(0), x, y - 6, { sz: 16, wt: 800, col: col });
+  txt(unit, x, y + 12, { sz: 8, wt: 400, col: 'rgba(255,255,255,0.35)' });
+  c.restore();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  EQUIPMENT SILHOUETTES
+// ════════════════════════════════════════════════════════════════════════
+function drawPumpJack(x, y, scale, tick) {
+  c.save(); c.translate(x, y); c.scale(scale, scale);
+  c.fillStyle = '#0d0805';
+  // Base pad
+  c.fillRect(-30, -10, 60, 14);
+  // Vertical tower
+  c.fillRect(-9, -135, 18, 135);
+  // Cross-bracing detail
+  c.strokeStyle = '#0d0805'; c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(-9, -30); c.lineTo(9, -70);
+  c.moveTo(9, -30); c.lineTo(-9, -70);
+  c.stroke();
+  // Animated walking beam
+  const rock = Math.sin(tick * 0.025) * 0.18;
+  // Counterweight side
+  c.save(); c.translate(0, -130); c.rotate(-0.2 + rock * 0.5);
+  c.fillRect(-72, -10, 78, 16);
+  c.beginPath(); c.arc(-64, 0, 22, 0, Math.PI * 2); c.fill();
+  c.restore();
+  // Horse head side
+  c.save(); c.translate(0, -130); c.rotate(0.2 - rock * 0.3);
+  c.fillRect(-10, -10, 68, 16);
+  // Horse head shape
+  c.beginPath();
+  c.moveTo(55, -26); c.lineTo(74, -12); c.lineTo(68, 10); c.lineTo(48, 8);
+  c.closePath(); c.fill();
+  c.restore();
+  // Polished rod
+  c.fillRect(-4, -25, 8, 35);
+  c.restore();
+}
+
+function drawCompressorSil(x, y, scale) {
+  c.save(); c.translate(x, y); c.scale(scale, scale);
+  c.fillStyle = '#0d0805';
+  // Skid frame
+  c.fillRect(-68, -44, 136, 50);
+  // Engine block
+  c.fillStyle = '#080604';
+  c.fillRect(-62, -82, 72, 42);
+  // Compressor cylinder
+  c.fillRect(18, -76, 40, 36);
+  // Exhaust stack
+  c.fillRect(-16, -120, 14, 44);
+  // Cooler fins
+  c.fillStyle = '#0d0805';
+  for (let i = 0; i < 4; i++) {
+    c.fillRect(62, -74 + i * 10, 18, 6);
+  }
+  c.restore();
+}
+
+function drawWellheadSil(x, y, scale) {
+  c.save(); c.translate(x, y); c.scale(scale, scale);
+  c.fillStyle = '#0d0805';
+  // Main body
+  c.fillRect(-14, -68, 28, 70);
+  // Flange plates
+  c.fillRect(-20, -18, 40, 10);
+  c.fillRect(-20, -44, 40, 10);
+  // Wing valves
+  c.fillRect(-36, -34, 72, 12);
+  // Top cap
+  c.fillRect(-18, -72, 36, 8);
+  c.restore();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  WELLHEAD COMPONENT (technical schematic)
+// ════════════════════════════════════════════════════════════════════════
+function wellComp(cx, cy, bw, bh, bg, border, label, textCol) {
+  c.fillStyle = bg; c.strokeStyle = border; c.lineWidth = 1.5;
+  c.beginPath(); c.rect(cx - bw / 2, cy - bh / 2, bw, bh); c.fill(); c.stroke();
+  // Flange detail
+  c.strokeStyle = border; c.lineWidth = 1;
+  c.beginPath(); c.rect(cx - bw / 2 - 12, cy - 5, bw + 24, 10); c.stroke();
+  // Bolt details on flanges
+  c.fillStyle = border;
+  [-1, 1].forEach(side => {
+    c.beginPath();
+    c.arc(cx + side * (bw / 2 + 6), cy, 2, 0, Math.PI * 2);
+    c.fill();
+  });
+  // Label
+  const lines = label.split('\n');
+  lines.forEach((l, i) => txt(l, cx, cy + (i - (lines.length - 1) / 2) * 16, { sz: 11, wt: 700, col: textCol }));
+}
+
+function drawValveSC(cx, cy, col, label) {
+  c.fillStyle = '#050510'; c.strokeStyle = col; c.lineWidth = 2;
+  c.beginPath(); c.rect(cx - 26, cy - 22, 52, 44); c.fill(); c.stroke();
+  // Valve X indicator
+  c.strokeStyle = col; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(cx - 17, cy - 14); c.lineTo(cx + 17, cy + 14); c.stroke();
+  c.beginPath(); c.moveTo(cx + 17, cy - 14); c.lineTo(cx - 17, cy + 14); c.stroke();
+  // Label
+  const ls = label.split('\n');
+  ls.forEach((l, i) => txt(l, cx, cy + 30 + i * 13, { sz: 8, wt: 700, col: col }));
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  SCENE: BRAND INTRO
+// ════════════════════════════════════════════════════════════════════════
+function sceneIntro(p, t) {
+  c.save();
+  applyKenBurns(t, 8 * FPS, 1.0, 1.015);
+  applyCameraDrift(t, 1.5);
+
+  // Deep navy base
+  c.fillStyle = B.navy; c.fillRect(-20, -20, W + 40, H + 40);
+
+  // Ambient systems
+  drawParticles(0.35, t);
+  drawStreams(t, 0.12);
+
+  // SC red dot matrix pattern — brand identity element
+  c.save(); c.globalAlpha = 0.03;
+  for (let i = 0; i < 35; i++) {
+    for (let j = 0; j < 22; j++) {
+      c.fillStyle = B.red;
+      c.beginPath();
+      c.arc(W * 0.08 + i * (W * 0.84 / 35), H * 0.58 + j * 20, 2.2, 0, Math.PI * 2);
+      c.fill();
+    }
+  }
+  c.restore();
+
+  // ── Reveal sequence ──
+  // 1. Red accent line sweeps in
+  const lineP = easeOutCubic(clamp(remap(p, 0.06, 0.24, 0, 1)));
+  drawRedLine(W / 2, H * 0.35, 220 * lineP);
+
+  // 2. "WELL LOGIC" — main title rises into position
+  const titleAlpha = easeOut(clamp(remap(p, 0.12, 0.32, 0, 1)));
+  const titleY = lerp(H * 0.46, H * 0.43, easeOut(clamp(remap(p, 0.12, 0.35, 0, 1))));
+  c.save(); c.globalAlpha = titleAlpha;
+  c.shadowColor = `rgba(${B.redRgb.join(',')},0.2)`; c.shadowBlur = 50;
+  txt('WELL LOGIC', W / 2, titleY, { sz: 84, wt: 800, col: B.wht });
+  c.shadowBlur = 0;
+  c.restore();
+
+  // 3. Subtitle slides up
+  const subAlpha = easeOut(clamp(remap(p, 0.26, 0.44, 0, 1)));
+  const subY = lerp(H * 0.56, H * 0.53, easeOut(clamp(remap(p, 0.26, 0.44, 0, 1))));
+  c.save(); c.globalAlpha = subAlpha * 0.8;
+  txt('Automated Gas Lift Optimization', W / 2, subY, { sz: 24, wt: 300, col: B.lgray });
+  c.restore();
+
+  // 4. Divider line
+  const divAlpha = easeOut(clamp(remap(p, 0.4, 0.55, 0, 1)));
+  c.save(); c.globalAlpha = divAlpha * 0.15;
+  c.strokeStyle = B.wht; c.lineWidth = 1;
+  const divW = easeOutCubic(clamp(remap(p, 0.4, 0.6, 0, 1))) * 180;
+  c.beginPath(); c.moveTo(W / 2 - divW, H * 0.6); c.lineTo(W / 2 + divW, H * 0.6); c.stroke();
+  c.restore();
+
+  // 5. Brand badge
+  c.save(); c.globalAlpha = divAlpha * 0.45;
+  txt('BY FIELDTUNE', W / 2, H * 0.645, { sz: 10, wt: 600, col: B.cyan, sp: 3 });
+  c.globalAlpha = divAlpha * 0.25;
+  txt('SERVICE COMPRESSION', W / 2, H * 0.685, { sz: 9, wt: 500, col: B.lgray, sp: 2.5 });
+  c.restore();
+
+  // Scene exit — fade to navy
+  const exitAlpha = easeInCubic(clamp(remap(p, 0.84, 1, 0, 1)));
+  if (exitAlpha > 0) {
+    c.fillStyle = `rgba(${B.navyRgb.join(',')},${exitAlpha})`;
+    c.fillRect(-20, -20, W + 40, H + 40);
+  }
+
+  c.restore(); // undo camera transforms
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  SCENE: DESERT FIELD — cinematic Permian Basin night
+// ════════════════════════════════════════════════════════════════════════
+function sceneDesert(p, t) {
+  c.save();
+  applyKenBurns(t, 10 * FPS, 1.0, 1.025);
+  applyCameraDrift(t, 2);
+
+  // Sky gradient — rich deep tones
+  const sky = c.createLinearGradient(0, 0, 0, H * 0.68);
+  sky.addColorStop(0, '#040a14');
+  sky.addColorStop(0.25, '#0a1628');
+  sky.addColorStop(0.5, B.navyM);
+  sky.addColorStop(0.75, '#5a2a0a');
+  sky.addColorStop(1, '#c06020');
+  c.fillStyle = sky; c.fillRect(-20, -20, W + 40, H + 40);
+
+  // Ground
+  const gnd = c.createLinearGradient(0, H * 0.65, 0, H + 20);
+  gnd.addColorStop(0, '#1a1208');
+  gnd.addColorStop(0.3, '#120c06');
+  gnd.addColorStop(1, '#080604');
+  c.fillStyle = gnd; c.fillRect(-20, H * 0.65, W + 40, H * 0.36);
+
+  // Horizon glow — warm sunrise
+  drawGlow(W * 0.22, H * 0.62, 280, 'rgba(200,100,20,0.35)');
+  drawGlow(W * 0.22, H * 0.62, 140, 'rgba(255,180,60,0.2)');
+  drawGlow(W * 0.22, H * 0.63, 60, 'rgba(255,220,120,0.15)');
+
+  // Stars with realistic twinkle
+  const stars = [
+    [0.04, 0.05], [0.11, 0.03], [0.18, 0.09], [0.26, 0.04], [0.34, 0.07],
+    [0.42, 0.02], [0.5, 0.11], [0.58, 0.04], [0.65, 0.08], [0.73, 0.03],
+    [0.81, 0.06], [0.89, 0.02], [0.95, 0.1], [0.14, 0.16], [0.38, 0.14],
+    [0.62, 0.18], [0.78, 0.13], [0.88, 0.17], [0.08, 0.22], [0.52, 0.2],
+  ];
+  c.save();
+  stars.forEach(([sx, sy]) => {
+    const twinkle = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(t * 0.035 + sx * 60 + sy * 40));
+    c.globalAlpha = twinkle * 0.55;
+    c.fillStyle = B.wht;
+    c.beginPath();
+    c.arc(sx * W, sy * H, 1 + twinkle * 0.6, 0, Math.PI * 2);
+    c.fill();
+  });
+  c.restore();
+
+  // Atmospheric haze layer
+  c.save(); c.globalAlpha = 0.06;
+  const haze = c.createLinearGradient(0, H * 0.5, 0, H * 0.72);
+  haze.addColorStop(0, 'transparent');
+  haze.addColorStop(0.5, 'rgba(180,120,40,0.6)');
+  haze.addColorStop(1, 'transparent');
+  c.fillStyle = haze; c.fillRect(-20, H * 0.5, W + 40, H * 0.22);
+  c.restore();
+
+  // ── Equipment silhouettes ──
+  drawPumpJack(W * 0.08, H * 0.65, 1.3, t);
+  drawPumpJack(W * 0.92, H * 0.66, 0.85, t + 60);
+  drawCompressorSil(W * 0.3, H * 0.65, 1.1);
+  drawCompressorSil(W * 0.44, H * 0.65, 1.0);
+  drawCompressorSil(W * 0.56, H * 0.65, 0.85);
+  for (let i = 0; i < 4; i++) drawWellheadSil(W * (0.67 + i * 0.055), H * 0.65, 0.6);
+
+  // Ground pipeline
+  c.save(); c.strokeStyle = 'rgba(255,255,255,0.035)'; c.lineWidth = 4;
+  c.beginPath(); c.moveTo(-20, H * 0.73); c.lineTo(W + 20, H * 0.73); c.stroke();
+  c.restore();
+
+  // ── Compressor trip alarm ──
+  const blinkOn = Math.sin(t * 0.18) > 0.1;
+  if (blinkOn) {
+    drawGlow(W * 0.3 + 14, H * 0.65 - 60, 35, `rgba(${B.redRgb.join(',')},0.4)`);
+    c.fillStyle = B.red; c.beginPath();
+    c.arc(W * 0.3 + 14, H * 0.65 - 60, 5, 0, Math.PI * 2); c.fill();
+    // Screen-edge red pulse — alarm atmosphere
+    c.save(); c.globalAlpha = 0.05;
+    const edge = c.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.85);
+    edge.addColorStop(0, 'transparent'); edge.addColorStop(1, B.red);
+    c.fillStyle = edge; c.fillRect(-20, -20, W + 40, H + 40);
+    c.restore();
+  }
+
+  // Ambient particles
+  drawParticles(0.12, t);
+
+  // Scene entrance fade
+  const fadeIn = easeOutCubic(clamp(remap(p, 0, 0.06, 0, 1)));
+  if (fadeIn < 1) {
+    c.fillStyle = `rgba(${B.navyRgb.join(',')},${1 - fadeIn})`;
+    c.fillRect(-20, -20, W + 40, H + 40);
+  }
+
+  c.restore();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  SCENE: PAD SCHEMATIC — technical flow diagram
+// ════════════════════════════════════════════════════════════════════════
+function scenePad(p, t) {
+  c.save();
+  applyCameraDrift(t, 0.8);
+
+  c.fillStyle = B.navy; c.fillRect(-10, -10, W + 20, H + 20);
+  drawStreams(t, 0.04);
+  drawParticles(0.06, t);
+
+  // Technical grid
+  c.save(); c.strokeStyle = 'rgba(255,255,255,0.018)'; c.lineWidth = 0.5;
+  for (let x = 0; x < W; x += 40) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke(); }
+  for (let y = 0; y < H; y += 40) { c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
+  c.restore();
+
+  const r = easeOutCubic(clamp(remap(p, 0, 0.55, 0, 1)));
+
+  // ════════════════════════════════════════════════════════════════
+  // FULL PAD LAYOUT — modeled after WellLogicSim greenfield diagram
+  // Flow: GasSource → WellLogic Panel → Compressors → Cooler →
+  //       InjectionHeader → Chokes → Wells → ProductionHeader →
+  //       Scrubber → (SalesValve + SalesMeter)
+  //       SuctionHeader feeds back to compressors
+  // ════════════════════════════════════════════════════════════════
+
+  // Layout Y positions (top to bottom, matching simulator layout)
+  // Layout Y positions — only approved equipment
+  const yPanel = H * 0.1;
+  const yComp = H * 0.24;
+  const ySuctHeader = H * 0.37;
+  const ySuctCtrl = H * 0.37;
+  const yChokes = H * 0.48;
+  const yWells = H * 0.6;
+  const yScrubber = H * 0.76;
+  const ySales = H * 0.76;
+  const centerX = W * 0.5;
+
+  // ── WELL LOGIC CONTROLLER ──
+  const panelA = clamp(remap(r, 0, 0.18, 0, 1));
+  c.save(); c.globalAlpha = panelA;
+  c.fillStyle = `rgba(${B.redRgb.join(',')},0.12)`;
+  c.strokeStyle = B.red; c.lineWidth = 2;
+  c.beginPath(); c.roundRect(centerX - 90, yPanel - 22, 180, 44, 5); c.fill(); c.stroke();
+  drawGlow(centerX, yPanel, 60, `rgba(${B.redRgb.join(',')},0.06)`);
+  txt('WELL LOGIC', centerX, yPanel - 4, { sz: 12, wt: 700, col: B.red });
+  txt('PAD CONTROLLER', centerX, yPanel + 12, { sz: 7, wt: 500, col: 'rgba(255,255,255,0.3)', sp: 1 });
+  // Red control lines to all equipment
+  const ctrlA = panelA * (0.1 + 0.05 * Math.sin(t * 0.06));
+  c.strokeStyle = `rgba(${B.redRgb.join(',')},${ctrlA})`; c.lineWidth = 1; c.setLineDash([3, 5]);
+  c.beginPath(); c.moveTo(centerX - 40, yPanel + 22); c.lineTo(centerX - 80, yComp - 30); c.stroke();
+  c.beginPath(); c.moveTo(centerX + 40, yPanel + 22); c.lineTo(centerX + 80, yComp - 30); c.stroke();
+  c.beginPath(); c.moveTo(centerX, yPanel + 22); c.lineTo(centerX, yChokes - 12); c.stroke();
+  c.beginPath(); c.moveTo(centerX + 80, yPanel + 22); c.lineTo(W * 0.8, yScrubber - 10); c.stroke();
+  c.setLineDash([]);
+  c.restore();
+
+  // ── GAS COMPRESSORS (2 units) ──
+  const compA = clamp(remap(r, 0.08, 0.28, 0, 1));
+  const compXs = [centerX - 90, centerX + 90];
+  compXs.forEach((cx, i) => {
+    c.save(); c.globalAlpha = compA;
+    drawBox(cx, yComp, 130, 58, '#0d1a2e', B.red, 5);
+    txt(`GAS COMPRESSOR ${i + 1}`, cx, yComp - 16, { sz: 9, wt: 700, col: B.red });
+    const rpm = (1050 + Math.sin(t * 0.035 + i) * 40).toFixed(0);
+    const load = (72 + Math.sin(t * 0.025 + i * 3) * 12).toFixed(0);
+    txt(`${rpm} RPM`, cx, yComp + 2, { sz: 8, wt: 500, col: B.cyan });
+    // Load bar
+    const loadW = 90, loadH = 5, loadX = cx - loadW / 2, loadY = yComp + 16;
+    c.fillStyle = 'rgba(255,255,255,0.06)'; c.fillRect(loadX, loadY, loadW, loadH);
+    const loadCol = load > 85 ? B.red : load > 70 ? '#f59e0b' : B.green;
+    c.fillStyle = loadCol; c.fillRect(loadX, loadY, loadW * (load / 100), loadH);
+    txt(`${load}%`, cx + loadW / 2 + 14, loadY + 2, { sz: 6, wt: 600, col: loadCol, al: 'left' });
+    // Status
+    const online = i === 1 || p > 0.4;
+    c.fillStyle = online ? B.green : B.red;
+    c.beginPath(); c.arc(cx + 52, yComp - 16, 4, 0, Math.PI * 2); c.fill();
+    if (!online) drawGlow(cx + 52, yComp - 16, 12, `rgba(${B.redRgb.join(',')},0.25)`);
+    c.restore();
+  });
+
+  // ── SUCTION HEADER + SUCTION CONTROLLER ──
+  const suctA = clamp(remap(r, 0.15, 0.35, 0, 1));
+  c.save(); c.globalAlpha = suctA;
+  // Suction header line (left side)
+  const suctL = W * 0.1, suctR = W * 0.38;
+  c.strokeStyle = 'rgba(255,255,255,0.12)'; c.lineWidth = 4;
+  c.beginPath(); c.moveTo(suctL, ySuctHeader); c.lineTo(suctR, ySuctHeader); c.stroke();
+  txt('SUCTION HEADER', (suctL + suctR) / 2, ySuctHeader - 16, { sz: 8, wt: 600, col: 'rgba(255,255,255,0.25)', sp: 1 });
+  const suctP = (80 + Math.sin(t * 0.04) * 5).toFixed(0);
+  txt(`${suctP} PSI`, (suctL + suctR) / 2, ySuctHeader + 14, { sz: 8, wt: 400, col: 'rgba(255,255,255,0.25)' });
+  // Flow from suction header up to compressors
+  flowDash(suctL + 40, ySuctHeader - 4, compXs[0], yComp + 30, `rgba(${B.cyanRgb.join(',')},0.1)`, -t, suctA);
+  flowDash(suctR - 20, ySuctHeader - 4, compXs[1], yComp + 30, `rgba(${B.cyanRgb.join(',')},0.1)`, -t, suctA);
+  // Suction controller box
+  const scx = W * 0.82;
+  drawBox(scx, ySuctCtrl, 120, 36, B.navyL, B.cyan, 4);
+  txt('SUCTION', scx, ySuctCtrl - 8, { sz: 9, wt: 700, col: B.cyan });
+  txt('CONTROLLER', scx, ySuctCtrl + 6, { sz: 9, wt: 700, col: B.cyan });
+  // Dashed link from WL to suction controller
+  c.strokeStyle = `rgba(${B.redRgb.join(',')},${ctrlA || 0.1})`; c.lineWidth = 1; c.setLineDash([3, 5]);
+  c.beginPath(); c.moveTo(centerX + 90, yPanel); c.lineTo(scx, ySuctCtrl - 18); c.stroke();
+  c.setLineDash([]);
+  c.restore();
+
+  // ── CHOKE VALVES (4 bowtie icons) ──
+  const wellXs = [W * 0.22, W * 0.38, W * 0.58, W * 0.74];
+  const chokeA = clamp(remap(r, 0.25, 0.45, 0, 1));
+  wellXs.forEach((wx, i) => {
+    c.save(); c.globalAlpha = chokeA;
+    const vs = 11;
+    c.strokeStyle = B.cyan; c.lineWidth = 1.5; c.fillStyle = B.navyL;
+    c.beginPath(); c.moveTo(wx - vs, yChokes - vs); c.lineTo(wx + vs, yChokes); c.lineTo(wx - vs, yChokes + vs); c.closePath(); c.fill(); c.stroke();
+    c.beginPath(); c.moveTo(wx + vs, yChokes - vs); c.lineTo(wx - vs, yChokes); c.lineTo(wx + vs, yChokes + vs); c.closePath(); c.fill(); c.stroke();
+    const chokePos = (55 + Math.sin(t * 0.03 + i * 1.5) * 15).toFixed(0);
+    const chokeCol = chokePos > 70 ? B.green : chokePos > 40 ? '#f59e0b' : B.red;
+    txt('CHOKE', wx, yChokes - 18, { sz: 6, wt: 600, col: 'rgba(255,255,255,0.25)' });
+    txt(`${chokePos}%`, wx, yChokes + 18, { sz: 8, wt: 600, col: chokeCol });
+    // Flow from compressors down to chokes
+    flowDash(wx, yComp + 30, wx, yChokes - 14, `rgba(${B.cyanRgb.join(',')},0.12)`, t + i * 20, chokeA);
+    c.restore();
+  });
+
+  // ── WELLS (4 units with priority markings) ──
+  const wellA = clamp(remap(r, 0.32, 0.52, 0, 1));
+  const wellDesired = [1000, 750, 800, 800];
+  const priorities = ['P1 — HIGH', 'P2', 'P3', 'P4 — LOW'];
+  wellXs.forEach((wx, i) => {
+    c.save(); c.globalAlpha = wellA;
+    const bw = 115, bh = 62;
+    c.fillStyle = B.navyL;
+    const actual = wellDesired[i] * (0.85 + Math.sin(t * 0.02 + i) * 0.1);
+    const pct = actual / wellDesired[i];
+    const borderCol = pct > 0.95 ? B.green : pct > 0.5 ? '#f59e0b' : B.red;
+    c.strokeStyle = borderCol; c.lineWidth = 2;
+    c.beginPath(); c.roundRect(wx - bw / 2, yWells - bh / 2, bw, bh, 4); c.fill(); c.stroke();
+    txt(`WELL ${i + 1}`, wx, yWells - 18, { sz: 12, wt: 700, col: B.cyan });
+    txt(`${actual.toFixed(0)} MCFD`, wx, yWells, { sz: 9, wt: 500, col: 'rgba(255,255,255,0.5)' });
+    // Priority marking — prominent
+    const pCol = i === 0 ? B.red : i === 3 ? 'rgba(255,255,255,0.25)' : B.cyan;
+    txt(priorities[i], wx, yWells + 16, { sz: 7, wt: 700, col: pCol });
+    // Flow from choke to well
+    flowDash(wx, yChokes + 18, wx, yWells - bh / 2, `rgba(${B.cyanRgb.join(',')},0.1)`, t + i * 15, wellA);
+    c.restore();
+  });
+
+  // ── HP SCRUBBER ──
+  const scrubA = clamp(remap(r, 0.42, 0.6, 0, 1));
+  c.save(); c.globalAlpha = scrubA;
+  drawBox(centerX - 80, yScrubber, 160, 42, '#1a1408', '#8B6914', 4);
+  txt('HP SCRUBBER', centerX - 80, yScrubber - 6, { sz: 11, wt: 700, col: '#d4a855' });
+  const scrubP = (95 + Math.sin(t * 0.04) * 8).toFixed(0);
+  txt(`${scrubP} PSI`, centerX - 80, yScrubber + 10, { sz: 8, wt: 400, col: 'rgba(255,255,255,0.3)' });
+  // Flow from wells down to scrubber
+  wellXs.forEach((wx, i) => flowDash(wx, yWells + 32, centerX - 80, yScrubber - 21, 'rgba(139,105,20,0.1)', t + i * 10, scrubA));
+  c.restore();
+
+  // ── SALES VALVE ──
+  const salesA = clamp(remap(r, 0.48, 0.65, 0, 1));
+  c.save(); c.globalAlpha = salesA;
+  const svx = centerX + 120, svy = yScrubber;
+  const svs = 10;
+  c.strokeStyle = B.green; c.lineWidth = 1.5; c.fillStyle = B.navyL;
+  c.beginPath(); c.moveTo(svx - svs, svy - svs); c.lineTo(svx + svs, svy); c.lineTo(svx - svs, svy + svs); c.closePath(); c.fill(); c.stroke();
+  c.beginPath(); c.moveTo(svx + svs, svy - svs); c.lineTo(svx - svs, svy); c.lineTo(svx + svs, svy + svs); c.closePath(); c.fill(); c.stroke();
+  const svPos = (30 + Math.sin(t * 0.035) * 20).toFixed(0);
+  txt('SALES VALVE', svx, svy - 18, { sz: 8, wt: 600, col: B.green });
+  txt(`${svPos}%`, svx, svy + 16, { sz: 8, wt: 500, col: B.green });
+  flowDash(centerX - 80 + 80, yScrubber, svx - 14, svy, 'rgba(34,197,94,0.12)', t, salesA);
+  c.restore();
+
+  // ── Suction feedback path (scrubber back to suction header) ──
+  c.save(); c.globalAlpha = scrubA * 0.5;
+  c.strokeStyle = 'rgba(255,255,255,0.06)'; c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(centerX - 80 - 80, yScrubber);
+  c.lineTo(suctL, yScrubber);
+  c.lineTo(suctL, ySuctHeader);
+  c.stroke();
+  flowDash(suctL, yScrubber, suctL, ySuctHeader, `rgba(${B.cyanRgb.join(',')},0.06)`, -t, scrubA * 0.5);
+  c.restore();
+
+  // Diagram label
+  c.save(); c.globalAlpha = r * 0.2;
+  txt('WELL PAD PROCESS FLOW', W * 0.06, H * 0.04, { sz: 9, wt: 600, col: B.lgray, al: 'left', sp: 2 });
+  txt('GAS LIFT INJECTION SYSTEM', W * 0.06, H * 0.04 + 14, { sz: 7, wt: 400, col: 'rgba(255,255,255,0.15)', al: 'left', sp: 1.5 });
+  c.restore();
+
+  // Red glow on tripped compressor (early scene)
+  if (p < 0.4) {
+    const pulseA = 0.1 + 0.06 * Math.sin(t * 0.12);
+    drawGlow(compXs[0], yComp, 70, `rgba(${B.redRgb.join(',')},${pulseA})`);
+  }
+
+  c.restore();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  SCENE: COMPRESSOR DETAIL — technical response visualization
+// ════════════════════════════════════════════════════════════════════════
+function sceneComp(p, t) {
+  c.save();
+  applyCameraDrift(t, 1.2);
+
+  c.fillStyle = B.navy; c.fillRect(-10, -10, W + 20, H + 20);
+  drawParticles(0.06, t);
+
+  const cx = W * 0.5, cy = H * 0.46;
+  const reveal = easeOut(clamp(remap(p, 0, 0.28, 0, 1)));
+
+  c.save(); c.globalAlpha = reveal;
+
+  // Compressor package frame
+  c.fillStyle = B.navyL; c.strokeStyle = B.red; c.lineWidth = 2.5;
+  c.shadowColor = `rgba(${B.redRgb.join(',')},0.15)`; c.shadowBlur = 35;
+  c.beginPath(); c.roundRect(cx - 400, cy - 155, 800, 310, 10); c.fill(); c.stroke();
+  c.shadowBlur = 0;
+
+  // Engine block
+  c.fillStyle = '#081828'; c.strokeStyle = 'rgba(255,255,255,0.06)'; c.lineWidth = 1;
+  c.beginPath(); c.rect(cx - 370, cy - 125, 290, 230); c.fill(); c.stroke();
+  txt('ENGINE', cx - 225, cy - 10, { sz: 18, wt: 700, col: 'rgba(255,255,255,0.15)' });
+  txt('CAT 3516', cx - 225, cy + 16, { sz: 11, wt: 400, col: 'rgba(255,255,255,0.08)' });
+
+  // Compressor section
+  c.fillStyle = '#081828'; c.strokeStyle = B.red; c.lineWidth = 2;
+  c.beginPath(); c.rect(cx - 50, cy - 120, 350, 220); c.fill(); c.stroke();
+  txt('COMPRESSOR', cx + 125, cy - 35, { sz: 18, wt: 700, col: B.red });
+  txt('2-Stage Reciprocating', cx + 125, cy - 8, { sz: 12, wt: 400, col: 'rgba(255,255,255,0.25)' });
+  txt('Ariel JGK/4', cx + 125, cy + 14, { sz: 11, wt: 400, col: 'rgba(255,255,255,0.15)' });
+
+  // Live gauges
+  const suctP = 145 + Math.sin(t * 0.035) * 10;
+  const dischP = 850 + Math.sin(t * 0.028 + 1) * 18;
+  const rpm = 1000 + Math.sin(t * 0.042) * 35;
+  const temp = 185 + Math.sin(t * 0.05 + 2) * 6;
+  drawGauge(cx - 280, cy + 128, 36, suctP, 300, 'SUCTION', 'PSI', B.cyan, t);
+  drawGauge(cx - 175, cy + 128, 36, dischP, 1200, 'DISCHARGE', 'PSI', B.green, t);
+  drawGauge(cx - 70, cy + 128, 36, rpm, 1400, 'RPM', '', B.cyan, t);
+  drawGauge(cx + 35, cy + 128, 36, temp, 250, 'DISCH TEMP', 'F', '#f59e0b', t);
+
+  // Trip alarm
+  const blinkOn = Math.sin(t * 0.2) > 0.05;
+  const alarmX = cx + 280, alarmY = cy + 108;
+  c.fillStyle = blinkOn ? B.red : '#3a0808';
+  c.beginPath(); c.arc(alarmX, alarmY, 18, 0, Math.PI * 2); c.fill();
+  if (blinkOn) drawGlow(alarmX, alarmY, 45, `rgba(${B.redRgb.join(',')},0.2)`);
+  txt('TRIP', alarmX, alarmY - 1, { sz: 8, wt: 800, col: B.wht });
+  txt('ALARM ACTIVE', alarmX, alarmY + 28, { sz: 8, wt: 600, col: B.red, sp: 1 });
+
+  // Piping
+  flowDash(cx - 400, cy - 20, cx - 370, cy - 20, B.cyan, t, 0.45, 3);
+  flowDash(cx + 300, cy - 20, cx + 400, cy - 20, B.green, t, 0.45, 3);
+  txt('SUCTION IN', cx - 400, cy - 42, { sz: 8, wt: 600, col: B.cyan, al: 'left', sp: 1 });
+  txt('DISCHARGE OUT', cx + 400, cy - 42, { sz: 8, wt: 600, col: B.green, al: 'right', sp: 1 });
+
+  // Exhaust stack
+  c.fillStyle = '#0a1020'; c.strokeStyle = 'rgba(255,255,255,0.04)'; c.lineWidth = 1;
+  c.fillRect(cx - 300, cy - 155 - 65, 22, 70); c.strokeRect(cx - 300, cy - 155 - 65, 22, 70);
+
+  // Heat shimmer
+  c.save(); c.globalAlpha = 0.035;
+  for (let i = 0; i < 6; i++) {
+    const ox = Math.sin(t * 0.025 + i * 2) * 10;
+    c.fillStyle = B.wht; c.beginPath();
+    c.arc(cx - 289 + ox, cy - 155 - 65 - 12 - i * 14, 2.5 - i * 0.3, 0, Math.PI * 2);
+    c.fill();
+  }
+  c.restore();
+
+  c.restore(); // end reveal alpha
+
+  // Response time callout
+  if (p > 0.38) {
+    const callAlpha = easeOut(clamp(remap(p, 0.38, 0.52, 0, 1)));
+    c.save(); c.globalAlpha = callAlpha;
+    c.fillStyle = `rgba(${B.redRgb.join(',')},0.1)`;
+    c.strokeStyle = B.red; c.lineWidth = 1.5;
+    c.beginPath(); c.roundRect(W * 0.33, H * 0.87, W * 0.34, 58, 6); c.fill(); c.stroke();
+    drawGlow(W * 0.5, H * 0.87 + 29, 100, `rgba(${B.redRgb.join(',')},0.06)`);
+    txt('WELL LOGIC RESPONSE TIME', W * 0.5, H * 0.87 + 18, { sz: 10, wt: 600, col: 'rgba(255,255,255,0.45)', sp: 2 });
+    txt('< 2 SECONDS', W * 0.5, H * 0.87 + 40, { sz: 22, wt: 800, col: B.red, sp: 2 });
+    c.restore();
+  }
+
+  c.restore();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  SCENE: WELLHEAD AUTOMATION
+// ════════════════════════════════════════════════════════════════════════
+function sceneWell(p, t) {
+  c.save();
+  applyCameraDrift(t, 1);
+
+  c.fillStyle = B.navy; c.fillRect(-10, -10, W + 20, H + 20);
+  drawParticles(0.08, t);
+  drawStreams(t, 0.04);
+
+  const cx = W * 0.5, baseY = H * 0.84;
+  const reveal = easeOut(clamp(remap(p, 0, 0.22, 0, 1)));
+
+  c.save(); c.globalAlpha = reveal;
+
+  // ── Four wells side by side, each with choke + priority + live data ──
+  // This scene shows the "experienced foreman" concept — every well watched individually
+
+  const wXs = [W * 0.15, W * 0.38, W * 0.62, W * 0.85];
+  const wellNames = ['WELL 1', 'WELL 2', 'WELL 3', 'WELL 4'];
+  const priorities = ['P1 — HIGHEST', 'P2', 'P3', 'P4 — LOWEST'];
+  const priColors = [B.red, B.cyan, B.cyan, 'rgba(255,255,255,0.3)'];
+  const desiredRates = [1000, 750, 800, 800];
+
+  wXs.forEach((wx, i) => {
+    const wReveal = easeOut(clamp(remap(reveal, i * 0.08, 0.3 + i * 0.08, 0, 1)));
+    if (wReveal <= 0) return;
+    c.save(); c.globalAlpha = wReveal;
+
+    const topY = H * 0.13, botY = H * 0.82;
+    const colW = W * 0.19;
+
+    // Well box — large, prominent
+    const wellY = H * 0.22, wellH = 70, wellW = colW;
+    const actual = desiredRates[i] * (0.82 + Math.sin(t * 0.02 + i) * 0.12);
+    const pct = actual / desiredRates[i];
+    const borderCol = pct > 0.95 ? B.green : pct > 0.5 ? '#f59e0b' : B.red;
+    c.fillStyle = B.navyL; c.strokeStyle = borderCol; c.lineWidth = 2;
+    c.beginPath(); c.roundRect(wx - wellW / 2, wellY, wellW, wellH, 5); c.fill(); c.stroke();
+    txt(wellNames[i], wx, wellY + 18, { sz: 14, wt: 700, col: B.cyan });
+    txt(`${actual.toFixed(0)} MCFD`, wx, wellY + 36, { sz: 11, wt: 500, col: 'rgba(255,255,255,0.5)' });
+    // Priority badge
+    c.fillStyle = `rgba(${i === 0 ? B.redRgb.join(',') : B.cyanRgb.join(',')},0.12)`;
+    c.strokeStyle = priColors[i]; c.lineWidth = 1;
+    c.beginPath(); c.roundRect(wx - 45, wellY + 48, 90, 18, 3); c.fill(); c.stroke();
+    txt(priorities[i], wx, wellY + 57, { sz: 7, wt: 700, col: priColors[i] });
+
+    // Choke valve — bowtie below well
+    const chokeY = H * 0.44;
+    const vs = 13;
+    c.strokeStyle = B.cyan; c.lineWidth = 2; c.fillStyle = B.navyL;
+    c.beginPath(); c.moveTo(wx - vs, chokeY - vs); c.lineTo(wx + vs, chokeY); c.lineTo(wx - vs, chokeY + vs); c.closePath(); c.fill(); c.stroke();
+    c.beginPath(); c.moveTo(wx + vs, chokeY - vs); c.lineTo(wx - vs, chokeY); c.lineTo(wx + vs, chokeY + vs); c.closePath(); c.fill(); c.stroke();
+    txt('CHOKE VALVE', wx, chokeY - 22, { sz: 7, wt: 600, col: 'rgba(255,255,255,0.3)' });
+    const chokePos = (50 + Math.sin(t * 0.03 + i * 1.5) * 18).toFixed(0);
+    const chokeCol = chokePos > 70 ? B.green : chokePos > 40 ? '#f59e0b' : B.red;
+    txt(`${chokePos}%`, wx, chokeY + 22, { sz: 10, wt: 700, col: chokeCol });
+
+    // AUTO indicator with pulse
+    const pulse = 0.5 + 0.5 * Math.sin(t * 0.08 + i);
+    drawGlow(wx + vs + 20, chokeY, 14, `rgba(34,197,94,${0.1 + 0.1 * pulse})`);
+    c.fillStyle = B.green; c.beginPath(); c.arc(wx + vs + 20, chokeY, 5, 0, Math.PI * 2); c.fill();
+    txt('AUTO', wx + vs + 34, chokeY, { sz: 7, wt: 700, col: B.green, al: 'left' });
+
+    // Live adjustment indicator — shows choke is actively being tuned
+    const adjY = H * 0.56;
+    c.fillStyle = `rgba(${B.cyanRgb.join(',')},0.05)`;
+    c.strokeStyle = `rgba(${B.cyanRgb.join(',')},0.12)`; c.lineWidth = 1;
+    c.beginPath(); c.roundRect(wx - colW / 2 + 5, adjY, colW - 10, 50, 4); c.fill(); c.stroke();
+    txt('TARGET', wx - 30, adjY + 14, { sz: 7, wt: 500, col: 'rgba(255,255,255,0.3)', al: 'left' });
+    txt(`${desiredRates[i]} MCFD`, wx + 30, adjY + 14, { sz: 8, wt: 600, col: B.cyan, al: 'right' });
+    txt('ACTUAL', wx - 30, adjY + 30, { sz: 7, wt: 500, col: 'rgba(255,255,255,0.3)', al: 'left' });
+    txt(`${actual.toFixed(0)} MCFD`, wx + 30, adjY + 30, { sz: 8, wt: 600, col: borderCol, al: 'right' });
+    // Accuracy bar
+    const accW = colW - 20, accH = 4, accX = wx - accW / 2, accY2 = adjY + 40;
+    c.fillStyle = 'rgba(255,255,255,0.04)'; c.fillRect(accX, accY2, accW, accH);
+    c.fillStyle = borderCol; c.fillRect(accX, accY2, accW * clamp(pct), accH);
+
+    // Flow lines
+    flowDash(wx, wellY + wellH, wx, chokeY - vs - 4, `rgba(${B.cyanRgb.join(',')},0.1)`, t + i * 20, wReveal);
+    flowDash(wx, chokeY + vs + 4, wx, adjY, `rgba(${B.cyanRgb.join(',')},0.08)`, t + i * 15, wReveal);
+
+    c.restore();
+  });
+
+  // Well Logic banner at bottom
+  const bannerA = easeOut(clamp(remap(reveal, 0.4, 0.6, 0, 1)));
+  c.save(); c.globalAlpha = bannerA;
+  c.fillStyle = `rgba(${B.redRgb.join(',')},0.08)`;
+  c.strokeStyle = B.red; c.lineWidth = 1;
+  c.beginPath(); c.roundRect(W * 0.25, H * 0.72, W * 0.5, 40, 4); c.fill(); c.stroke();
+  txt('WELL LOGIC MONITORS AND ADJUSTS EVERY WELL CONTINUOUSLY', W * 0.5, H * 0.72 + 20, { sz: 9, wt: 600, col: 'rgba(255,255,255,0.5)', sp: 1.5 });
+  c.restore();
+
+  c.restore();
+  c.restore();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  SCENE: THE 80/20 — operational coverage visualization
+// ════════════════════════════════════════════════════════════════════════
+function sceneData(p, t) {
+  c.save();
+  applyCameraDrift(t, 0.8);
+
+  c.fillStyle = B.navy; c.fillRect(-10, -10, W + 20, H + 20);
+  drawParticles(0.05, t);
+
+  const reveal = easeOut(clamp(remap(p, 0, 0.25, 0, 1)));
+
+  // ── Large 80/20 split bar across the top ──
+  const barL = W * 0.1, barR = W * 0.9, barY = H * 0.16, barH = 55;
+  const barW = barR - barL;
+  const splitX = barL + barW * 0.8; // 80% point
+
+  // 80% section (green — SCADA handles this)
+  const bar80reveal = easeOutCubic(clamp(remap(p, 0.05, 0.25, 0, 1)));
+  c.save(); c.globalAlpha = reveal;
+  c.fillStyle = 'rgba(34,197,94,0.35)';
+  c.fillRect(barL, barY, (splitX - barL) * bar80reveal, barH);
+  c.strokeStyle = B.green; c.lineWidth = 1;
+  c.strokeRect(barL, barY, (splitX - barL) * bar80reveal, barH);
+  txt('80%', barL + (splitX - barL) / 2, barY + barH / 2 - 4, { sz: 28, wt: 800, col: B.green });
+  txt('NORMAL OPERATIONS', barL + (splitX - barL) / 2, barY + barH / 2 + 18, { sz: 9, wt: 600, col: 'rgba(34,197,94,0.6)', sp: 1.5 });
+  c.restore();
+
+  // 20% section (red — where production is lost)
+  const bar20reveal = easeOutCubic(clamp(remap(p, 0.15, 0.35, 0, 1)));
+  c.save(); c.globalAlpha = reveal;
+  const redBarW = (barR - splitX) * bar20reveal;
+  c.fillStyle = `rgba(${B.redRgb.join(',')},0.4)`;
+  c.fillRect(splitX, barY, redBarW, barH);
+  c.strokeStyle = B.red; c.lineWidth = 1.5;
+  c.strokeRect(splitX, barY, redBarW, barH);
+  if (bar20reveal > 0.8) {
+    const tA = (bar20reveal - 0.8) / 0.2;
+    c.globalAlpha = reveal * tA;
+    txt('20%', splitX + (barR - splitX) / 2, barY + barH / 2 - 4, { sz: 28, wt: 800, col: B.red });
+    txt('CRITICAL CONDITIONS', splitX + (barR - splitX) / 2, barY + barH / 2 + 18, { sz: 9, wt: 600, col: `rgba(${B.redRgb.join(',')},0.7)`, sp: 1.5 });
+  }
+  c.restore();
+
+  // Labels above
+  c.save(); c.globalAlpha = reveal * 0.3;
+  txt('SCADA HANDLES THIS', barL + (splitX - barL) / 2, barY - 14, { sz: 9, wt: 500, col: B.lgray, sp: 1.5 });
+  txt('WHERE YOU LOSE PRODUCTION', splitX + (barR - splitX) / 2, barY - 14, { sz: 9, wt: 500, col: B.lgray, sp: 1.5 });
+  c.restore();
+
+  // ── Event comparison rows — Isolated PID vs Well Logic ──
+  const events = [
+    { label: 'COMPRESSOR TRIP', iso: 'Equipment shuts down. Each well on its own.', wl: 'Gas redistributed in seconds. Priority wells stay on.' },
+    { label: 'PRESSURE SWING', iso: 'Chokes hold position. Wells slug or gas-lock.', wl: 'Chokes adjust together. Header pressure stabilized.' },
+    { label: 'OVERNIGHT EVENT', iso: 'No one catches it until morning.', wl: 'Well Logic responds immediately. No waiting.' },
+    { label: '2 A.M. ALARM', iso: 'Pumper drives 45 min. Diagnoses for an hour.', wl: 'Coordinated response before the pumper arrives.' },
+  ];
+
+  const rowStartY = H * 0.34;
+  const rowH = 80;
+  const colMid = W * 0.5;
+
+  // Column headers
+  const headerReveal = easeOut(clamp(remap(p, 0.2, 0.35, 0, 1)));
+  c.save(); c.globalAlpha = headerReveal * 0.5;
+  txt('ISOLATED PID CONTROL', W * 0.3, rowStartY - 20, { sz: 10, wt: 600, col: B.red, sp: 1.5 });
+  txt('WELL LOGIC COORDINATED', W * 0.72, rowStartY - 20, { sz: 10, wt: 600, col: B.green, sp: 1.5 });
+  // Divider line
+  c.strokeStyle = 'rgba(255,255,255,0.08)'; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(colMid, rowStartY - 8); c.lineTo(colMid, rowStartY + events.length * rowH - 10); c.stroke();
+  c.restore();
+
+  events.forEach((ev, i) => {
+    const rowReveal = easeOut(clamp(remap(p, 0.2 + i * 0.06, 0.38 + i * 0.06, 0, 1)));
+    if (rowReveal <= 0) return;
+    const ry = rowStartY + i * rowH;
+
+    c.save(); c.globalAlpha = rowReveal;
+
+    // Row divider
+    c.strokeStyle = 'rgba(255,255,255,0.04)'; c.lineWidth = 0.5;
+    c.beginPath(); c.moveTo(W * 0.08, ry + rowH - 2); c.lineTo(W * 0.92, ry + rowH - 2); c.stroke();
+
+    // Event label (left edge)
+    txt(ev.label, W * 0.08, ry + 14, { sz: 11, wt: 700, col: B.wht, al: 'left', sp: 1 });
+
+    // Red X icon + isolated description
+    c.fillStyle = B.red; c.globalAlpha = rowReveal * 0.8;
+    c.beginPath(); c.arc(W * 0.14, ry + 42, 8, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = B.wht; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(W * 0.14 - 4, ry + 42 - 4); c.lineTo(W * 0.14 + 4, ry + 42 + 4); c.stroke();
+    c.beginPath(); c.moveTo(W * 0.14 + 4, ry + 42 - 4); c.lineTo(W * 0.14 - 4, ry + 42 + 4); c.stroke();
+    c.globalAlpha = rowReveal;
+    txt(ev.iso, W * 0.17, ry + 42, { sz: 11, wt: 400, col: 'rgba(255,255,255,0.5)', al: 'left' });
+
+    // Green check + Well Logic description
+    c.fillStyle = B.green; c.globalAlpha = rowReveal * 0.8;
+    c.beginPath(); c.arc(W * 0.55, ry + 42, 8, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = B.wht; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(W * 0.55 - 4, ry + 42); c.lineTo(W * 0.55 - 1, ry + 42 + 4); c.lineTo(W * 0.55 + 5, ry + 42 - 4); c.stroke();
+    c.globalAlpha = rowReveal;
+    txt(ev.wl, W * 0.58, ry + 42, { sz: 11, wt: 500, col: 'rgba(255,255,255,0.7)', al: 'left' });
+
+    c.restore();
+  });
+
+  // ── Bottom callout ──
+  if (p > 0.55) {
+    const callAlpha = easeOut(clamp(remap(p, 0.55, 0.7, 0, 1)));
+    c.save(); c.globalAlpha = callAlpha;
+    c.fillStyle = `rgba(${B.navyRgb.join(',')},0.92)`;
+    c.strokeStyle = B.red; c.lineWidth = 2;
+    c.beginPath(); c.roundRect(W * 0.22, H * 0.72, W * 0.56, 80, 8); c.fill(); c.stroke();
+    drawGlow(W * 0.5, H * 0.72 + 40, 150, `rgba(${B.redRgb.join(',')},0.04)`);
+    txt('STOP FUMBLING THE 20%', W * 0.5, H * 0.72 + 30, { sz: 24, wt: 800, col: B.wht });
+    txt('LET WELL LOGIC CALL THE AUDIBLES', W * 0.5, H * 0.72 + 58, { sz: 12, wt: 600, col: B.cyan, sp: 2 });
+    c.restore();
+  }
+
+  c.restore();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  SCENE: BRAND CLOSE — CTA
+// ════════════════════════════════════════════════════════════════════════
+function sceneClose(p, t) {
+  c.save();
+  applyKenBurns(t, 8 * FPS, 1.0, 1.012);
+  applyCameraDrift(t, 1);
+
+  c.fillStyle = B.navy; c.fillRect(-20, -20, W + 40, H + 40);
+  drawParticles(0.2, t);
+  drawStreams(t, 0.08);
+
+  // Red dot matrix pattern
+  c.save(); c.globalAlpha = 0.025;
+  for (let i = 0; i < 40; i++) {
+    for (let j = 0; j < 22; j++) {
+      c.fillStyle = B.red; c.beginPath();
+      c.arc(W * 0.04 + i * (W * 0.92 / 40), H * 0.62 + j * 19, 2.2, 0, Math.PI * 2);
+      c.fill();
+    }
+  }
+  c.restore();
+
+  // Reveal sequence
+  const lineP = easeOutCubic(clamp(remap(p, 0.04, 0.2, 0, 1)));
+  drawRedLine(W / 2, H * 0.29, 240 * lineP);
+
+  // "WELL LOGIC" — verified correct spacing
+  const titleAlpha = easeOut(clamp(remap(p, 0.08, 0.26, 0, 1)));
+  c.save(); c.globalAlpha = titleAlpha;
+  c.shadowColor = `rgba(${B.redRgb.join(',')},0.2)`; c.shadowBlur = 50;
+  txt('WELL LOGIC', W / 2, H * 0.38, { sz: 80, wt: 800, col: B.wht });
+  c.shadowBlur = 0;
+  c.restore();
+
+  // Tagline
+  const subAlpha = easeOut(clamp(remap(p, 0.2, 0.36, 0, 1)));
+  c.save(); c.globalAlpha = subAlpha * 0.75;
+  txt('Automated Gas Lift Optimization', W / 2, H * 0.48, { sz: 22, wt: 300, col: B.lgray });
+  c.restore();
+
+  // CTA button
+  const ctaAlpha = easeOut(clamp(remap(p, 0.3, 0.46, 0, 1)));
+  c.save(); c.globalAlpha = ctaAlpha;
+  drawGlow(W / 2, H * 0.565, 130, `rgba(${B.redRgb.join(',')},0.08)`);
+  c.fillStyle = B.red;
+  c.beginPath(); c.rect(W / 2 - 190, H * 0.545, 380, 54); c.fill();
+  txt('SCHEDULE A LIVE DEMO', W / 2, H * 0.545 + 27, { sz: 13, wt: 700, col: B.wht, sp: 3 });
+  c.restore();
+
+  // Divider
+  const divAlpha = easeOut(clamp(remap(p, 0.4, 0.54, 0, 1)));
+  c.save(); c.globalAlpha = divAlpha * 0.12;
+  c.strokeStyle = B.wht; c.lineWidth = 1;
+  const divW = easeOutCubic(clamp(remap(p, 0.4, 0.58, 0, 1))) * 190;
+  c.beginPath(); c.moveTo(W / 2 - divW, H * 0.635); c.lineTo(W / 2 + divW, H * 0.635); c.stroke();
+  c.restore();
+
+  // Brand identifiers
+  c.save(); c.globalAlpha = divAlpha * 0.4;
+  txt('BY FIELDTUNE', W / 2, H * 0.67, { sz: 10, wt: 600, col: B.cyan, sp: 3 });
+  c.globalAlpha = divAlpha * 0.2;
+  txt('SERVICE COMPRESSION', W / 2, H * 0.71, { sz: 9, wt: 500, col: B.lgray, sp: 2.5 });
+  c.globalAlpha = divAlpha * 0.15;
+  txt('servicecompression.com', W / 2, H * 0.76, { sz: 11, wt: 400, col: B.lgray });
+  c.restore();
+
+  c.restore();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  SCENE TRANSITION — smooth cross-fade through navy
+// ════════════════════════════════════════════════════════════════════════
+function drawTransition(progress) {
+  const fadeOut = easeInCubic(clamp(remap(progress, 0.9, 1, 0, 1)));
+  const fadeIn = easeOutCubic(clamp(remap(progress, 0, 0.06, 1, 0)));
+  const alpha = Math.max(fadeOut, fadeIn);
+  if (alpha > 0) {
+    c.save(); c.globalAlpha = alpha;
+    c.fillStyle = B.navy; c.fillRect(0, 0, W, H);
+    c.restore();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  MAIN RENDER LOOP
+// ════════════════════════════════════════════════════════════════════════
+function render() {
+  const scene = SCENES[si];
+  const framesInScene = scene.d * FPS;
+  const progress = sf / framesInScene;
+
+  tickParticles();
+
+  // Dispatch to scene renderer
+  switch (scene.v) {
+    case 'intro':  sceneIntro(progress, sf); break;
+    case 'desert': sceneDesert(progress, sf); break;
+    case 'pad':    scenePad(progress, sf); break;
+    case 'comp':   sceneComp(progress, sf); break;
+    case 'well':   sceneWell(progress, sf); break;
+    case 'data':   sceneData(progress, sf); break;
+    case 'close':  sceneClose(progress, sf); break;
+  }
+
+  // Cross-fade transitions
+  drawTransition(progress);
+
+  // Cinematic overlays (applied last, over everything)
+  drawLetterbox();
+  drawWatermark(gf);
+  drawSceneTitle(scene.t, progress, scene.d);
+  drawCaption(scene.n, progress, scene.d, si);
+
+  // Film grain — subtle texture
+  drawFilmGrain(0.018);
+
+  // Vignette — cinematic depth
+  drawVignette(0.35);
+
+  // UI updates
+  document.getElementById('pbar').style.width = (gf / totalFrames * 100) + '%';
+  document.getElementById('snum').textContent = `${si + 1} / ${SCENES.length}`;
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  NARRATION ENGINE — Microsoft Edge Neural Voice (en-US-GuyNeural)
+//  Pre-generated audio embedded as base64 data URIs.
+//  Voice: American male, natural, professional narrator quality.
+//  Generated via edge-tts from Microsoft's neural TTS servers.
+// ════════════════════════════════════════════════════════════════════════
+
+// Audio data is loaded from external file to keep HTML manageable
+const audioElements = new Map();
+let audioReady = false;
+let currentAudio = null;
+
+// Load audio data from companion JS file
+function initAudio() {
+  if (typeof AUDIO_DATA === 'undefined') {
+    console.warn('AUDIO_DATA not found — narration disabled. Ensure narration_audio.js is loaded.');
+    audioReady = true; // don't block playback
+    return;
+  }
+  for (const [sceneIdx, dataUri] of Object.entries(AUDIO_DATA)) {
+    const audio = new Audio(dataUri);
+    audio.preload = 'auto';
+    audioElements.set(parseInt(sceneIdx), audio);
+  }
+  audioReady = true;
+  console.log(`Narration loaded: ${audioElements.size} clips (Microsoft en-US-GuyNeural)`);
+}
+
+let narrationTimeout = null; // track the delayed start so we can cancel it on pause
+
+function speakScene(sceneIndex) {
+  stopNarration();
+  if (!audioElements.has(sceneIndex)) return;
+  const audio = audioElements.get(sceneIndex);
+  audio.currentTime = 0;
+  currentAudio = audio;
+  // Delay audio start to let scene visuals establish
+  narrationTimeout = setTimeout(() => {
+    narrationTimeout = null;
+    if (!playing) return; // Don't start if user paused during the delay
+    audio.play().catch(e => console.warn('Audio play blocked:', e.message));
+  }, Math.round(CAPTION_DELAY * 1000));
+}
+
+function pauseNarration() {
+  // Cancel any pending delayed start
+  if (narrationTimeout) { clearTimeout(narrationTimeout); narrationTimeout = null; }
+  // Pause currently playing audio (keeps position for resume)
+  if (currentAudio && !currentAudio.paused) currentAudio.pause();
+}
+
+function resumeNarration() {
+  // Resume audio from where it was paused — don't restart
+  if (currentAudio && currentAudio.paused && currentAudio.currentTime > 0) {
+    currentAudio.play().catch(() => {});
+  } else if (currentAudio && currentAudio.currentTime === 0) {
+    // Audio hadn't started yet (was paused during delay) — restart the delay
+    narrationTimeout = setTimeout(() => {
+      narrationTimeout = null;
+      if (!playing) return;
+      currentAudio.play().catch(() => {});
+    }, Math.round(CAPTION_DELAY * 1000));
+  }
+}
+
+function stopNarration() {
+  if (narrationTimeout) { clearTimeout(narrationTimeout); narrationTimeout = null; }
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  MAIN LOOP — with narration sync
+// ════════════════════════════════════════════════════════════════════════
+let previousScene = -1;
+
+function loop() {
+  if (!playing) return;
+  render();
+  sf++; gf++;
+
+  // Detect scene change and trigger narration
+  if (si !== previousScene) {
+    previousScene = si;
+    speakScene(si);
+  }
+
+  if (sf >= SCENES[si].d * FPS) {
+    sf = 0; si++;
+    if (si >= SCENES.length) {
+      playing = false;
+      stopNarration();
+      document.getElementById('pbtn').textContent = 'REPLAY';
+      return;
+    }
+  }
+  raf = requestAnimationFrame(loop);
+}
+
+// ── Controls ──
+function playSpeakerTest() {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return;
+
+  if (!testToneCtx) testToneCtx = new AudioCtx();
+  const ctx = testToneCtx;
+  const startAt = ctx.currentTime + 0.05;
+  const tones = [440, 660, 880];
+
+  if (ctx.state === 'suspended') ctx.resume();
+
+  tones.forEach((freq, idx) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const toneStart = startAt + idx * 0.22;
+    const toneEnd = toneStart + 0.18;
+
+    osc.type = idx === tones.length - 1 ? 'triangle' : 'sine';
+    osc.frequency.setValueAtTime(freq, toneStart);
+    gain.gain.setValueAtTime(0.0001, toneStart);
+    gain.gain.exponentialRampToValueAtTime(0.18, toneStart + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, toneEnd);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(toneStart);
+    osc.stop(toneEnd + 0.02);
+  });
+}
+
+document.getElementById('pbtn').addEventListener('click', () => {
+  if (si >= SCENES.length) { si = 0; sf = 0; gf = 0; previousScene = -1; }
+  playing = !playing;
+  document.getElementById('pbtn').textContent = playing ? 'PAUSE' : 'PLAY';
+  if (playing) {
+    previousScene = -1; // force narration trigger on resume
+    loop();
+  } else {
+    pauseNarration();
+  }
+});
+
+document.getElementById('rbtn').addEventListener('click', () => {
+  playing = false; si = 0; sf = 0; gf = 0; previousScene = -1;
+  stopNarration();
+  document.getElementById('pbtn').textContent = 'PLAY';
+  render();
+});
+
+// Initialize audio
+initAudio();
+
+document.getElementById('tbtn').addEventListener('click', playSpeakerTest);
+
+// Initial frame render
+render();
+</script>
+</body>
+</html>

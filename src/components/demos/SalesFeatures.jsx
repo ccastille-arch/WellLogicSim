@@ -315,7 +315,7 @@ export function BeforeAfterOverlay({ sim, customerData }) {
 
         {/* WELLLOGIC SIDE */}
         <div className="bg-[#081a08] rounded p-2 border border-[#22c55e]/20">
-          <div className="text-[9px] text-[#22c55e] font-bold mb-1">WITH PAD LOGIC - Automatic</div>
+          <div className="text-[9px] text-[#22c55e] font-bold mb-1">WITH WELL LOGIC - Automatic</div>
           <div className="w-full bg-[#020] rounded h-3 overflow-hidden">
             <div className="h-full bg-[#22c55e] transition-all duration-1000" style={{ width: `${autoProdPct}%` }} />
           </div>

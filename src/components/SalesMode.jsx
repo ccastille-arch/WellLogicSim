@@ -19,6 +19,7 @@ import SuctionPressureDemo from './demos/SuctionPressureDemo'
 import AutoStagingDemo from './demos/AutoStagingDemo'
 import PersonnelLockoutDemo from './demos/PersonnelLockoutDemo'
 import BreakItChallenge from './demos/BreakItChallenge'
+import SitePressuresFlows from './demos/SitePressuresFlows'
 // SetpointChangeDemo is now surfaced as a top-level home tile
 // ('How to remotely adjust your wells'). Kept out of the sales-demo
 // sidebar to prevent duplication. Route lives in App.jsx.
@@ -30,6 +31,9 @@ import {
 } from './demos/SalesFeatures'
 
 const DEMOS = [
+  // Inputs & readings tab sits at the top so the presenter can land
+  // on "set the knobs" before diving into scenario tiles.
+  { id: 'flows', label: 'Pressures\n& Flows', icon: '📡', Component: SitePressuresFlows },
   { id: 'priority', label: 'Well\nPriority', icon: '📊', Component: WellPriorityDemo },
   { id: 'trip', label: 'Comp\nTrip', icon: '⚡', Component: CompressorTripDemo },
   { id: 'constrained', label: 'Gas\nConstrain', icon: '📉', Component: GasConstrainedDemo },
@@ -42,12 +46,17 @@ const DEMOS = [
   { id: 'breakit', label: 'Break It\nChallenge', icon: '🎮', Component: BreakItChallenge },
 ]
 
+// All Sales Features start OFF by default. The presenter opts in to each
+// one from the Features panel (revenue ticker, before/after, response
+// timer, etc.) rather than having them all running at once — keeps the
+// first view of the Sales Demo clean, which is what reps land on when
+// they open it in front of a customer.
 const DEFAULT_FEATURES = {
-  revenueTicker: true,
-  beforeAfter: true,
-  responseTimer: true,
-  badDay: true,
-  saturdayNight: true,
+  revenueTicker: false,
+  beforeAfter: false,
+  responseTimer: false,
+  badDay: false,
+  saturdayNight: false,
   roiCalc: false,
 }
 

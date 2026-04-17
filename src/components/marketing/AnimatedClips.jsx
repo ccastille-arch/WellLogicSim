@@ -3,10 +3,16 @@
 const CLIPS = [
   {
     id: 'well-pad-optimizer',
-    title: 'Well Logic TM Well Panel - Well Pad Optimizer',
+    title: 'Well Logic™ Well Panel — Well Pad Optimizer',
     duration: '2:30',
-    description: 'From reactive control to coordinated optimization. See why the Well Logic Well Panel is not just a choke controller - it is a Well Pad Optimizer.',
+    description: 'From reactive control to coordinated optimization. See why the Well Logic Well Panel is not just a choke controller — it is a Well Pad Optimizer.',
     featured: true,
+    // Self-contained narrated animation served from /public/marketing.
+    // When htmlSrc is set the video tile iframes this asset instead of
+    // invoking the legacy in-component ClipPlayer, so marketing can
+    // ship a new cut by dropping a new HTML file in that folder and
+    // re-pointing this field — no React changes required.
+    htmlSrc: '/marketing/well-logic-optimizer.html',
   },
   {
     id: 'what-is-welllogic',
@@ -75,7 +81,22 @@ export default function AnimatedClips() {
             <div className="relative bg-[#060610] overflow-hidden" style={{ aspectRatio: '16/9' }}>
               {playing === clip.id ? (
                 <div className="w-full h-full relative">
-                  <ClipPlayer id={clip.id} audioUrl={customAudio[clip.id]?.url} onEnd={stopPlaying} />
+                  {clip.htmlSrc ? (
+                    // External self-contained HTML asset — iframe it so its
+                    // own narration/animation runs unmodified. The sandbox
+                    // stays as same-origin-ish (the file is hosted under
+                    // our own /public/marketing) so scripts inside it can
+                    // run, but we still forbid top-navigation for safety.
+                    <iframe
+                      src={clip.htmlSrc}
+                      title={clip.title}
+                      className="w-full h-full border-0"
+                      allow="autoplay; fullscreen; clipboard-read; clipboard-write"
+                      sandbox="allow-scripts allow-same-origin allow-popups"
+                    />
+                  ) : (
+                    <ClipPlayer id={clip.id} audioUrl={customAudio[clip.id]?.url} onEnd={stopPlaying} />
+                  )}
                   <button onClick={stopPlaying}
                     className="absolute top-3 right-3 bg-[#111]/80 border border-[#444] rounded px-3 py-1 text-[10px] text-[#ccc] hover:text-white hover:bg-[#D32028] z-10">
                     Stop
@@ -450,7 +471,7 @@ function TripSideBySideVideo({ frame, tick }) {
         {/* LEFT: Manual */}
         <div className="flex-1 border-r border-[#333] relative">
           <div className="absolute top-2 left-0 right-0 text-center">
-            <span className="bg-[#D32028]/20 text-[#D32028] px-3 py-1 rounded text-[10px] font-bold">WITHOUT PAD LOGIC - MANUAL</span>
+            <span className="bg-[#D32028]/20 text-[#D32028] px-3 py-1 rounded text-[10px] font-bold">WITHOUT WELL LOGIC - MANUAL</span>
           </div>
           <MiniPad wells={manualWells} c1Status={manualC1} c2Status="running" showWellLogic={false} />
           {frame >= 3 && frame < 8 && (
@@ -465,7 +486,7 @@ function TripSideBySideVideo({ frame, tick }) {
         {/* RIGHT: Well Logic */}
         <div className="flex-1 relative">
           <div className="absolute top-2 left-0 right-0 text-center">
-            <span className="bg-[#22c55e]/20 text-[#22c55e] px-3 py-1 rounded text-[10px] font-bold">WITH PAD LOGIC - AUTOMATIC</span>
+            <span className="bg-[#22c55e]/20 text-[#22c55e] px-3 py-1 rounded text-[10px] font-bold">WITH WELL LOGIC - AUTOMATIC</span>
           </div>
           <MiniPad wells={wlWells} c1Status={wlC1} c2Status="running" showWellLogic={true} />
           {frame >= 3 && (
@@ -783,7 +804,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
             {[0,1,2,3].map(i => (
               <circle key={i} cx={280+i*20} cy="205" r="5" fill="#22c55e" opacity={blink && i===1 ? 0.4 : 0.9} />
             ))}
-            <text x="400" y="220" textAnchor="middle" fill="#444" fontSize="6" letterSpacing="2">PAD LOGIC CONTROL SYSTEM</text>
+            <text x="400" y="220" textAnchor="middle" fill="#444" fontSize="6" letterSpacing="2">WELL LOGIC CONTROL SYSTEM</text>
             {/* Label */}
             <text x="400" y="275" textAnchor="middle" fill={frame===6 ? 'white' : '#888'} fontSize={frame===6 ? 16 : 11}
               fontWeight="900" fontFamily="'Montserrat', sans-serif" letterSpacing="3">
@@ -882,7 +903,7 @@ function WellPadOptimizerVideo({ frame, tick }) {
             <text x="200" y="300" textAnchor="middle" fill="#D32028" fontSize="7">Uneven. Reactive. Wasteful.</text>
 
             {/* RIGHT: Well Logic â€” maintaining */}
-            <text x="600" y="25" textAnchor="middle" fill="#22c55e" fontSize="9" fontWeight="bold" letterSpacing="2">PAD LOGIC WELL PANEL</text>
+            <text x="600" y="25" textAnchor="middle" fill="#22c55e" fontSize="9" fontWeight="bold" letterSpacing="2">WELL LOGIC WELL PANEL</text>
             {/* Smooth flat trace */}
             <polyline points="440,80 480,79 520,80 560,80 600,79 640,80 680,80 720,79 760,80"
               stroke="#22c55e" strokeWidth="2.5" fill="none" opacity="0.9" />
