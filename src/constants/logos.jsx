@@ -3,7 +3,7 @@
 // compact(size) → used in headers/top bars (size ≈ 32–56)
 // full(size)    → used on start screens / landing (size ≈ 80–160)
 
-function L({ id, label, compact, full }) {
+function L(id, label, compact, full) {
   return { id, label, compact, full }
 }
 
