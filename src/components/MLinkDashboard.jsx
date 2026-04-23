@@ -261,7 +261,7 @@ export default function MLinkDashboard({ onBack }) {
         <button onClick={() => setTab('klondike')} className={`px-4 py-1.5 rounded text-[11px] font-bold ${tab === 'klondike' ? 'bg-[#4fc3f7] text-black' : 'text-[#888] hover:text-white bg-[#111120] border border-[#2a2a3a]'}`}>30-Day Field Data</button>
       </div>
 
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-y-scroll p-6">
         {tab === 'live' ? (
           <div className="max-w-[1280px] mx-auto">
             {loading && !panelData ? (
@@ -724,7 +724,7 @@ function KlondikeHistoryTab({ klondike }) {
       })
     }, 120)
     return () => clearInterval(id)
-  }, [playing, data])
+  }, [playing, data?.length])
 
   if (loading) return <div className="flex items-center justify-center h-40 text-[#888] text-sm">Loading field data...</div>
   if (error) return <div className="p-6 text-[#E8200C] text-sm">Error: {error}</div>
@@ -1042,9 +1042,8 @@ function KlondikeCompressorDetail({ row, compressorIdx, windowData }) {
 }
 
 function MiniSparkline({ data, color }) {
-  if (!data?.length) return null
-  const valid = data.filter(v => v != null && !isNaN(v))
-  if (valid.length < 2) return null
+  const valid = (data || []).filter(v => v != null && !isNaN(v))
+  if (valid.length < 2) return <div style={{ height: 32 }} />
   const mn = Math.min(...valid), mx = Math.max(...valid)
   const range = mx - mn || 1
   const W = 120, H = 24
@@ -1054,9 +1053,11 @@ function MiniSparkline({ data, color }) {
     return `${x},${y}`
   }).join(' ')
   return (
-    <svg width={W} height={H} className="mt-2 opacity-70">
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
+    <div style={{ height: 32 }}>
+      <svg width={W} height={H} className="mt-2 opacity-70">
+        <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+    </div>
   )
 }
 
