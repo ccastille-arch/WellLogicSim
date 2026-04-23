@@ -221,6 +221,40 @@ export default function SettingsTab() {
           </div>
         )}
       </div>
+
+      {/* ── Live Data Pad Visibility ── */}
+      <div className="rounded-xl border border-[#1e1e30] bg-[#0c0c18] p-4">
+        <h3 className="text-[12px] font-bold text-white mb-1">Live Data Page Visibility</h3>
+        <p className="text-[11px] text-[#888] mb-3">
+          Control which public live data pages are accessible. Hidden pages show "not available" to non-admins.
+        </p>
+        <div className="space-y-2">
+          {[
+            { id: 'klondike', label: 'Klondike (WL0001)', url: '/live-view.html', desc: 'Klondike West Texas pad' },
+            { id: 'halfmann', label: 'Halfmann 1214', url: '/halfmann-view.html', desc: 'Halfmann 5-device pad' },
+          ].map(pad => {
+            const visibility = settings.liveDataPadVisibility || {}
+            const isVisible = visibility[pad.id] !== false
+            return (
+              <div key={pad.id} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-[#1a1a2a] bg-[#090913]">
+                <label className="flex items-center gap-2 flex-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isVisible}
+                    onChange={e => updateSettings('liveDataPadVisibility', { ...(settings.liveDataPadVisibility || {}), [pad.id]: e.target.checked })}
+                    className="accent-[#D32028]"
+                  />
+                  <div>
+                    <div className="text-[11px] text-white font-medium">{pad.label}</div>
+                    <div className="text-[9px] text-[#555]">{pad.desc}</div>
+                  </div>
+                </label>
+                <a href={pad.url} target="_blank" rel="noreferrer" className="text-[10px] text-[#4fc3f7] hover:underline shrink-0">Open ↗</a>
+              </div>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }

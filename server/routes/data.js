@@ -101,6 +101,70 @@ router.post('/voiceover', requirePermission('manage:settings'), async (req, res)
   req.on('error', () => res.status(400).json({ error: 'Upload interrupted' }))
 })
 
+// ─── Per-clip voiceover ──────────────────────────────────────
+
+const VALID_CLIP_IDS = new Set(['well-pad-optimizer', 'what-is-welllogic', 'trip-sidebyside'])
+
+// GET /api/voiceover/clip/:clipId
+router.get('/voiceover/clip/:clipId', (req, res) => {
+  const { clipId } = req.params
+  if (!VALID_CLIP_IDS.has(clipId)) return res.status(404).json({ error: 'Unknown clip' })
+  const uploadsDir = getUploadsDir()
+  const filePath = join(uploadsDir, `voiceover-clip-${clipId}.mp3`)
+  if (!existsSync(filePath)) return res.status(404).json({ error: 'No voiceover uploaded for this clip' })
+  res.setHeader('Content-Type', 'audio/mpeg')
+  res.setHeader('Cache-Control', 'public, max-age=3600')
+  createReadStream(filePath).pipe(res)
+})
+
+// POST /api/voiceover/clip/:clipId
+router.post('/voiceover/clip/:clipId', requirePermission('manage:settings'), async (req, res) => {
+  const { clipId } = req.params
+  if (!VALID_CLIP_IDS.has(clipId)) return res.status(404).json({ error: 'Unknown clip' })
+  const uploadsDir = getUploadsDir()
+  if (!uploadsDir) return res.status(503).json({ error: 'Storage not available' })
+
+  const chunks = []
+  req.on('data', chunk => chunks.push(chunk))
+  req.on('end', async () => {
+    try {
+      const buf = Buffer.concat(chunks)
+      if (buf.length < 4) return res.status(400).json({ error: 'File is empty' })
+      if (buf.length > 50 * 1024 * 1024) return res.status(413).json({ error: 'File exceeds 50 MB limit' })
+      const isValidMp3 = (buf[0] === 0x49 && buf[1] === 0x44 && buf[2] === 0x33) ||
+                         (buf[0] === 0xFF && (buf[1] & 0xE0) === 0xE0)
+      if (!isValidMp3) return res.status(400).json({ error: 'File does not appear to be a valid MP3' })
+      await writeFile(join(uploadsDir, `voiceover-clip-${clipId}.mp3`), buf)
+      const settingsKey = `clipVoiceover_${clipId}`
+      await pool.query(
+        'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
+        [settingsKey, JSON.stringify({ url: `/api/voiceover/clip/${clipId}`, updatedAt: new Date().toISOString() })]
+      )
+      res.json({ ok: true, url: `/api/voiceover/clip/${clipId}`, size: buf.length })
+    } catch (err) {
+      console.error('Clip voiceover upload error:', err)
+      res.status(500).json({ error: 'Upload failed' })
+    }
+  })
+  req.on('error', () => res.status(400).json({ error: 'Upload interrupted' }))
+})
+
+// ─── Public pad visibility (no auth) ─────────────────────────
+
+// GET /api/public/pad-visibility — returns which live data pads are visible
+router.get('/public/pad-visibility', async (_req, res) => {
+  try {
+    const { rows } = await pool.query("SELECT value FROM settings WHERE key = 'liveDataPadVisibility'")
+    const visibility = rows.length ? JSON.parse(rows[0].value) : {}
+    res.json({
+      klondike: visibility.klondike !== false,
+      halfmann: visibility.halfmann !== false,
+    })
+  } catch {
+    res.json({ klondike: true, halfmann: true })
+  }
+})
+
 // ─── Quotes / CRM ───────────────────────────────────────────
 
 // GET /api/quotes

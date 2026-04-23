@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pad Logic VO Teleprompter</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* ── Top bar ── */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 24px;
+    background: #111;
+    border-bottom: 1px solid #222;
+    height: 56px;
+    z-index: 10;
+    position: relative;
+  }
+  .top-bar h1 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #aaa;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .timer-display {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: #ff8c00;
+    min-width: 140px;
+    text-align: center;
+  }
+  .clip-end-time {
+    font-size: 13px;
+    color: #666;
+    font-family: 'Consolas', monospace;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    background: #111;
+    border-bottom: 2px solid #1a1a1a;
+    padding: 0 24px;
+  }
+  .tab {
+    padding: 10px 20px;
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .tab:hover { color: #aaa; }
+  .tab.active {
+    color: #ff8c00;
+    border-bottom-color: #ff8c00;
+  }
+  .tab .tab-dur {
+    font-size: 11px;
+    color: #555;
+    margin-left: 6px;
+  }
+
+  /* ── Prompter area ── */
+  .prompter-wrap {
+    position: relative;
+    height: calc(100vh - 56px - 42px - 72px);
+    overflow: hidden;
+  }
+
+  /* Guide lines */
+  .prompter-wrap::before {
+    content: '';
+    position: absolute;
+    top: 38%;
+    left: 5%;
+    right: 5%;
+    height: 2px;
+    background: rgba(255, 140, 0, 0.15);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .prompter-wrap::after {
+    content: '';
+    position: absolute;
+    top: 62%;
+    left: 5%;
+    right: 5%;
+    height: 2px;
+    background: rgba(255, 140, 0, 0.15);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* The read zone indicator */
+  .read-zone {
+    position: absolute;
+    top: 38%;
+    bottom: 38%;
+    left: 0;
+    right: 0;
+    border-left: 4px solid #ff8c00;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .read-zone::before {
+    content: 'READ';
+    position: absolute;
+    left: 12px;
+    top: -18px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #ff8c00;
+    opacity: 0.6;
+  }
+
+  .scroll-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.15s linear;
+  }
+
+  .spacer-top, .spacer-bottom {
+    flex-shrink: 0;
+  }
+
+  .line-block {
+    width: 70%;
+    max-width: 900px;
+    padding: 18px 32px;
+    margin: 4px 0;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  .line-block .cue-time {
+    font-family: 'Consolas', monospace;
+    font-size: 11px;
+    color: #444;
+    margin-bottom: 4px;
+    transition: color 0.3s;
+  }
+  .line-block .script-text {
+    font-size: 36px;
+    line-height: 1.45;
+    font-weight: 400;
+    color: #555;
+    transition: color 0.3s, font-weight 0.3s;
+  }
+
+  /* States */
+  .line-block.past .script-text { color: #333; }
+  .line-block.past .cue-time { color: #333; }
+
+  .line-block.active {
+    background: rgba(255, 140, 0, 0.06);
+  }
+  .line-block.active .script-text {
+    color: #fff;
+    font-weight: 500;
+  }
+  .line-block.active .cue-time {
+    color: #ff8c00;
+  }
+
+  .line-block.next .script-text { color: #777; }
+  .line-block.next .cue-time { color: #555; }
+
+  .line-block.future .script-text { color: #444; }
+
+  /* Progress bar */
+  .progress-wrap {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #1a1a1a;
+    z-index: 5;
+  }
+  .progress-bar {
+    height: 100%;
+    background: #ff8c00;
+    width: 0%;
+    transition: width 0.15s linear;
+  }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px 24px;
+    background: #111;
+    border-top: 1px solid #222;
+    height: 72px;
+  }
+  .btn {
+    padding: 10px 28px;
+    border: 1px solid #333;
+    border-radius: 6px;
+    background: #1a1a1a;
+    color: #ccc;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .btn:hover { background: #222; border-color: #444; }
+  .btn.primary {
+    background: #ff8c00;
+    border-color: #ff8c00;
+    color: #000;
+    font-weight: 700;
+    min-width: 120px;
+  }
+  .btn.primary:hover { background: #e07e00; }
+  .btn.primary.paused { background: #28a745; border-color: #28a745; }
+  .btn.recording { background: #d32f2f; border-color: #d32f2f; color: #fff; }
+  .btn.recording::before {
+    content: '';
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #fff;
+    margin-right: 8px;
+    animation: blink 1s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .speed-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 24px;
+  }
+  .speed-control label {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .speed-control input[type=range] {
+    width: 100px;
+    accent-color: #ff8c00;
+  }
+  .speed-val {
+    font-size: 13px;
+    color: #ff8c00;
+    font-family: monospace;
+    min-width: 36px;
+  }
+
+  /* ── Instructions overlay ── */
+  .instructions-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    opacity: 1;
+    transition: opacity 0.3s;
+  }
+  .instructions-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .instructions-box {
+    background: #151515;
+    border: 1px solid #333;
+    border-radius: 12px;
+    max-width: 760px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 40px 48px;
+  }
+  .instructions-box h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ff8c00;
+    margin-bottom: 6px;
+  }
+  .instructions-box .subtitle {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 28px;
+  }
+  .instructions-box h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #ccc;
+    margin: 24px 0 10px;
+    padding-top: 16px;
+    border-top: 1px solid #222;
+  }
+  .instructions-box h3:first-of-type {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
+  .instructions-box p, .instructions-box li {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #aaa;
+  }
+  .instructions-box ul {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0;
+  }
+  .instructions-box li {
+    padding: 4px 0 4px 20px;
+    position: relative;
+  }
+  .instructions-box li::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 12px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ff8c00;
+  }
+  .instructions-box .key-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 14px;
+    color: #aaa;
+  }
+  .instructions-box kbd {
+    display: inline-block;
+    padding: 2px 8px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: #1a1a1a;
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+    color: #ff8c00;
+    min-width: 28px;
+    text-align: center;
+  }
+  .instructions-box .key-desc {
+    color: #888;
+  }
+  .instructions-box .warning {
+    background: rgba(255, 140, 0, 0.08);
+    border-left: 3px solid #ff8c00;
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+    font-size: 13px;
+    color: #bbb;
+    line-height: 1.6;
+  }
+  .instructions-box .clip-info {
+    display: flex;
+    gap: 12px;
+    margin: 8px 0;
+  }
+  .instructions-box .clip-card {
+    flex: 1;
+    background: #1a1a1a;
+    border: 1px solid #282828;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .clip-card .clip-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #ff8c00;
+    margin-bottom: 4px;
+  }
+  .clip-card .clip-detail {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.5;
+  }
+  .btn-start {
+    display: block;
+    margin: 32px auto 0;
+    padding: 14px 48px;
+    background: #ff8c00;
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-start:hover { background: #e07e00; }
+
+  .btn-help {
+    padding: 6px 14px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background: #1a1a1a;
+    color: #666;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: 12px;
+  }
+  .btn-help:hover { color: #aaa; border-color: #444; }
+
+  /* Countdown overlay */
+  .countdown-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    flex-direction: column;
+  }
+  .countdown-overlay.visible { display: flex; }
+  .countdown-number {
+    font-size: 160px;
+    font-weight: 800;
+    color: #ff8c00;
+    font-family: 'Consolas', monospace;
+  }
+  .countdown-label {
+    font-size: 16px;
+    color: #888;
+    margin-top: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* Keyboard hints */
+  .hints {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    font-size: 11px;
+    color: #333;
+    text-align: right;
+    line-height: 1.8;
+    z-index: 5;
+  }
+  .hints kbd {
+    display: inline-block;
+    padding: 1px 6px;
+    border: 1px solid #333;
+    border-radius: 3px;
+    background: #1a1a1a;
+    font-family: monospace;
+    font-size: 11px;
+    color: #666;
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>Pad Logic Teleprompter <button class="btn-help" id="btnHelp">? Instructions</button></h1>
+  <div class="timer-display" id="timer">00:00.0</div>
+  <div class="clip-end-time" id="clipEnd">End: --:--.-</div>
+</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-clip="0">Clip 1 — Well Pad Optimizer <span class="tab-dur">01:08</span></div>
+  <div class="tab" data-clip="1">Clip 2 — What It Does <span class="tab-dur">00:49</span></div>
+  <div class="tab" data-clip="2">Clip 3 — Trip Side-by-Side <span class="tab-dur">00:41</span></div>
+</div>
+
+<div class="prompter-wrap" id="prompterWrap">
+  <div class="read-zone"></div>
+  <div class="scroll-container" id="scrollContainer"></div>
+  <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+</div>
+
+<div class="controls">
+  <button class="btn" id="btnReset" title="Reset">Reset</button>
+  <button class="btn primary" id="btnPlay" title="Space to toggle">Play</button>
+  <button class="btn" id="btnRec" title="Record audio">Rec</button>
+  <div class="speed-control">
+    <label>Speed</label>
+    <input type="range" id="speedSlider" min="0.5" max="1.5" step="0.05" value="1.0">
+    <span class="speed-val" id="speedVal">1.0×</span>
+  </div>
+</div>
+
+<!-- ── Instructions Overlay ── -->
+<div class="instructions-overlay" id="instructionsOverlay">
+  <div class="instructions-box">
+    <h2>Pad Logic Voice-Over Teleprompter</h2>
+    <div class="subtitle">Read along with timed cues to record narration synced to the marketing simulator animations.</div>
+
+    <h3>What This Is</h3>
+    <p>This teleprompter scrolls script lines at the exact timing needed to sync voice-over audio with the Pad Logic marketing video animations. Each line lights up when you should start reading it and dims when you should be done. Your job is to match the scroll.</p>
+
+    <h3>The Three Clips</h3>
+    <div class="clip-info">
+      <div class="clip-card">
+        <div class="clip-name">Clip 1</div>
+        <div class="clip-detail">Well Pad Optimizer<br>17 lines / 01:08 total<br>Tightest copy density</div>
+      </div>
+      <div class="clip-card">
+        <div class="clip-name">Clip 2</div>
+        <div class="clip-detail">What It Does On Your Pad<br>12 lines / 00:49 total<br>Educational, smooth build</div>
+      </div>
+      <div class="clip-card">
+        <div class="clip-name">Clip 3</div>
+        <div class="clip-detail">Compressor Trip Side-by-Side<br>10 lines / 00:41 total<br>Urgent contrast, left vs right</div>
+      </div>
+    </div>
+
+    <h3>How to Read the Screen</h3>
+    <ul>
+      <li>The <strong style="color:#ff8c00;">orange bar on the left</strong> marks the "read zone" - this is where your eyes should focus.</li>
+      <li>The <strong style="color:#fff;">white line</strong> is the one you should be reading right now.</li>
+      <li>The <strong style="color:#777;">gray line</strong> below it is your preview of what comes next.</li>
+      <li><strong style="color:#444;">Dark lines</strong> above are done. Dark lines below are coming up.</li>
+      <li>Small timestamps above each line show your cue-in and hard-out times.</li>
+      <li>The <strong style="color:#ff8c00;">orange timer</strong> at top center is your running clock. If it turns <strong style="color:#d32f2f;">red</strong>, you have gone past the speech end time.</li>
+      <li>The thin progress bar at the bottom shows overall clip progress.</li>
+    </ul>
+
+    <h3>Delivery Style</h3>
+    <ul>
+      <li>Calm, confident, oilfield-credible. You are talking to operators and production engineers, not selling a car.</li>
+      <li>Never rushed, but very disciplined on timing. Each line gets exactly 3.5 seconds of spoken time.</li>
+      <li>There is a 0.4 second gap between lines - end each line cleanly so that gap is preserved.</li>
+      <li>Where you see ellipses (...), give a brief natural pause - do not skip them, but do not over-dramatize either.</li>
+      <li><strong>Clip 1:</strong> Tightest pacing. Keep pauses crisp. Let the ellipses breathe but no extra dead air.</li>
+      <li><strong>Clip 2:</strong> Educational and smooth. Avoid sounding salesy early - let the confidence build as the system explanation unfolds.</li>
+      <li><strong>Clip 3:</strong> Urgent but not frantic. Build contrast line by line: left side reactive, right side controlled.</li>
+    </ul>
+
+    <h3>Recording Workflow</h3>
+    <ul>
+      <li><strong>Step 1 - Practice:</strong> Set the speed slider to 0.8x and run through the clip once or twice without recording. Get comfortable with the rhythm.</li>
+      <li><strong>Step 2 - Record:</strong> Set the speed back to 1.0x. Click the <strong>Rec</strong> button (or just click <strong>Play</strong> and record externally). A 3-second countdown will appear, then the scroll starts.</li>
+      <li><strong>Step 3 - Follow the white line.</strong> Finish each line before it dims. If you fall behind, the timer turns red.</li>
+      <li><strong>Step 4 - File saves automatically</strong> when the clip ends or you click <strong>Stop</strong>. It downloads as a .webm file named for the clip.</li>
+      <li><strong>Step 5 - Re-record full clips only.</strong> If you need a pickup, re-record the entire clip from the top so pacing stays consistent. Do not splice single lines.</li>
+    </ul>
+
+    <div class="warning">
+      <strong>Timing is critical.</strong> The 0.5 sec silence at the head and 2.0 sec tail at the end are built into the scroll timing. The video animation engine expects voice-over to land exactly on these cue marks. If you drift even one line, the voice will be out of sync with the animation for the rest of the clip.
+    </div>
+
+    <h3>Keyboard Shortcuts</h3>
+    <div class="key-row"><kbd>Space</kbd> <span class="key-desc">Play or pause the teleprompter</span></div>
+    <div class="key-row"><kbd>R</kbd> <span class="key-desc">Reset the clip to the beginning</span></div>
+    <div class="key-row"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <span class="key-desc">Switch between the three clips</span></div>
+    <div class="key-row"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> <span class="key-desc">Seek backward or forward 1 second (for reviewing)</span></div>
+
+    <h3>Output File Names</h3>
+    <ul>
+      <li><strong>Clip 1:</strong> padlogic-well-pad-optimizer-vo.webm</li>
+      <li><strong>Clip 2:</strong> padlogic-what-it-does-on-your-pad-vo.webm</li>
+      <li><strong>Clip 3:</strong> padlogic-trip-sidebyside-vo.webm</li>
+    </ul>
+    <p style="color:#666; font-size:12px; margin-top:4px;">Convert to .wav if needed using any audio tool. The browser records in .webm format natively.</p>
+
+    <button class="btn-start" id="btnStartClose">Got It - Start Reading</button>
+  </div>
+</div>
+
+<div class="countdown-overlay" id="countdown">
+  <div class="countdown-number" id="countdownNum">3</div>
+  <div class="countdown-label">Get ready</div>
+</div>
+
+<div class="hints">
+  <kbd>Space</kbd> Play / Pause<br>
+  <kbd>R</kbd> Reset<br>
+  <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> Switch clip<br>
+  <kbd>←</kbd> <kbd>→</kbd> Seek ±1s
+</div>
+
+<script>
+// ── Clip data ──
+const clips = [
+  {
+    title: 'Clip 1 — Well Pad Optimizer',
+    endSpeech: 66.4,
+    endClip: 68.4,
+    lines: [
+      { cueIn: 0.5, hardOut: 4.0, text: 'For decades... oilfield control systems have been good enough.' },
+      { cueIn: 4.4, hardOut: 7.9, text: 'But good enough comes at a cost.' },
+      { cueIn: 8.3, hardOut: 11.8, text: 'Surging systems. Inefficient flow. Constant correction.' },
+      { cueIn: 12.2, hardOut: 15.7, text: 'Most sites operate like a relay race — each component reacting, then handing off. Never truly working together.' },
+      { cueIn: 16.1, hardOut: 19.6, text: 'What if the system did not just react... but coordinated?' },
+      { cueIn: 20.0, hardOut: 23.5, text: 'The Pad Logic Well Panel is not a choke controller.' },
+      { cueIn: 23.9, hardOut: 27.4, text: 'It is a Well Pad Optimizer.' },
+      { cueIn: 27.8, hardOut: 31.3, text: 'It communicates across the entire pad.' },
+      { cueIn: 31.7, hardOut: 35.2, text: 'Every component understands what is happening before... and after it.' },
+      { cueIn: 35.6, hardOut: 39.1, text: 'Instead of reacting... each system adjusts in real time... as part of a unified strategy.' },
+      { cueIn: 39.5, hardOut: 43.0, text: 'Traditional logic chases conditions.' },
+      { cueIn: 43.4, hardOut: 46.9, text: 'The Well Panel maintains them.' },
+      { cueIn: 47.3, hardOut: 50.8, text: 'No surging. No unnecessary recycle. No wasted energy.' },
+      { cueIn: 51.2, hardOut: 54.7, text: 'Just controlled... continuous... optimized flow.' },
+      { cueIn: 55.1, hardOut: 58.6, text: 'This is not incremental improvement.' },
+      { cueIn: 59.0, hardOut: 62.5, text: 'This is the next generation of oilfield control.' },
+      { cueIn: 62.9, hardOut: 66.4, text: 'Pad Logic. Well Pad Optimizer. Engineered for Uptime.' },
+    ]
+  },
+  {
+    title: 'Clip 2 — What It Does On Your Pad',
+    endSpeech: 46.9,
+    endClip: 48.9,
+    lines: [
+      { cueIn: 0.5, hardOut: 4.0, text: 'Here is your pad. Four wells on gas lift, two compressors, recirculated gas off the scrubber.' },
+      { cueIn: 4.4, hardOut: 7.9, text: 'Gas comes off the vertical scrubber, hits the suction header, feeds your compressors.' },
+      { cueIn: 8.3, hardOut: 11.8, text: 'Compressors push it through the discharge header. From there it splits to each well.' },
+      { cueIn: 12.2, hardOut: 15.7, text: 'Every well has a motor valve choke and a flow meter on the injection line. That is what Pad Logic controls.' },
+      { cueIn: 16.1, hardOut: 19.6, text: 'Pad Logic reads every flow meter, every pressure transmitter, every compressor status. All real time. All Modbus.' },
+      { cueIn: 20.0, hardOut: 23.5, text: 'It sets your choke positions automatically. No pumper driving out. No manual adjustments.' },
+      { cueIn: 23.9, hardOut: 27.4, text: 'Suction pressure drops? Pad Logic adjusts compressor staging. Discharge spikes? It backs off before you trip.' },
+      { cueIn: 27.8, hardOut: 31.3, text: 'Your number one well always gets gas first. Period. Pad Logic enforces priority across every choke on the pad.' },
+      { cueIn: 31.7, hardOut: 35.2, text: 'Well slugs out and scrubber pressure spikes? Sales valve opens. Compressors stay running. No pad shutdown.' },
+      { cueIn: 35.6, hardOut: 39.1, text: 'Demand changes? Pad Logic stages compressors up or down. No wasted fuel, no starved wells.' },
+      { cueIn: 39.5, hardOut: 43.0, text: 'This runs twenty four seven. Nights, weekends, holidays. Same response at two A M as two P M.' },
+      { cueIn: 43.4, hardOut: 46.9, text: 'Pad Logic by Service Compression. Your pad, optimized. All the time.' },
+    ]
+  },
+  {
+    title: 'Clip 3 — Compressor Trip Side-by-Side',
+    endSpeech: 39.1,
+    endClip: 41.1,
+    lines: [
+      { cueIn: 0.5, hardOut: 4.0, text: 'Two identical pads. Same wells, same compressors, same gas. One has Pad Logic. One does not.' },
+      { cueIn: 4.4, hardOut: 7.9, text: 'C 1 trips. High discharge temp. Both pads lose half their compression at the same time. Right now.' },
+      { cueIn: 8.3, hardOut: 11.8, text: 'Every well on both pads just lost injection pressure. Production is falling. Barrels are being lost.' },
+      { cueIn: 12.2, hardOut: 15.7, text: 'Left side, your SCADA fires an alarm. Dispatcher calls the pumper. He is forty five minutes out. Right side, Pad Logic already knows.' },
+      { cueIn: 16.1, hardOut: 19.6, text: 'Left side, pumper is still driving. Every well still starving. Right side, Pad Logic is closing chokes on the low priority wells, pushing all available gas to your top producers.' },
+      { cueIn: 20.0, hardOut: 23.5, text: 'Left pad is still losing barrels across all four wells. Right pad, wells one and two are back at full target injection. Your best producers are protected.' },
+      { cueIn: 23.9, hardOut: 27.4, text: 'Pumper finally shows up on the left pad. Starts looking at the unit. Right pad has been stable for thirty plus minutes. Your top wells never stopped producing.' },
+      { cueIn: 27.8, hardOut: 31.3, text: 'Left side, pumper calls the mechanic. Waits an hour. Right side, Pad Logic has been running at full optimization this entire time. Zero intervention.' },
+      { cueIn: 31.7, hardOut: 35.2, text: 'Mechanic fixes the unit. Now the pumper has to drive back out and reset every choke by hand. That is another trip, another hour. With Pad Logic, that trip never happens. It is already done.' },
+      { cueIn: 35.6, hardOut: 39.1, text: 'Pad Logic protects production while the other pad is still reacting.' },
+    ]
+  }
+];
+
+// ── State ──
+let currentClip = 0;
+let playing = false;
+let elapsed = 0;        // seconds
+let speed = 1.0;
+let rafId = null;
+let lastTs = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
+const $timer      = document.getElementById('timer');
+const $clipEnd    = document.getElementById('clipEnd');
+const $container  = document.getElementById('scrollContainer');
+const $wrap       = document.getElementById('prompterWrap');
+const $progress   = document.getElementById('progressBar');
+const $btnPlay    = document.getElementById('btnPlay');
+const $btnReset   = document.getElementById('btnReset');
+const $btnRec     = document.getElementById('btnRec');
+const $countdown  = document.getElementById('countdown');
+const $countNum   = document.getElementById('countdownNum');
+const $speedSlider = document.getElementById('speedSlider');
+const $speedVal   = document.getElementById('speedVal');
+
+// ── Format time ──
+function fmt(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return String(m).padStart(2, '0') + ':' + s.toFixed(1).padStart(4, '0');
+}
+
+// ── Build DOM for a clip ──
+function buildClip(idx) {
+  const clip = clips[idx];
+  $container.innerHTML = '';
+  $clipEnd.textContent = 'End: ' + fmt(clip.endClip);
+
+  // Top spacer to push first line into read zone
+  const spacerTop = document.createElement('div');
+  spacerTop.className = 'spacer-top';
+  spacerTop.style.height = ($wrap.clientHeight * 0.48) + 'px';
+  $container.appendChild(spacerTop);
+
+  clip.lines.forEach((line, i) => {
+    const block = document.createElement('div');
+    block.className = 'line-block future';
+    block.dataset.index = i;
+
+    const cue = document.createElement('div');
+    cue.className = 'cue-time';
+    cue.textContent = fmt(line.cueIn) + ' → ' + fmt(line.hardOut);
+
+    const txt = document.createElement('div');
+    txt.className = 'script-text';
+    txt.textContent = line.text;
+
+    block.appendChild(cue);
+    block.appendChild(txt);
+    $container.appendChild(block);
+  });
+
+  // Bottom spacer
+  const spacerBot = document.createElement('div');
+  spacerBot.className = 'spacer-bottom';
+  spacerBot.style.height = ($wrap.clientHeight * 0.55) + 'px';
+  $container.appendChild(spacerBot);
+}
+
+// ── Update line states + scroll ──
+function updateDisplay() {
+  const clip = clips[currentClip];
+  const blocks = $container.querySelectorAll('.line-block');
+  let activeIdx = -1;
+
+  clip.lines.forEach((line, i) => {
+    const block = blocks[i];
+    block.classList.remove('past', 'active', 'next', 'future');
+
+    if (elapsed >= line.hardOut) {
+      block.classList.add('past');
+    } else if (elapsed >= line.cueIn - 0.3) {
+      if (activeIdx === -1) {
+        block.classList.add('active');
+        activeIdx = i;
+      } else {
+        block.classList.add('next');
+      }
+    } else if (activeIdx >= 0 && i === activeIdx + 1) {
+      block.classList.add('next');
+    } else {
+      block.classList.add('future');
+    }
+  });
+
+  // Scroll active line into read zone
+  if (activeIdx >= 0) {
+    const block = blocks[activeIdx];
+    const blockTop = block.offsetTop;
+    const targetY = $wrap.clientHeight * 0.42;
+    const offset = blockTop - targetY;
+    $container.style.transform = 'translateY(' + (-offset) + 'px)';
+  } else if (elapsed < (clip.lines[0]?.cueIn || 0.5)) {
+    $container.style.transform = 'translateY(0)';
+  }
+
+  // Timer
+  $timer.textContent = fmt(elapsed);
+
+  // Progress
+  const pct = Math.min(100, (elapsed / clip.endClip) * 100);
+  $progress.style.width = pct + '%';
+
+  // Color the timer red if past speech end
+  if (elapsed > clip.endSpeech) {
+    $timer.style.color = '#d32f2f';
+  } else {
+    $timer.style.color = '#ff8c00';
+  }
+}
+
+// ── Animation loop ──
+function tick(ts) {
+  if (!playing) return;
+  if (lastTs === null) lastTs = ts;
+  const dt = (ts - lastTs) / 1000;
+  lastTs = ts;
+  elapsed += dt * speed;
+
+  const clip = clips[currentClip];
+  if (elapsed >= clip.endClip) {
+    elapsed = clip.endClip;
+    playing = false;
+    $btnPlay.textContent = 'Play';
+    if (isRecording) stopRecording();
+  }
+
+  updateDisplay();
+  if (playing) rafId = requestAnimationFrame(tick);
+}
+
+// ── Countdown then play ──
+function startWithCountdown() {
+  if (playing) return;
+  $countdown.classList.add('visible');
+  let count = 3;
+  $countNum.textContent = count;
+
+  const iv = setInterval(() => {
+    count--;
+    if (count > 0) {
+      $countNum.textContent = count;
+    } else {
+      clearInterval(iv);
+      $countdown.classList.remove('visible');
+      playing = true;
+      lastTs = null;
+      $btnPlay.textContent = 'Pause';
+      rafId = requestAnimationFrame(tick);
+    }
+  }, 1000);
+}
+
+// ── Controls ──
+$btnPlay.addEventListener('click', () => {
+  if (playing) {
+    playing = false;
+    $btnPlay.textContent = 'Play';
+    $btnPlay.classList.remove('paused');
+  } else {
+    if (elapsed === 0) {
+      startWithCountdown();
+    } else {
+      playing = true;
+      lastTs = null;
+      $btnPlay.textContent = 'Pause';
+      rafId = requestAnimationFrame(tick);
+    }
+  }
+});
+
+$btnReset.addEventListener('click', () => {
+  playing = false;
+  elapsed = 0;
+  lastTs = null;
+  $btnPlay.textContent = 'Play';
+  $container.style.transform = 'translateY(0)';
+  if (isRecording) stopRecording();
+  updateDisplay();
+});
+
+// ── Recording ──
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(audioChunks, { type: 'audio/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const names = [
+        'padlogic-well-pad-optimizer-vo.webm',
+        'padlogic-what-it-does-on-your-pad-vo.webm',
+        'padlogic-trip-sidebyside-vo.webm'
+      ];
+      a.href = url;
+      a.download = names[currentClip];
+      a.click();
+      stream.getTracks().forEach(t => t.stop());
+    };
+    mediaRecorder.start();
+    isRecording = true;
+    $btnRec.classList.add('recording');
+    $btnRec.textContent = 'Stop';
+  } catch (e) {
+    alert('Microphone access denied. Enable mic permissions to record.');
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+  isRecording = false;
+  $btnRec.classList.remove('recording');
+  $btnRec.textContent = 'Rec';
+}
+
+$btnRec.addEventListener('click', () => {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    startRecording();
+    // Also start playback if not already
+    if (!playing && elapsed === 0) {
+      startWithCountdown();
+    }
+  }
+});
+
+// ── Speed slider ──
+$speedSlider.addEventListener('input', () => {
+  speed = parseFloat($speedSlider.value);
+  $speedVal.textContent = speed.toFixed(2) + '×';
+});
+
+// ── Tabs ──
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const idx = parseInt(tab.dataset.clip);
+    switchClip(idx);
+  });
+});
+
+function switchClip(idx) {
+  if (playing) { playing = false; $btnPlay.textContent = 'Play'; }
+  if (isRecording) stopRecording();
+  currentClip = idx;
+  elapsed = 0;
+  lastTs = null;
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', i === idx);
+  });
+  buildClip(idx);
+  updateDisplay();
+}
+
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    $btnPlay.click();
+  } else if (e.code === 'KeyR' && !e.ctrlKey && !e.metaKey) {
+    $btnReset.click();
+  } else if (e.code === 'Digit1') { switchClip(0); }
+  else if (e.code === 'Digit2') { switchClip(1); }
+  else if (e.code === 'Digit3') { switchClip(2); }
+  else if (e.code === 'ArrowLeft') {
+    elapsed = Math.max(0, elapsed - 1);
+    updateDisplay();
+  } else if (e.code === 'ArrowRight') {
+    elapsed = Math.min(clips[currentClip].endClip, elapsed + 1);
+    updateDisplay();
+  }
+});
+
+// ── Instructions overlay ──
+const $instructions = document.getElementById('instructionsOverlay');
+const $btnStartClose = document.getElementById('btnStartClose');
+const $btnHelp = document.getElementById('btnHelp');
+
+$btnStartClose.addEventListener('click', () => {
+  $instructions.classList.add('hidden');
+});
+$btnHelp.addEventListener('click', () => {
+  $instructions.classList.remove('hidden');
+});
+
+// ── Init ──
+buildClip(0);
+updateDisplay();
+
+// Rebuild spacers on resize
+window.addEventListener('resize', () => buildClip(currentClip));
+</script>
+</body>
+</html>

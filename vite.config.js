@@ -11,6 +11,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         'live-view': resolve(__dirname, 'live-view.html'),
+        'halfmann-view': resolve(__dirname, 'halfmann-view.html'),
       },
     },
   },

@@ -1496,12 +1496,15 @@ function KlondikeHistoryTab({ klondike }) {
 
   useEffect(() => {
     if (!playing || !data) return
+    // 300ms per frame: fast enough to be watchable, slow enough that the
+    // browser completes each paint before the next cursor change arrives.
+    // At 120ms, rapid DOM mutations outpaced repaint and produced blur.
     const id = setInterval(() => {
       setCursor(c => {
         if (c >= data.length - 1) { setPlaying(false); return c }
         return c + 1
       })
-    }, 120)
+    }, 300)
     return () => clearInterval(id)
   }, [playing, data])
 
