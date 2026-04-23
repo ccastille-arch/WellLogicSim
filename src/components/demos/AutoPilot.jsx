@@ -156,16 +156,42 @@ const SCRIPT = [
   },
 ]
 
+// Steps where we force all wells to show red (before Pad Logic rebalancing is revealed)
+const FORCE_ALL_RED_STEPS = new Set([3, 4]) // "Impact" and "Without Pad Logic"
+
+const DEFAULT_VOICEOVER_URL = '/audio/Customer_Demo_Voice_Over.mp3'
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
 export default function AutoPilot({ sim, onExit }) {
-  const { isAdmin } = useAuth()
+  const { isAdmin, settings, user } = useAuth()
   const [step, setStep] = useState(-1) // -1 = not started
   const [paused, setPaused] = useState(false)
-  const [uploadedAudio, setUploadedAudio] = useState(null)
+  const [scriptVisible, setScriptVisible] = useState(settings.demoPresentationScriptDefault ?? true)
   const timerRef = useRef(null)
   const audioRef = useRef(null)
 
+  // Per-step timing overrides from admin settings
+  const timings = settings.demoPresentationTimings || {}
+
+  // Server-uploaded voiceover or static default
+  const serverVoiceover = settings.presentationVoiceover
+  const resolvedVoiceoverUrl = serverVoiceover?.url
+    ? `${API_BASE}${serverVoiceover.url}`
+    : DEFAULT_VOICEOVER_URL
+
+  // Display state: force all wells red during "Impact" and "Without Pad Logic" steps
+  const displayState = FORCE_ALL_RED_STEPS.has(step)
+    ? {
+        ...sim.state,
+        wells: sim.state.wells.map(w => ({ ...w, isAtTarget: false, actualRate: 0, chokeAO: 0 })),
+      }
+    : sim.state
+
+  const m = getMetrics(displayState)
+
   const currentStep = step >= 0 && step < SCRIPT.length ? SCRIPT[step] : null
-  const m = getMetrics(sim.state)
+
+  const getStepDuration = (index) => timings[index] ?? SCRIPT[index]?.duration ?? 0
 
   const scheduleAdvance = (nextStep, duration) => {
     if (duration <= 0) return
@@ -180,31 +206,27 @@ export default function AutoPilot({ sim, onExit }) {
     const s = SCRIPT[nextStep]
     setStep(nextStep)
 
-    // Execute action
     if (s.action) s.action(sim)
 
-    // Auto advance after duration (if not last step)
-    scheduleAdvance(nextStep, s.duration)
+    const duration = getStepDuration(nextStep)
+    scheduleAdvance(nextStep, duration)
   }
 
-  const stopUploadedAudio = () => {
+  const stopAudio = () => {
     if (!audioRef.current) return
     audioRef.current.pause()
     audioRef.current.currentTime = 0
   }
 
-  const startUploadedAudio = () => {
-    if (!uploadedAudio?.url) return
-    stopUploadedAudio()
-    const audio = new Audio(uploadedAudio.url)
+  const start = () => {
+    // Play voiceover from server or default static file
+    stopAudio()
+    const audio = new Audio(resolvedVoiceoverUrl)
     audioRef.current = audio
     audio.play().catch(() => {})
-  }
-
-  const start = () => {
-    startUploadedAudio()
     advanceStep(0)
   }
+
   const pause = () => {
     setPaused(true)
     clearTimeout(timerRef.current)
@@ -213,42 +235,25 @@ export default function AutoPilot({ sim, onExit }) {
   const resume = () => {
     setPaused(false)
     audioRef.current?.play().catch(() => {})
-    if (step >= 0 && currentStep) scheduleAdvance(step, currentStep.duration)
+    if (step >= 0 && currentStep) scheduleAdvance(step, getStepDuration(step))
   }
   const next = () => {
     clearTimeout(timerRef.current)
-    stopUploadedAudio()
+    stopAudio()
     advanceStep(Math.min(step + 1, SCRIPT.length - 1))
   }
   const prev = () => {
     clearTimeout(timerRef.current)
-    stopUploadedAudio()
+    stopAudio()
     advanceStep(Math.max(step - 1, 0))
-  }
-
-  const handleAudioUpload = (event) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    if (uploadedAudio?.url) {
-      URL.revokeObjectURL(uploadedAudio.url)
-    }
-
-    setUploadedAudio({
-      name: file.name,
-      url: URL.createObjectURL(file),
-    })
   }
 
   useEffect(() => {
     return () => {
       clearTimeout(timerRef.current)
-      stopUploadedAudio()
-      if (uploadedAudio?.url) {
-        URL.revokeObjectURL(uploadedAudio.url)
-      }
+      stopAudio()
     }
-  }, [uploadedAudio])
+  }, [])
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[#050508]">
@@ -269,9 +274,16 @@ export default function AutoPilot({ sim, onExit }) {
                 <button onClick={pause} className="px-3 py-1 text-[10px] font-bold text-[#eab308] border border-[#eab308]/30 rounded">⏸ Pause</button>
               )}
               <button onClick={next} className="px-2 py-1 text-[10px] text-[#888] border border-[#333] rounded hover:text-white">Next →</button>
+              <button
+                onClick={() => setScriptVisible(v => !v)}
+                className="px-2 py-1 text-[10px] text-[#888] border border-[#333] rounded hover:text-white"
+                title={scriptVisible ? 'Hide script panel' : 'Show script panel'}
+              >
+                {scriptVisible ? '▶| Hide Script' : '|◀ Show Script'}
+              </button>
             </>
           )}
-          <button onClick={() => { clearTimeout(timerRef.current); stopUploadedAudio(); onExit() }}
+          <button onClick={() => { clearTimeout(timerRef.current); stopAudio(); onExit() }}
             className="px-3 py-1 text-[10px] font-bold text-[#888] border border-[#333] rounded hover:text-white hover:border-[#E8200C]">
             ✕ Exit
           </button>
@@ -287,46 +299,38 @@ export default function AutoPilot({ sim, onExit }) {
             </div>
             <div className="text-4xl text-white font-bold mb-3" style={{ fontFamily: "'Arial Black'" }}>Pad Logic</div>
             <div className="text-sm text-[#888] mb-8">Automated Gas Lift Injection Optimization</div>
-            {isAdmin && (
-              <>
-                <div className="mb-6 w-[360px] max-w-full mx-auto bg-[#111118] border border-[#222] rounded-xl p-4 text-left">
-                  <label className="block text-[10px] text-[#888] mb-2 uppercase tracking-[0.2em] font-bold">
-                    Presentation Narration Audio
-                  </label>
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    onChange={handleAudioUpload}
-                    className="block w-full text-[11px] text-[#aaa] file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:bg-[#E8200C] file:text-white file:font-bold hover:file:bg-[#c01a0a]"
-                  />
-                  <p className="text-[10px] text-[#666] mt-2">
-                    Upload your recorded narration. It will play from the start when the presentation begins and pause with the presentation.
-                  </p>
-                  {uploadedAudio ? (
-                    <div className="mt-3">
-                      <div className="text-[10px] text-[#22c55e] font-bold mb-2">Loaded: {uploadedAudio.name}</div>
-                      <audio controls src={uploadedAudio.url} className="w-full" />
-                    </div>
-                  ) : (
-                    <div className="text-[10px] text-[#555] mt-3">
-                      No AI voice will be used. If you do not upload a file, the presentation runs silently.
-                    </div>
-                  )}
+
+            {/* Voiceover status */}
+            <div className="mb-6 w-[360px] max-w-full mx-auto bg-[#111118] border border-[#222] rounded-xl p-4 text-left">
+              <label className="block text-[10px] text-[#888] mb-2 uppercase tracking-[0.2em] font-bold">
+                Presentation Narration
+              </label>
+              {serverVoiceover ? (
+                <div className="text-[10px] text-[#22c55e] font-bold">
+                  ✓ Server narration active — plays for all users
+                  <div className="text-[#666] font-normal mt-0.5">
+                    Uploaded {new Date(serverVoiceover.updatedAt).toLocaleDateString()}
+                  </div>
                 </div>
-                <div className="mb-6 text-[10px] text-[#555]">
-                  Manual `Next` or `Prev` will stop the uploaded narration track so it does not drift out of sync.
+              ) : (
+                <div className="text-[10px] text-[#eab308]">
+                  Using default narration track
                 </div>
-              </>
-            )}
+              )}
+              {isAdmin && (
+                <div className="mt-2 text-[10px] text-[#555]">
+                  Upload a new track in Admin → Demo tab to replace for all users.
+                </div>
+              )}
+            </div>
+
             <button onClick={start}
               className="px-12 py-4 bg-[#E8200C] hover:bg-[#c01a0a] text-white font-bold rounded-xl text-lg transition-all hover:scale-105 shadow-xl shadow-[#E8200C]/30"
               style={{ fontFamily: "'Arial Black'" }}>
               ▶ Start Presentation
             </button>
             <p className="text-[10px] text-[#555] mt-4">
-              {isAdmin
-                ? 'Runs automatically with your uploaded narration track. Use Pause/Next to control pace.'
-                : 'Runs automatically as a silent presentation. Admin login is required to load narration audio.'}
+              Runs automatically with narration. Use Pause/Next to control pace.
             </p>
           </div>
         </div>
@@ -335,7 +339,7 @@ export default function AutoPilot({ sim, onExit }) {
         <div className="flex-1 flex overflow-hidden min-h-0">
           {/* Live diagram */}
           <div className="flex-1 min-h-0 min-w-0 overflow-hidden relative">
-            <SiteOverview state={sim.state} config={sim.state.config} />
+            <SiteOverview state={displayState} config={displayState.config} />
             {/* Reset button */}
             <button onClick={() => {
               sim.state.compressors.forEach(c => sim.setCompressorStatus(c.id, 'running'))
@@ -350,40 +354,42 @@ export default function AutoPilot({ sim, onExit }) {
           </div>
 
           {/* Presenter panel — teleprompter + notes */}
-          <div className="w-[320px] shrink-0 bg-[#0a0a14] border-l border-[#1a1a2a] flex flex-col overflow-hidden">
-            {currentStep && (
-              <>
-                {/* Phase indicator */}
-                <div className="px-4 py-2 bg-[#111120] border-b border-[#1a1a2a] shrink-0">
-                  <div className="text-[8px] text-[#E8200C] uppercase tracking-wider font-bold">{currentStep.phase}</div>
-                  <div className="text-[14px] text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>{currentStep.title}</div>
-                </div>
-
-                {/* What to say — teleprompter */}
-                <div className="px-4 py-3 bg-[#0c1a0c] border-b border-[#1a2a1a] flex-1 overflow-y-auto">
-                  <div className="text-[8px] text-[#22c55e] uppercase tracking-wider font-bold mb-2">💬 SAY THIS</div>
-                  <p className="text-[14px] text-[#ddd] leading-relaxed">{currentStep.say}</p>
-                </div>
-
-                {/* Presenter notes */}
-                {currentStep.presenterNote && (
-                  <div className="px-4 py-3 bg-[#1a1a10] border-t border-[#2a2a1a] shrink-0">
-                    <div className="text-[8px] text-[#eab308] uppercase tracking-wider font-bold mb-1">📋 PRESENTER NOTE</div>
-                    <p className="text-[11px] text-[#aaa] leading-relaxed">{currentStep.presenterNote}</p>
+          {scriptVisible && (
+            <div className="w-[320px] shrink-0 bg-[#0a0a14] border-l border-[#1a1a2a] flex flex-col overflow-hidden">
+              {currentStep && (
+                <>
+                  {/* Phase indicator */}
+                  <div className="px-4 py-2 bg-[#111120] border-b border-[#1a1a2a] shrink-0">
+                    <div className="text-[8px] text-[#E8200C] uppercase tracking-wider font-bold">{currentStep.phase}</div>
+                    <div className="text-[14px] text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>{currentStep.title}</div>
                   </div>
-                )}
-              </>
-            )}
 
-            {/* Progress */}
-            <div className="px-4 py-2 bg-[#0a0a14] border-t border-[#1a1a2a] shrink-0">
-              <div className="flex gap-0.5">
-                {SCRIPT.map((_, i) => (
-                  <div key={i} className={`flex-1 h-1 rounded-full ${i < step ? 'bg-[#E8200C]' : i === step ? 'bg-[#E8200C] animate-pulse' : 'bg-[#222]'}`} />
-                ))}
+                  {/* What to say — teleprompter */}
+                  <div className="px-4 py-3 bg-[#0c1a0c] border-b border-[#1a2a1a] flex-1 overflow-y-auto">
+                    <div className="text-[8px] text-[#22c55e] uppercase tracking-wider font-bold mb-2">💬 SAY THIS</div>
+                    <p className="text-[14px] text-[#ddd] leading-relaxed">{currentStep.say}</p>
+                  </div>
+
+                  {/* Presenter notes */}
+                  {currentStep.presenterNote && (
+                    <div className="px-4 py-3 bg-[#1a1a10] border-t border-[#2a2a1a] shrink-0">
+                      <div className="text-[8px] text-[#eab308] uppercase tracking-wider font-bold mb-1">📋 PRESENTER NOTE</div>
+                      <p className="text-[11px] text-[#aaa] leading-relaxed">{currentStep.presenterNote}</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Progress */}
+              <div className="px-4 py-2 bg-[#0a0a14] border-t border-[#1a1a2a] shrink-0">
+                <div className="flex gap-0.5">
+                  {SCRIPT.map((_, i) => (
+                    <div key={i} className={`flex-1 h-1 rounded-full ${i < step ? 'bg-[#E8200C]' : i === step ? 'bg-[#E8200C] animate-pulse' : 'bg-[#222]'}`} />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

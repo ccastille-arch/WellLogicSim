@@ -1,8 +1,11 @@
 // Quotes, settings, activity, analytics — all in one file since they're small
 import { Router } from 'express'
+import { createReadStream, existsSync } from 'fs'
+import { writeFile } from 'fs/promises'
+import { join } from 'path'
 import { pool } from '../db.js'
 import { requireAuth, requirePermission, userHasPermission } from '../auth.js'
-import { getStorageStatusDetailed, writeBackupSnapshot } from '../storage.js'
+import { getStorageStatusDetailed, getUploadsDir, writeBackupSnapshot } from '../storage.js'
 
 const router = Router()
 
@@ -51,6 +54,51 @@ router.post('/storage/backup', requirePermission('manage:settings'), async (req,
     console.error('Storage backup error:', err)
     res.status(500).json({ error: err.message || 'Backup failed' })
   }
+})
+
+// ─── Voiceover ───────────────────────────────────────────────
+
+// GET /api/voiceover/file — serve the uploaded narration MP3
+router.get('/voiceover/file', (req, res) => {
+  const uploadsDir = getUploadsDir()
+  const filePath = join(uploadsDir, 'voiceover.mp3')
+  if (!existsSync(filePath)) return res.status(404).json({ error: 'No voiceover uploaded' })
+  res.setHeader('Content-Type', 'audio/mpeg')
+  res.setHeader('Cache-Control', 'public, max-age=3600')
+  createReadStream(filePath).pipe(res)
+})
+
+// POST /api/voiceover — upload MP3 (admin: manage:settings)
+// Expects raw binary body (Content-Type: audio/mpeg), max 50 MB
+router.post('/voiceover', requirePermission('manage:settings'), async (req, res) => {
+  const uploadsDir = getUploadsDir()
+  if (!uploadsDir) return res.status(503).json({ error: 'Storage not available' })
+
+  const chunks = []
+  req.on('data', chunk => chunks.push(chunk))
+  req.on('end', async () => {
+    try {
+      const buf = Buffer.concat(chunks)
+      if (buf.length < 4) return res.status(400).json({ error: 'File is empty' })
+      if (buf.length > 50 * 1024 * 1024) return res.status(413).json({ error: 'File exceeds 50 MB limit' })
+
+      // Validate MP3: ID3 header (0x49 0x44 0x33) or MPEG sync word (0xFF 0xEx)
+      const isValidMp3 = (buf[0] === 0x49 && buf[1] === 0x44 && buf[2] === 0x33) ||
+                         (buf[0] === 0xFF && (buf[1] & 0xE0) === 0xE0)
+      if (!isValidMp3) return res.status(400).json({ error: 'File does not appear to be a valid MP3' })
+
+      await writeFile(join(uploadsDir, 'voiceover.mp3'), buf)
+      await pool.query(
+        "INSERT INTO settings (key, value) VALUES ('presentationVoiceover', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [JSON.stringify({ url: '/api/voiceover/file', updatedAt: new Date().toISOString() })]
+      )
+      res.json({ ok: true, url: '/api/voiceover/file', size: buf.length })
+    } catch (err) {
+      console.error('Voiceover upload error:', err)
+      res.status(500).json({ error: 'Upload failed' })
+    }
+  })
+  req.on('error', () => res.status(400).json({ error: 'Upload interrupted' }))
 })
 
 // ─── Quotes / CRM ───────────────────────────────────────────

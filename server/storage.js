@@ -118,6 +118,8 @@ export async function writeBackupSnapshot(reason = 'manual') {
   }
 }
 
+export function getUploadsDir() { return UPLOADS_DIR }
+
 export async function getStorageStatusDetailed() {
   const backups = await listBackups(10)
   return {
