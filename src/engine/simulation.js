@@ -91,8 +91,9 @@ export function createInitialState(config) {
     secondStageSuctionCoolerSP: config.secondStageSuctionCoolerSP ?? 200,
   }))
 
-  // Klondike setpoints: W1=1000, W2=750, W3=800, W4=800 MCFD
-  const KLONDIKE_SETPOINTS = [1000, 750, 800, 800]
+  // Klondike setpoints: W1=1000 (top), W2=600 (2nd), W3=500, W4=500 MCFD
+  // W1+W2=1600 = single compressor capacity, enabling both to fully recover after a trip
+  const KLONDIKE_SETPOINTS = [1000, 600, 500, 500]
 
   const wells = Array.from({ length: wellCount }, (_, i) => {
     const setpoint = config.wellSetpoints?.[i] ?? KLONDIKE_SETPOINTS[i] ?? DEFAULT_WELL_RATE

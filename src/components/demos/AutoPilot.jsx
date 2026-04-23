@@ -9,6 +9,10 @@ import { useAuth } from '../auth/AuthProvider'
 // Brad just stands there. The tool does everything.
 // Narrates each step, triggers events, shows results, moves on.
 
+const FORCE_ALL_RED_STEPS = new Set([3, 4]) // "Impact" and "Without Well Logic"
+const DEFAULT_VOICEOVER_URL = '/audio/Customer_Demo_Voice_Over.mp3'
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
 const SCRIPT = [
   // Each step: what to say (teleprompter), what to do (action), how long to wait
   {
@@ -157,12 +161,21 @@ const SCRIPT = [
 ]
 
 export default function AutoPilot({ sim, onExit }) {
-  const { isAdmin } = useAuth()
+  const { isAdmin, settings } = useAuth()
   const [step, setStep] = useState(-1) // -1 = not started
   const [paused, setPaused] = useState(false)
   const [uploadedAudio, setUploadedAudio] = useState(null)
+  const [scriptVisible, setScriptVisible] = useState(settings?.demoPresentationScriptDefault ?? true)
   const timerRef = useRef(null)
   const audioRef = useRef(null)
+
+  const timings = settings?.demoPresentationTimings || {}
+  const serverVoiceover = settings?.presentationVoiceover
+  const resolvedVoiceoverUrl = serverVoiceover?.url
+    ? `${API_BASE}${serverVoiceover.url}`
+    : DEFAULT_VOICEOVER_URL
+
+  const getStepDuration = (index) => timings[index] ?? SCRIPT[index]?.duration ?? 0
 
   // Mirror `paused` into a ref so the setTimeout inside scheduleAdvance
   // always reads the LATEST value when it fires, not the closure from
@@ -175,7 +188,11 @@ export default function AutoPilot({ sim, onExit }) {
   useEffect(() => { pausedRef.current = paused }, [paused])
 
   const currentStep = step >= 0 && step < SCRIPT.length ? SCRIPT[step] : null
-  const m = getMetrics(sim.state)
+
+  const displayState = FORCE_ALL_RED_STEPS.has(step)
+    ? { ...sim.state, wells: sim.state.wells.map(w => ({ ...w, isAtTarget: false, actualRate: 0, chokeAO: 0 })) }
+    : sim.state
+  const m = getMetrics(displayState)
 
   const scheduleAdvance = (nextStep, duration) => {
     if (duration <= 0) return
@@ -193,8 +210,8 @@ export default function AutoPilot({ sim, onExit }) {
     // Execute action
     if (s.action) s.action(sim)
 
-    // Auto advance after duration (if not last step)
-    scheduleAdvance(nextStep, s.duration)
+    // Auto advance after duration (admin-configurable, else SCRIPT default)
+    scheduleAdvance(nextStep, getStepDuration(nextStep))
   }
 
   const stopUploadedAudio = () => {
@@ -263,7 +280,15 @@ export default function AutoPilot({ sim, onExit }) {
   }
 
   const start = () => {
-    startUploadedAudio()
+    // Prefer locally uploaded audio; fall back to server/default voiceover
+    if (uploadedAudio?.url) {
+      startUploadedAudio()
+    } else {
+      stopUploadedAudio()
+      const audio = new Audio(resolvedVoiceoverUrl)
+      audioRef.current = audio
+      audio.play().catch(() => {})
+    }
     resumeSim()
     advanceStep(0)
   }
@@ -277,7 +302,7 @@ export default function AutoPilot({ sim, onExit }) {
     setPaused(false)
     audioRef.current?.play().catch(() => {})
     resumeSim()
-    if (step >= 0 && currentStep) scheduleAdvance(step, currentStep.duration)
+    if (step >= 0) scheduleAdvance(step, getStepDuration(step))
   }
   const next = () => {
     const target = Math.min(step + 1, SCRIPT.length - 1)
@@ -349,6 +374,10 @@ export default function AutoPilot({ sim, onExit }) {
                 <button onClick={pause} className="px-3 py-1 text-[10px] font-bold text-[#eab308] border border-[#eab308]/30 rounded">⏸ Pause</button>
               )}
               <button onClick={next} className="px-2 py-1 text-[10px] text-[#888] border border-[#333] rounded hover:text-white">Next →</button>
+              <button onClick={() => setScriptVisible(v => !v)}
+                className="px-2 py-1 text-[10px] text-[#888] border border-[#333] rounded hover:text-white">
+                {scriptVisible ? '▶| Script' : '|◀ Script'}
+              </button>
             </>
           )}
           <button onClick={() => { clearTimeout(timerRef.current); stopUploadedAudio(); onExit() }}
@@ -420,7 +449,7 @@ export default function AutoPilot({ sim, onExit }) {
                visual motion at all (matches the sim's internal pause)
                and a PAUSED overlay makes the state unmistakable. */}
           <div className={`flex-1 min-h-0 min-w-0 overflow-auto relative ${paused ? 'sim-paused' : ''}`}>
-            <SiteOverview state={sim.state} config={sim.state.config} />
+            <SiteOverview state={displayState} config={sim.state.config} />
             {paused && (
               <div
                 aria-hidden="true"
@@ -471,7 +500,7 @@ export default function AutoPilot({ sim, onExit }) {
           </div>
 
           {/* Presenter panel — teleprompter + notes */}
-          <div className="w-[320px] shrink-0 bg-[#03172A] border-l border-[#293C5B] flex flex-col overflow-hidden">
+          {scriptVisible && <div className="w-[320px] shrink-0 bg-[#03172A] border-l border-[#293C5B] flex flex-col overflow-hidden">
             {currentStep && (
               <>
                 {/* Phase indicator */}
@@ -504,7 +533,7 @@ export default function AutoPilot({ sim, onExit }) {
                 ))}
               </div>
             </div>
-          </div>
+          </div>}
         </div>
       )}
 

@@ -4,12 +4,18 @@ import UsersTab from './admin/UsersTab'
 import RolesTab from './admin/RolesTab'
 import AnalyticsTab from './admin/AnalyticsTab'
 import SettingsTab from './admin/SettingsTab'
+import DemoTab from './admin/DemoTab'
+import ConversionTab from './admin/ConversionTab'
+import LogoTab from './admin/LogoTab'
 
 const TABS = [
   { id: 'users',     label: 'Users',     perm: 'manage:users' },
   { id: 'roles',     label: 'Roles',     perm: 'manage:roles' },
   { id: 'analytics', label: 'Analytics', perm: 'view:analytics' },
   { id: 'settings',  label: 'Settings',  perm: 'manage:settings' },
+  { id: 'demo',      label: 'Demo',      perm: 'manage:settings' },
+  { id: 'formulas',  label: 'Formulas',  perm: 'manage:settings' },
+  { id: 'logos',     label: 'Logos',     perm: 'manage:settings' },
 ]
 
 export default function AdminDashboard({ onBack }) {
@@ -24,7 +30,7 @@ export default function AdminDashboard({ onBack }) {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-lg font-bold text-white" style={{ fontFamily: "'Montserrat'" }}>Admin Dashboard</h1>
-            <p className="text-[10px] text-[#888]">User management, roles, analytics & settings</p>
+            <p className="text-[10px] text-[#888]">User management, roles, analytics, settings & demo tools</p>
           </div>
           <button onClick={onBack}
             className="px-4 py-2 rounded-lg text-[11px] text-[#888] border border-[#1e1e30] hover:bg-white/5">
@@ -50,10 +56,13 @@ export default function AdminDashboard({ onBack }) {
       {/* Content */}
       <div className="flex-1 overflow-auto p-5">
         <div className="max-w-4xl mx-auto">
-          {tab === 'users' && <UsersTab />}
-          {tab === 'roles' && <RolesTab />}
-          {tab === 'analytics' && <AnalyticsTab />}
+          {tab === 'users'    && <UsersTab />}
+          {tab === 'roles'    && <RolesTab />}
+          {tab === 'analytics'&& <AnalyticsTab />}
           {tab === 'settings' && <SettingsTab />}
+          {tab === 'demo'     && <DemoTab />}
+          {tab === 'formulas' && <ConversionTab />}
+          {tab === 'logos'    && <LogoTab />}
         </div>
       </div>
     </div>
