@@ -722,7 +722,7 @@ function KlondikeHistoryTab({ klondike }) {
         if (c >= data.length - 1) { setPlaying(false); return c }
         return c + 1
       })
-    }, 120)
+    }, 500)
     return () => clearInterval(id)
   }, [playing, data?.length])
 
@@ -815,9 +815,9 @@ function KlondikeOverview({ row, prev, windowData }) {
             {totalFlow?.toLocaleString() ?? '--'}
           </div>
           <div className="text-[9px] text-[#888]">MSCFD</div>
-          {prev && <div className={`text-[9px] mt-1 ${totalFlow > prev.totalFlowMscfd ? 'text-[#22c55e]' : totalFlow < prev.totalFlowMscfd ? 'text-[#E8200C]' : 'text-[#888]'}`}>
-            {totalFlow > prev.totalFlowMscfd ? 'UP' : totalFlow < prev.totalFlowMscfd ? 'DOWN' : 'SAME'} {Math.abs(totalFlow - prev.totalFlowMscfd).toFixed(0)} from prev
-          </div>}
+          <div className={`text-[9px] mt-1 ${prev && totalFlow > prev.totalFlowMscfd ? 'text-[#22c55e]' : prev && totalFlow < prev.totalFlowMscfd ? 'text-[#E8200C]' : 'text-[#555]'}`}>
+            {prev ? `${totalFlow > prev.totalFlowMscfd ? 'UP' : totalFlow < prev.totalFlowMscfd ? 'DOWN' : 'SAME'} ${Math.abs(totalFlow - prev.totalFlowMscfd).toFixed(0)} from prev` : '\u00A0'}
+          </div>
           <MiniSparkline data={windowData.map(r => r.totalFlowMscfd)} color="#22c55e" />
         </div>
 
