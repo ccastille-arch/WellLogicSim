@@ -88,11 +88,12 @@ router.post('/voiceover', requirePermission('manage:settings'), async (req, res)
       if (!isValidMp3) return res.status(400).json({ error: 'File does not appear to be a valid MP3' })
 
       await writeFile(join(uploadsDir, 'voiceover.mp3'), buf)
+      const ts = Date.now()
       await pool.query(
         "INSERT INTO settings (key, value) VALUES ('presentationVoiceover', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
-        [JSON.stringify({ url: '/api/voiceover/file', updatedAt: new Date().toISOString() })]
+        [JSON.stringify({ url: `/api/voiceover/file?t=${ts}`, updatedAt: new Date().toISOString() })]
       )
-      res.json({ ok: true, url: '/api/voiceover/file', size: buf.length })
+      res.json({ ok: true, url: `/api/voiceover/file?t=${ts}`, size: buf.length })
     } catch (err) {
       console.error('Voiceover upload error:', err)
       res.status(500).json({ error: 'Upload failed' })
@@ -136,11 +137,12 @@ router.post('/voiceover/clip/:clipId', requirePermission('manage:settings'), asy
       if (!isValidMp3) return res.status(400).json({ error: 'File does not appear to be a valid MP3' })
       await writeFile(join(uploadsDir, `voiceover-clip-${clipId}.mp3`), buf)
       const settingsKey = `clipVoiceover_${clipId}`
+      const ts = Date.now()
       await pool.query(
         'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2',
-        [settingsKey, JSON.stringify({ url: `/api/voiceover/clip/${clipId}`, updatedAt: new Date().toISOString() })]
+        [settingsKey, JSON.stringify({ url: `/api/voiceover/clip/${clipId}?t=${ts}`, updatedAt: new Date().toISOString() })]
       )
-      res.json({ ok: true, url: `/api/voiceover/clip/${clipId}`, size: buf.length })
+      res.json({ ok: true, url: `/api/voiceover/clip/${clipId}?t=${ts}`, size: buf.length })
     } catch (err) {
       console.error('Clip voiceover upload error:', err)
       res.status(500).json({ error: 'Upload failed' })

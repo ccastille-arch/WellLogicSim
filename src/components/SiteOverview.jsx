@@ -264,7 +264,7 @@ function computeLayout(nc, nw) {
   // Gas/sales/recirc — right side
   const gasX = W - 200
   const gasJuncY = scrubCY + 60
-  const salesVlvX = W - 130
+  const salesVlvX = W - 165
   const salesBoxX = W - 100
   const recircTurnY = suctionHdrY - 40
 
