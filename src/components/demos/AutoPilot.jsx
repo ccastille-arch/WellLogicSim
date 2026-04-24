@@ -10,7 +10,7 @@ import { useAuth } from '../auth/AuthProvider'
 // Narrates each step, triggers events, shows results, moves on.
 
 const FORCE_ALL_RED_STEPS = new Set([3, 4]) // "Impact" and "Without Well Logic"
-const DEFAULT_VOICEOVER_URL = '/audio/Customer_Demo_Voice_Over.mp3'
+const DEFAULT_VOICEOVER_URL = '/audio/Customer_Demo_Audio_v2.0.mp3'
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
 const SCRIPT = [
@@ -21,7 +21,7 @@ const SCRIPT = [
     say: "What you're looking at is a live simulation of a gas lift injection pad — the same equipment you're running today. Four wells, two compressors, injection chokes on every well.",
     presenterNote: 'Let them look at the diagram for a moment. Point out the wells at top, compressors at bottom.',
     action: null,
-    duration: 8000,
+    duration: 15000,
   },
   {
     phase: 'intro',
@@ -29,7 +29,7 @@ const SCRIPT = [
     say: "Right now everything is running perfectly. Every well is getting exactly the gas it needs. All compressors online. One hundred percent injection accuracy.",
     presenterNote: 'Point to the green metrics at bottom. All wells green, both compressors running.',
     action: null,
-    duration: 7000,
+    duration: 11000,
   },
   {
     phase: 'trip',
@@ -37,7 +37,7 @@ const SCRIPT = [
     say: "Now watch what happens when a compressor goes down unexpectedly.",
     presenterNote: 'Pause for effect. Let them watch.',
     action: (sim) => sim.setCompressorStatus(0, 'tripped'),
-    duration: 3000,
+    duration: 5000,
   },
   {
     phase: 'trip',
@@ -45,7 +45,7 @@ const SCRIPT = [
     say: "Every well on the pad just lost injection pressure. You can see them all going red. Production is dropping right now.",
     presenterNote: 'Point to wells turning yellow/red. Point to accuracy dropping.',
     action: null,
-    duration: 6000,
+    duration: 10000,
   },
   {
     phase: 'trip',
@@ -53,7 +53,7 @@ const SCRIPT = [
     say: "Without Well Logic, this is where your pumper gets a call. Forty five minutes to drive out. Another hour to diagnose and wait on a mechanic. Then he has to drive back out again just to readjust the chokes. That's three to four hours of lost production across every well on your pad.",
     presenterNote: 'This is the pain point. Let it sink in.',
     action: null,
-    duration: 12000,
+    duration: 25000,
   },
   {
     phase: 'trip',
@@ -61,7 +61,7 @@ const SCRIPT = [
     say: "But watch what Well Logic does. It's already detected the shortfall. It's closing chokes on your lower priority wells and redirecting all available gas to your top producers.",
     presenterNote: 'Point to wells 1 and 2 recovering to green while 3 and 4 stay curtailed.',
     action: null,
-    duration: 10000,
+    duration: 14000,
   },
   {
     phase: 'trip',
@@ -69,7 +69,7 @@ const SCRIPT = [
     say: "Your number one and number two wells are back at full target injection. Your best producers never stopped. That happened in under sixty seconds. No phone call. No truck roll. No choke adjustments.",
     presenterNote: 'Point to W1 and W2 green. Point to the time. This is the money shot.',
     action: null,
-    duration: 10000,
+    duration: 15000,
   },
   {
     phase: 'restore',
@@ -80,7 +80,7 @@ const SCRIPT = [
       sim.state.compressors.forEach(c => sim.setCompressorStatus(c.id, 'running'))
       sim.setTotalAvailableGas(sim.state.maxGasCapacity)
     },
-    duration: 5000,
+    duration: 7000,
   },
   {
     phase: 'constrain',
@@ -88,7 +88,7 @@ const SCRIPT = [
     say: "What happens when your gas supply starts declining? Maybe your formation is depleting, maybe there's a pipeline restriction upstream.",
     presenterNote: '',
     action: (sim) => sim.setTotalAvailableGas(sim.state.maxGasCapacity * 0.5),
-    duration: 4000,
+    duration: 9000,
   },
   {
     phase: 'constrain',
@@ -96,7 +96,7 @@ const SCRIPT = [
     say: "Well Logic automatically protects your highest value wells. Your number one well gets every bit of gas it needs. The lower priority wells get what's left. You're not losing production equally across the board anymore — your best wells are always protected.",
     presenterNote: 'Point to W1 staying green, W3/W4 going red. This is prioritization.',
     action: null,
-    duration: 12000,
+    duration: 19000,
   },
   {
     phase: 'restore2',
@@ -107,7 +107,7 @@ const SCRIPT = [
       sim.state.compressors.forEach(c => sim.setCompressorStatus(c.id, 'running'))
       sim.setTotalAvailableGas(sim.state.maxGasCapacity)
     },
-    duration: 4000,
+    duration: 5000,
   },
   {
     phase: 'unload',
@@ -119,7 +119,7 @@ const SCRIPT = [
       sim.setStateField('wellUnloadActive', true)
       setTimeout(() => sim.setStateField('wellUnloadActive', false), 6000)
     },
-    duration: 5000,
+    duration: 14000,
   },
   {
     phase: 'unload',
@@ -127,20 +127,20 @@ const SCRIPT = [
     say: "Well Logic detected that pressure spike instantly. It opened the sales valve to relieve pressure and kept your compressors running. No shutdown. No lost production. No middle of the night phone call.",
     presenterNote: 'Point to sales valve opening, pressure stabilizing. Compressors still green.',
     action: null,
-    duration: 10000,
+    duration: 14000,
   },
   {
     phase: 'close',
     title: 'The Bottom Line',
     say: "This runs twenty four seven. Nights, weekends, holidays. The same response at two AM as two PM. Your best wells always get gas first. Your compressors stay running. Your pumpers aren't chasing alarms.",
-    presenterNote: 'This is the close. Make eye contact.',
+    presenterNote: 'This is the close. Make eye contact. Slow down.',
     action: (sim) => {
       sim.state.compressors.forEach(c => sim.setCompressorStatus(c.id, 'running'))
       sim.setTotalAvailableGas(sim.state.maxGasCapacity)
       sim.setStateField('wellUnloadActive', false)
       sim.setStateField('salesValvePosition', 0)
     },
-    duration: 12000,
+    duration: 16000,
   },
   {
     phase: 'close',
@@ -148,7 +148,7 @@ const SCRIPT = [
     say: "Based on your pad size and the event frequency you told us about, Well Logic typically pays for itself in sixty to ninety days. After that, it's pure upside.",
     presenterNote: 'If they entered their numbers in the questionnaire, the ROI is calculated. Reference it.',
     action: null,
-    duration: 8000,
+    duration: 14000,
   },
   {
     phase: 'close',
