@@ -619,7 +619,7 @@ export default function MLinkDashboard({ onBack, streamOnly = false }) {
         </div>
       )}
 
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-y-scroll p-6">
         {tab === 'live' ? (
           <div className="max-w-[1280px] mx-auto">
             {loading && !panelData ? (
@@ -1504,9 +1504,9 @@ function KlondikeHistoryTab({ klondike }) {
         if (c >= data.length - 1) { setPlaying(false); return c }
         return c + 1
       })
-    }, 300)
+    }, 500)
     return () => clearInterval(id)
-  }, [playing, data])
+  }, [playing, data?.length])
 
   if (loading) return <div className="flex items-center justify-center h-40 text-[#888] text-sm">Loading field data...</div>
   if (error) return <div className="p-6 text-[#D32028] text-sm">Error: {error}</div>
@@ -1628,9 +1628,9 @@ function KlondikeOverview({ row, prev, windowData }) {
             {totalFlow?.toLocaleString() ?? '--'}
           </div>
           <div className="text-[9px] text-[#888]">MSCFD</div>
-          {prev && <div className={`text-[9px] mt-1 ${totalFlow > prev.totalFlowMscfd ? 'text-[#22c55e]' : totalFlow < prev.totalFlowMscfd ? 'text-[#D32028]' : 'text-[#888]'}`}>
-            {totalFlow > prev.totalFlowMscfd ? 'UP' : totalFlow < prev.totalFlowMscfd ? 'DOWN' : 'SAME'} {Math.abs(totalFlow - prev.totalFlowMscfd).toFixed(0)} from prev
-          </div>}
+          <div className={`text-[9px] mt-1 ${prev && totalFlow > prev.totalFlowMscfd ? 'text-[#22c55e]' : prev && totalFlow < prev.totalFlowMscfd ? 'text-[#D32028]' : 'text-[#555]'}`}>
+            {prev ? `${totalFlow > prev.totalFlowMscfd ? 'UP' : totalFlow < prev.totalFlowMscfd ? 'DOWN' : 'SAME'} ${Math.abs(totalFlow - prev.totalFlowMscfd).toFixed(0)} from prev` : '\u00A0'}
+          </div>
           <MiniSparkline data={windowData.map(r => r.totalFlowMscfd)} color="#22c55e" />
         </div>
 
@@ -2194,9 +2194,8 @@ function CompressorTrackingScore({ data, daysOfData }) {
 }
 
 function MiniSparkline({ data, color }) {
-  if (!data?.length) return null
-  const valid = data.filter(v => v != null && !isNaN(v))
-  if (valid.length < 2) return null
+  const valid = (data || []).filter(v => v != null && !isNaN(v))
+  if (valid.length < 2) return <div style={{ height: 32 }} />
   const mn = Math.min(...valid), mx = Math.max(...valid)
   const range = mx - mn || 1
   const W = 120, H = 24
@@ -2206,9 +2205,11 @@ function MiniSparkline({ data, color }) {
     return `${x},${y}`
   }).join(' ')
   return (
-    <svg width={W} height={H} className="mt-2 opacity-70">
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
+    <div style={{ height: 32 }}>
+      <svg width={W} height={H} className="mt-2 opacity-70">
+        <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+    </div>
   )
 }
 
