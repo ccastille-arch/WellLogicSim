@@ -126,7 +126,9 @@ const SCRIPT = [
     title: 'Well Logic Handles It',
     say: "Well Logic detected that pressure spike instantly. It opened the sales valve to relieve pressure and kept your compressors running. No shutdown. No lost production. No middle of the night phone call.",
     presenterNote: 'Point to sales valve opening, pressure stabilizing. Compressors still green.',
-    action: null,
+    action: (sim) => {
+      sim.setStateField('salesValvePosition', 85)
+    },
     duration: 10000,
   },
   {

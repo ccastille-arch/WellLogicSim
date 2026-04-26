@@ -59,11 +59,11 @@ function VoiceoverUploadRow({ label, settingsKey, apiPath, settings, updateSetti
         },
         body: file,
       })
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || `Upload failed (${res.status})`)
+        throw new Error(data.error || `Upload failed (${res.status})`)
       }
-      await updateSettings(settingsKey, { url: apiPath, updatedAt: new Date().toISOString() })
+      await updateSettings(settingsKey, { url: data.url || apiPath, updatedAt: new Date().toISOString() })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -135,11 +135,11 @@ export default function DemoTab() {
         },
         body: file,
       })
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || `Upload failed (${res.status})`)
+        throw new Error(data.error || `Upload failed (${res.status})`)
       }
-      await updateSettings('presentationVoiceover', { url: '/api/voiceover/file', updatedAt: new Date().toISOString() })
+      await updateSettings('presentationVoiceover', { url: data.url || '/api/voiceover/file', updatedAt: new Date().toISOString() })
     } catch (err) {
       setUploadError(err.message)
     } finally {
