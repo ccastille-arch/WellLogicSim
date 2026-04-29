@@ -270,13 +270,15 @@ export function tick(state) {
     // Full-close actions should slam the choke shut; partial moves still behave like PID control.
     const protectedByStartupAssist = startupAssistActive && startupAssistWellIds.has(w.id) && desired > 0
     const fullShutdown = compressorsOffline || (optimum === 0 && !protectedByStartupAssist)
+    // 4-second ramp-to-zero (4 ticks @ 1050ms/tick → factor ≈ 0.44 gives 90% closure in 4 ticks)
+    const shutdownRate = 0.44
     const actualRate = fullShutdown
-      ? smooth(w.actualRate, 0, compressorsOffline ? 0.85 : 0.7)
+      ? smooth(w.actualRate, 0, shutdownRate)
       : smooth(w.actualRate, allocTarget, T.flowResponseRate)
 
-    // Choke position moves at realistic valve speed
+    // Choke position moves at realistic valve speed; shutdown ramps over 4 s instead of snapping
     const targetChokeAO = desired > 0 ? Math.min(100, (allocTarget / desired) * 100) : 0
-    const chokeAO = fullShutdown ? 0 : smooth(w.chokeAO, targetChokeAO, T.chokeMoveRate)
+    const chokeAO = smooth(w.chokeAO, fullShutdown ? 0 : targetChokeAO, fullShutdown ? shutdownRate : T.chokeMoveRate)
 
     // Production has the most inertia
     const accuracy = desired > 0 ? actualRate / desired : 1

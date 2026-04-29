@@ -80,7 +80,7 @@ const SCRIPT = [
       sim.state.compressors.forEach(c => sim.setCompressorStatus(c.id, 'running'))
       sim.setTotalAvailableGas(sim.state.maxGasCapacity)
     },
-    duration: 7000,
+    duration: 10000,
   },
   {
     phase: 'constrain',
@@ -88,7 +88,7 @@ const SCRIPT = [
     say: "What happens when your gas supply starts declining? Maybe your formation is depleting, maybe there's a pipeline restriction upstream.",
     presenterNote: '',
     action: (sim) => sim.setTotalAvailableGas(sim.state.maxGasCapacity * 0.5),
-    duration: 9000,
+    duration: 12000,
   },
   {
     phase: 'constrain',
@@ -96,7 +96,7 @@ const SCRIPT = [
     say: "Well Logic automatically protects your highest value wells. Your number one well gets every bit of gas it needs. The lower priority wells get what's left. You're not losing production equally across the board anymore — your best wells are always protected.",
     presenterNote: 'Point to W1 staying green, W3/W4 going red. This is prioritization.',
     action: null,
-    duration: 19000,
+    duration: 22000,
   },
   {
     phase: 'restore2',
@@ -107,7 +107,7 @@ const SCRIPT = [
       sim.state.compressors.forEach(c => sim.setCompressorStatus(c.id, 'running'))
       sim.setTotalAvailableGas(sim.state.maxGasCapacity)
     },
-    duration: 5000,
+    duration: 8000,
   },
   {
     phase: 'unload',
@@ -115,8 +115,14 @@ const SCRIPT = [
     say: "Here's one that every production foreman has dealt with. A well slugs out. Gas slug hits your scrubber. Pressure spikes. Without automation, that can shut down your entire pad.",
     presenterNote: '',
     action: (sim) => {
-      sim.setStateField('scrubberPressure', sim.state.suctionTarget + 40)
       sim.setStateField('wellUnloadActive', true)
+      // Ramp scrubber pressure from 100 to 130 over 3500ms
+      const start = Date.now()
+      const ramp = setInterval(() => {
+        const t = Math.min(1, (Date.now() - start) / 3500)
+        sim.setStateField('scrubberPressure', 100 + 30 * t)
+        if (t >= 1) clearInterval(ramp)
+      }, 100)
       setTimeout(() => sim.setStateField('wellUnloadActive', false), 6000)
     },
     duration: 14000,
@@ -127,7 +133,8 @@ const SCRIPT = [
     say: "Well Logic detected that pressure spike instantly. It opened the sales valve to relieve pressure and kept your compressors running. No shutdown. No lost production. No middle of the night phone call.",
     presenterNote: 'Point to sales valve opening, pressure stabilizing. Compressors still green.',
     action: (sim) => {
-      sim.setStateField('salesValvePosition', 85)
+      // Open sales valve after pressure has built (3500ms ramp from previous slide)
+      setTimeout(() => sim.setStateField('salesValvePosition', 85), 3500)
     },
     duration: 14000,
   },
