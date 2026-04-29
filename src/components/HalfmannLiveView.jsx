@@ -38,6 +38,7 @@ const LIVE_WELL_FLOW_KEYS = [
   ['Well 2 Injection Gas Flow Rate', 'Well #2 Flow Rate'],
   ['Well 3 Injection Gas Flow Rate', 'Well #3 Flow Rate'],
   ['Well 4 Injection Gas Flow Rate', 'Well #4 Flow Rate'],
+  ['Well 5 Injection Gas Flow Rate', 'Well #5 Flow Rate'],
 ]
 
 const LIVE_WELL_YESTERDAY_KEYS = [
@@ -45,6 +46,7 @@ const LIVE_WELL_YESTERDAY_KEYS = [
   ['Wellhead #2 Yesterdays Total Flow', 'Well 2 Yesterdays Total Flow'],
   ['Wellhead #3 Yesterdays Total Flow', 'Well 3 Yesterdays Total Flow'],
   ['Wellhead #4 Yesterdays Total Flow', 'Well 4 Yesterdays Total Flow'],
+  ['Wellhead #5 Yesterdays Total Flow', 'Well 5 Yesterdays Total Flow'],
 ]
 
 // ─── fetch helpers ─────────────────────────────────────────────────────────────
@@ -273,7 +275,7 @@ function LivePerformanceHero({ metrics, wells, timestamp }) {
             />
             <WowMetricCard
               label="Wells On Target"
-              value={metrics.wellsAtTarget != null ? `${metrics.wellsAtTarget}/4` : '--'}
+              value={metrics.wellsAtTarget != null ? `${metrics.wellsAtTarget}/${wells.length}` : '--'}
               tone="blue"
               helper="Within 3% of desired injection"
             />
@@ -458,7 +460,7 @@ export default function HalfmannLiveView() {
   // Per-well injection performance
   const liveWellPerformance = LIVE_WELL_FLOW_KEYS.map((keys, index) => {
     const wellNumber = index + 1
-    const actual = parseLiveNumeric(getFirstDatapoint(panel, keys)?.value)
+    const actual = parseLiveNumeric(resolvePreferredDatapoint(panel, keys)?.value)
     const desiredDatapoint = resolvePreferredDatapoint(panel, [
       `Wellhead #${wellNumber} Calculated Desired Flow`,
       `Wellhead #${wellNumber} Setpoint From Customer PLC`,
@@ -563,11 +565,11 @@ export default function HalfmannLiveView() {
                 <h2 className="text-sm text-white font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>
                   Well Injection Flow Rates
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                   {LIVE_WELL_FLOW_KEYS.map((keys, i) => {
-                    const dp = getFirstDatapoint(panel, keys)
+                    const dp = resolvePreferredDatapoint(panel, keys)
                     const val = dp ? parseFloat(dp.value) : null
-                    const yesterdayDp = getFirstDatapoint(panel, LIVE_WELL_YESTERDAY_KEYS[i])
+                    const yesterdayDp = resolvePreferredDatapoint(panel, LIVE_WELL_YESTERDAY_KEYS[i])
                     const yesterdayVal = yesterdayDp ? parseFloat(yesterdayDp.value) : null
                     const maxFlow = 1.2
                     const widthPct = val != null && !Number.isNaN(val) ? Math.max(0, Math.min(100, (val / maxFlow) * 100)) : 0
@@ -608,7 +610,7 @@ export default function HalfmannLiveView() {
                   <span className="text-[#888] text-[11px]">Total Injection: </span>
                   <span className="text-white font-bold text-[14px]" style={{ fontFamily: "'Arial Black'" }}>
                     {LIVE_WELL_FLOW_KEYS.reduce((sum, keys) => {
-                      const dp = getFirstDatapoint(panel, keys)
+                      const dp = resolvePreferredDatapoint(panel, keys)
                       return sum + (dp ? parseFloat(dp.value) || 0 : 0)
                     }, 0).toFixed(3)} MMSCFD
                   </span>

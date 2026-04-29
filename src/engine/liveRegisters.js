@@ -52,6 +52,7 @@ const KLONDIKE_DEFAULT_VISIBLE_LABELS = new Set([
   'Well #2 Analog Output 2',
   'Well #3 Analog Output 3',
   'Well #4 Analog Output 4',
+  'Well #5 Analog Output 5',
   'Wellhead #1 Calculated Desired Flow',
   'Wellhead #1 Choke Flow Priority #',
   'Wellhead #1 Choke Oil Priority #',
@@ -104,6 +105,20 @@ const KLONDIKE_DEFAULT_VISIBLE_LABELS = new Set([
   'Wellhead #4 Setpoint From Customer PLC',
   "Wellhead #4 Yesterday's Total Flow",
   'Wellhead #4 Yesterdays Total Flow',
+  'Wellhead #5 Calculated Desired Flow',
+  'Wellhead #5 Choke Flow Priority #',
+  'Wellhead #5 Choke Oil Priority #',
+  'Wellhead #5 Flow Running Status Percent',
+  'Wellhead #5 In Manual/Auto',
+  'Wellhead #5 Injection Differential Prs From Customer PLC',
+  'Wellhead #5 Injection Flow Rate From Customer PLC',
+  'Wellhead #5 Injection Static Pressure From Customer PLC',
+  'Wellhead #5 Injection Temp From Customer PLC',
+  'Wellhead #5 Max Flow Rate',
+  'WellHead #5 Running Status',
+  'Wellhead #5 Setpoint From Customer PLC',
+  "Wellhead #5 Yesterday's Total Flow",
+  'Wellhead #5 Yesterdays Total Flow',
 ])
 
 export async function loadAwiRegisterCatalog() {
@@ -192,9 +207,10 @@ function buildSupplementalRegisterCatalog() {
     createMeta('Wellhead 2 Override Position', '460468', 0),
     createMeta('Wellhead 3 Override Position', '460470', 0),
     createMeta('Wellhead 4 Override Position', '460472', 0),
+    createMeta('Wellhead 5 Override Position', '460474', 0),
   ]
 
-  for (let well = 1; well <= 4; well += 1) {
+  for (let well = 1; well <= 5; well += 1) {
     items.push(createMeta(`Wellhead #${well} Calculated Desired Flow`, String(460050 + (well - 1) * 2), 3))
     items.push(createMeta(`Wellhead #${well} Choke Flow Priority #`, String(461002 + (well - 1) * 2), 0))
     items.push(createMeta(`Wellhead #${well} Choke Oil Priority #`, String(461036 + (well - 1) * 2), 0))
@@ -211,6 +227,7 @@ function buildSupplementalRegisterCatalog() {
   }
 
   items.push(createMeta('Wellhead #4 Max Flow Rate', '461140', 3))
+  items.push(createMeta('Wellhead #5 Max Flow Rate', '461142', 3))
 
   return items
 }
