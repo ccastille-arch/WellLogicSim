@@ -205,7 +205,10 @@ function WowMetricCard({ label, value, helper, tone }) {
 function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers }) {
   const rpm = data['Compressor Speed'] || data['Driver Speed']
   const shutdown = data['Skid - Shutdown']
-  const isRunning = rpm && parseFloat(rpm.value) > 100 && !(shutdown && String(shutdown.value).toLowerCase().includes('shutdown'))
+  const isShutdown = shutdown && String(shutdown.value).toLowerCase().includes('shutdown')
+  const hasRpm = rpm && parseFloat(rpm.value) > 100
+  const hasFlow = actualFlow != null && parseFloat(actualFlow.value) > 0.01
+  const isRunning = (hasRpm || hasFlow) && !isShutdown
   const visibleRegisters = registers.filter(meta => meta.label !== 'Flow Rate PID PV')
   const desiredFlowValue = formatFlowValue(desiredFlow?.value)
   const actualFlowValue = formatFlowValue(actualFlow?.value)

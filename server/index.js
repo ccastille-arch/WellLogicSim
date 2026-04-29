@@ -153,6 +153,31 @@ app.get('/api/mlink/device', async (req, res) => {
   }
 })
 
+// Returns the parsed register key names for a device — no values exposed.
+// Use this to discover what labels the MLink API publishes for a given device
+// so you can add them as aliases in liveRegisters.js.
+app.get('/api/mlink/device/keys', async (req, res) => {
+  const key = process.env.MLINK_API_KEY
+  if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
+  const { deviceId } = req.query
+  if (!deviceId) return res.status(400).json({ error: 'deviceId required' })
+  try {
+    const r = await fetch(`${MLINK_BASE}/LatestDeviceData?deviceId=${deviceId}&code=${key}`)
+    if (!r.ok) {
+      const body = await r.text().catch(() => '')
+      return res.status(r.status).json({ error: 'MLINK error', status: r.status, details: body.slice(0, 500) })
+    }
+    const data = await r.json()
+    const keys = (data?.datapoints || [])
+      .map(dp => dp.alias || dp.desc || dp.dataSourceName || dp.Name || dp.name)
+      .filter(Boolean)
+      .sort()
+    res.json({ deviceId, count: keys.length, keys })
+  } catch (err) {
+    res.status(502).json({ error: 'MLINK unreachable', details: err.message })
+  }
+})
+
 app.get('/api/mlink/runreport', async (req, res) => {
   const key = process.env.MLINK_API_KEY
   if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
