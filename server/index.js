@@ -206,7 +206,7 @@ app.get('/api/mlink/runreport/probe', async (req, res) => {
       results[label] = { error: err.message }
     }
   }
-  res.json({ deviceId, nowSec, results })
+  res.json({ deviceId, todayMidnightUTC, yesterdayStart, yesterdayEnd, results })
 })
 
 // Fetches LatestDeviceData + RunReport and merges all datapoints so the
@@ -231,10 +231,13 @@ app.get('/api/mlink/device/full', async (req, res) => {
   const yesterdayStartUTC = todayMidnightUTC - 86400
   const yesterdayEndUTC = todayMidnightUTC - 1  // 23:59:59 yesterday, excludes today
 
+  let _runReportStatus = null
+  let _runReportDebug = null
   try {
     const r = await fetch(
       `${MLINK_BASE}/RunReport?deviceId=${encodeURIComponent(deviceId)}&startTs=${yesterdayStartUTC}&endTs=${yesterdayEndUTC}&code=${key}`
     )
+    _runReportStatus = r.status
     if (r.ok) {
       const data = await r.json()
       // RunReport may return an array of records or a single record with datapoints
@@ -244,8 +247,14 @@ app.get('/api/mlink/device/full', async (req, res) => {
           runReportDps.push(dp)
         }
       }
+      _runReportDebug = `ok, ${records.length} records, ${runReportDps.length} dps`
+    } else {
+      const errText = await r.text().catch(() => '')
+      _runReportDebug = errText.slice(0, 300)
     }
-  } catch {}
+  } catch (e) {
+    _runReportDebug = `fetch error: ${e.message}`
+  }
 
   if (!latestData && runReportDps.length === 0) {
     return res.status(502).json({ error: 'No data from MLink' })
@@ -271,6 +280,9 @@ app.get('/api/mlink/device/full', async (req, res) => {
     datapoints: Object.values(byKey),
     _merged: true,
     _runReportCount: runReportDps.length,
+    _runReportStatus,
+    _runReportDebug,
+    _window: { yesterdayStartUTC, yesterdayEndUTC },
   })
 })
 
