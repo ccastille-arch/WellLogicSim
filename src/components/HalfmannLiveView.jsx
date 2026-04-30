@@ -296,7 +296,7 @@ function LivePerformanceHero({ metrics, wells, timestamp }) {
               label="Wells On Target"
               value={metrics.wellsAtTarget != null ? `${metrics.wellsAtTarget}/${wells.length}` : '--'}
               tone="blue"
-              helper="Within 3% of desired injection"
+              helper={metrics.wellsAtTarget != null ? 'Within 3% of desired injection' : 'Per-well targets not in API feed'}
             />
             <WowMetricCard
               label="30-Day Under Target"
@@ -324,24 +324,30 @@ function LivePerformanceHero({ metrics, wells, timestamp }) {
                 <div className="mb-1 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] font-bold text-white">Well {well.wellNumber}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${well.atTarget ? 'bg-[#0d2d18] text-[#58e68f]' : 'bg-[#33260c] text-[#f7c65d]'}`}>
-                      {well.atTarget ? 'On Target' : 'Chasing'}
-                    </span>
+                    {well.desired != null && (
+                      <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${well.atTarget ? 'bg-[#0d2d18] text-[#58e68f]' : 'bg-[#33260c] text-[#f7c65d]'}`}>
+                        {well.atTarget ? 'On Target' : 'Chasing'}
+                      </span>
+                    )}
                   </div>
                   <span className="text-[10px] text-[#8d97a8]">{formatPercent(well.matchPct, 1)} match</span>
                 </div>
-                <div className="grid grid-cols-[1fr_auto_auto] gap-3 text-[11px]">
-                  <div className="pt-1">
-                    <div className="h-2 overflow-hidden rounded-full bg-[#14202c]">
-                      <div className="h-full rounded-full bg-gradient-to-r from-[#22c55e] to-[#4fc3f7]" style={{ width: `${Math.max(0, Math.min(100, well.matchPct ?? 0))}%` }} />
+                <div className={`gap-3 text-[11px] ${well.desired != null ? 'grid grid-cols-[1fr_auto_auto]' : 'flex items-center'}`}>
+                  {well.desired != null && (
+                    <div className="pt-1">
+                      <div className="h-2 overflow-hidden rounded-full bg-[#14202c]">
+                        <div className="h-full rounded-full bg-gradient-to-r from-[#22c55e] to-[#4fc3f7]" style={{ width: `${Math.max(0, Math.min(100, well.matchPct ?? 0))}%` }} />
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <span className="font-bold text-[#22c55e]">{formatFlow(well.actual)}</span>
-                  <span className="text-[#8d97a8]">of {formatFlow(well.desired)}</span>
+                  {well.desired != null && <span className="text-[#8d97a8]">of {formatFlow(well.desired)}</span>}
                 </div>
-                <div className="mt-1 text-[10px] text-[#697386]">
-                  Gap {formatSignedFlow(well.gap)}
-                </div>
+                {well.desired != null && (
+                  <div className="mt-1 text-[10px] text-[#697386]">
+                    Gap {formatSignedFlow(well.gap)}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -522,7 +528,8 @@ export default function HalfmannLiveView() {
     totalActual:  totalActualFlow,
     totalDesired: totalDesiredSite,
     currentMatch: padMatchPct,
-    wellsAtTarget: wellsMeetingRate ?? validWells.filter(w => w.atTarget).length,
+    // Only compute wells-at-target when we have desired data; avoid misleading "0/5"
+    wellsAtTarget: wellsMeetingRate ?? (validWells.length > 0 ? validWells.filter(w => w.atTarget).length : null),
     historicalAtTarget: null,      // no 30-day CSV for Halfmann
     historicalUnderTarget: null,
     compressorMatch: average(liveUnitPerformance.map(u => computeMatchPct(u.actual, u.desired))),
