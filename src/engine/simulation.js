@@ -272,19 +272,27 @@ export function tick(state) {
     const fullShutdown = compressorsOffline || (optimum === 0 && !protectedByStartupAssist)
     // 4-second ramp-to-zero (4 ticks @ 1050ms/tick → factor ≈ 0.44 gives 90% closure in 4 ticks)
     const shutdownRate = 0.44
-    const actualRate = fullShutdown
-      ? smooth(w.actualRate, 0, shutdownRate)
-      : smooth(w.actualRate, allocTarget, T.flowResponseRate)
 
     // Choke position moves at realistic valve speed; shutdown ramps over 4 s instead of snapping
     const targetChokeAO = desired > 0 ? Math.min(100, (allocTarget / desired) * 100) : 0
     const chokeAO = smooth(w.chokeAO, fullShutdown ? 0 : targetChokeAO, fullShutdown ? shutdownRate : T.chokeMoveRate)
 
-    // Production has the most inertia
+    // Hard rule: a closed choke must read zero flow. No leakage past a shut valve.
+    const chokeClosed = chokeAO < 0.5
+    const actualRate = chokeClosed
+      ? 0
+      : fullShutdown
+        ? smooth(w.actualRate, 0, shutdownRate)
+        : smooth(w.actualRate, allocTarget, T.flowResponseRate)
+
+    // Production tracks injection. When flow is zero, production is zero
+    // immediately (no smoothing); when flow drops, production drops faster
+    // than the normal lag so the visual stays coupled.
     const accuracy = desired > 0 ? actualRate / desired : 1
     const isAtTarget = accuracy >= 0.95
     const targetProd = w.baseProduction * Math.min(accuracy, 1)
-    const productionBoe = smooth(w.productionBoe, targetProd, T.productionLag)
+    const dropLag = targetProd < w.productionBoe ? 0.4 : T.productionLag
+    const productionBoe = actualRate === 0 ? 0 : smooth(w.productionBoe, targetProd, dropLag)
 
     // Wellhead sensor parameters — evolve realistically
     // Static injection pressure: rises when choke closes (less flow), falls when open
@@ -401,7 +409,11 @@ export function tick(state) {
         : capacityGained
           ? Math.min(c.actualThroughput, c.capacityMcfd)
           : deliveredGas / activeCompressors.length
-    const boundedThroughput = Math.min(shareOfLoad, c.capacityMcfd)
+    // Cap throughput by actual well demand: if wells are shut in, the gas
+    // has nowhere to go, so the surviving compressor must spin down rather
+    // than show climbing speed/flow.
+    const demandShare = totalActualInjection / Math.max(activeCompressors.length, 1)
+    const boundedThroughput = Math.min(shareOfLoad, c.capacityMcfd, demandShare)
     const loadPct = c.capacityMcfd > 0 ? (boundedThroughput / c.capacityMcfd) * 100 : 0
     const clampedLoad = Math.min(100, Math.max(0, loadPct))
 

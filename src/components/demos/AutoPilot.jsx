@@ -60,7 +60,35 @@ const SCRIPT = [
     title: 'Well Logic Responds',
     say: "But watch what Well Logic does. It's already detected the shortfall. It's closing chokes on your lower priority wells and redirecting all available gas to your top producers.",
     presenterNote: 'Point to wells 1 and 2 recovering to green while 3 and 4 stay curtailed.',
-    action: null,
+    action: (sim) => {
+      // Drive a smooth 4-second ramp on wells 1, 2, 3 chokes so the
+      // "WellLogic responds" moment is visibly gradual, not a snap.
+      const targets = [
+        { id: 0, target: 100 },
+        { id: 1, target: 100 },
+        { id: 2, target: 40 },
+      ]
+      targets.forEach(({ id }) => sim.setChokeMode(id, 'manual'))
+      const startSPs = new Map(
+        sim.state.wells
+          .filter(w => targets.some(t => t.id === w.id))
+          .map(w => [w.id, w.chokeAO ?? 0])
+      )
+      const totalMs = 4000
+      const stepMs = 100
+      const totalFrames = totalMs / stepMs
+      let frame = 0
+      const interval = setInterval(() => {
+        frame += 1
+        const t = Math.min(1, frame / totalFrames)
+        targets.forEach(({ id, target }) => {
+          const start = startSPs.get(id) ?? 0
+          const value = start + (target - start) * t
+          sim.setChokeManualSP(id, value)
+        })
+        if (frame >= totalFrames) clearInterval(interval)
+      }, stepMs)
+    },
     duration: 14000,
   },
   {
@@ -79,6 +107,7 @@ const SCRIPT = [
     action: (sim) => {
       sim.state.compressors.forEach(c => sim.setCompressorStatus(c.id, 'running'))
       sim.setTotalAvailableGas(sim.state.maxGasCapacity)
+      sim.state.wells.forEach(w => sim.setChokeMode(w.id, 'auto'))
     },
     duration: 10000,
   },
