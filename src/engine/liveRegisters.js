@@ -265,18 +265,29 @@ export function parseLiveDatapoints(data) {
     // the compressor flow / desired-flow reading "No Data" even
     // though the device was online (RPM happened to have `alias`
     // populated, so isRunning worked, but everything else collapsed).
-    const key = dp.alias || dp.desc || dp.dataSourceName || dp.Name || dp.name
-    if (!key) continue
+    const alias = dp.alias || dp.desc || dp.dataSourceName || dp.Name || dp.name
+    if (!alias) continue
     // Normalize value extraction too — some payload shapes nest the
     // most-recent reading in `values[0]` rather than exposing it as
     // `value` directly. Match the server-side parser in
     // server/mlinkHistory.js so frontend + backend agree on what's
     // in the payload.
     const value = dp.value ?? (Array.isArray(dp.values) ? dp.values[0] : undefined)
-    result[key] = {
+    const dpObj = {
       value,
       units: dp.units || dp.unit,
       desc: dp.desc || dp.dataSourceName,
+    }
+    // Index by alias (primary key used by MLink cloud)
+    result[alias] = dpObj
+    // Also index by the canonical desc name so lookups using the full
+    // register name (e.g. "Wellhead #1 Injection Flow Rate From Customer PLC")
+    // resolve even when Murphy published the data under a shorter alias
+    // (e.g. "Well #1 Flow Rate"). Without this, findRegisterDatapoint
+    // falls through to normalized matching on every lookup.
+    const desc = dp.desc || dp.dataSourceName
+    if (desc && desc !== alias) {
+      result[desc] = dpObj
     }
   }
   return result
