@@ -89,15 +89,15 @@ export default function SiteOverview({ state, animateFlow = true, verticalOffset
         <text x={L.salesBoxX + 42} y={L.gasJuncY - 2} textAnchor="middle" fill="#22c55e" fontSize={10} fontWeight="bold">SALES LINE</text>
         <text x={L.salesBoxX + 42} y={L.gasJuncY + 12} textAnchor="middle" fill="#555" fontSize={7}>→ PIPELINE</text>
 
-        {/* ↓ Recirc / Buyback — goes DOWN from gas junction, then LEFT to suction header end */}
+        {/* ↓ Recirc / Buyback — straight L-shape: DOWN from gas junction
+             to suction header level, then LEFT into the header end */}
         <AnimPipe points={[
           [L.gasX, L.gasJuncY],
-          [L.gasX, L.recircTurnY],
-          [L.suctionHdrX2 + 10, L.recircTurnY],
-          [L.suctionHdrX2 + 10, L.suctionHdrY],
+          [L.gasX, L.suctionHdrY],
+          [L.suctionHdrX2, L.suctionHdrY],
         ]} rate={0.6} color="#22c55e" animate={animateFlow} />
-        <text x={L.gasX + 5} y={L.gasJuncY + 14} fill="#22c55e" fontSize={7} fontWeight="bold">↓ RECIRC</text>
-        <text x={(L.gasX + L.suctionHdrX2) / 2} y={L.recircTurnY - 6} textAnchor="middle" fill="#22c55e" fontSize={9} fontWeight="bold">
+        <text x={L.gasX + 5} y={L.gasJuncY + 60} fill="#22c55e" fontSize={7} fontWeight="bold">↓ RECIRC</text>
+        <text x={(L.gasX + L.suctionHdrX2) / 2} y={L.suctionHdrY + 16} textAnchor="middle" fill="#22c55e" fontSize={9} fontWeight="bold">
           BUYBACK / RECIRC LINE
         </text>
 
