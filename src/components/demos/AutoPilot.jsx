@@ -145,10 +145,10 @@ const SCRIPT = [
     presenterNote: '',
     action: (sim) => {
       sim.setStateField('wellUnloadActive', true)
-      // Ramp scrubber pressure from 100 to 130 over 3500ms
+      // Ramp scrubber pressure from 100 to 130 over 20000ms
       const start = Date.now()
       const ramp = setInterval(() => {
-        const t = Math.min(1, (Date.now() - start) / 3500)
+        const t = Math.min(1, (Date.now() - start) / 20000)
         sim.setStateField('scrubberPressure', 100 + 30 * t)
         if (t >= 1) clearInterval(ramp)
       }, 100)
@@ -553,13 +553,6 @@ export default function AutoPilot({ sim, onExit }) {
                   <p className="text-[14px] text-[#ddd] leading-relaxed">{currentStep.say}</p>
                 </div>
 
-                {/* Presenter notes */}
-                {currentStep.presenterNote && (
-                  <div className="px-4 py-3 bg-[#1a1a10] border-t border-[#2a2a1a] shrink-0">
-                    <div className="text-[8px] text-[#eab308] uppercase tracking-wider font-bold mb-1">📋 PRESENTER NOTE</div>
-                    <p className="text-[11px] text-[#aaa] leading-relaxed">{currentStep.presenterNote}</p>
-                  </div>
-                )}
               </>
             )}
 

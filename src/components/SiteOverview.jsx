@@ -90,10 +90,10 @@ export default function SiteOverview({ state, animateFlow = true, verticalOffset
         {/* → Sales valve + Sales Line */}
         <AnimPipe points={[[L.gasX, L.gasJuncY], [L.salesVlvX - 15, L.gasJuncY]]} rate={salesValvePosition / 100} color="#22c55e" animate={animateFlow} />
         <Valve x={L.salesVlvX} y={L.gasJuncY} openPct={salesValvePosition} label="SALES VLV" />
-        <AnimPipe points={[[L.salesVlvX + 15, L.gasJuncY], [L.salesBoxX, L.gasJuncY]]} rate={salesValvePosition / 100} color="#22c55e" animate={animateFlow} />
-        <rect x={L.salesBoxX} y={L.gasJuncY - 18} width={85} height={36} rx={5} fill="#0a1a0a" stroke="#22c55e" strokeWidth={1.5} />
-        <text x={L.salesBoxX + 42} y={L.gasJuncY - 2} textAnchor="middle" fill="#22c55e" fontSize={10} fontWeight="bold">SALES LINE</text>
-        <text x={L.salesBoxX + 42} y={L.gasJuncY + 12} textAnchor="middle" fill="#555" fontSize={7}>→ PIPELINE</text>
+        <AnimPipe points={[[L.salesVlvX + 15, L.gasJuncY], [L.salesBoxX + 42, L.gasJuncY], [L.salesBoxX + 42, L.gasJuncY + 28]]} rate={salesValvePosition / 100} color="#22c55e" animate={animateFlow} />
+        <rect x={L.salesBoxX} y={L.gasJuncY + 10} width={85} height={36} rx={5} fill="#0a1a0a" stroke="#22c55e" strokeWidth={1.5} />
+        <text x={L.salesBoxX + 42} y={L.gasJuncY + 26} textAnchor="middle" fill="#22c55e" fontSize={10} fontWeight="bold">SALES LINE</text>
+        <text x={L.salesBoxX + 42} y={L.gasJuncY + 40} textAnchor="middle" fill="#555" fontSize={7}>→ PIPELINE</text>
 
         {/* ↓ Recirc / Buyback — straight DOWN from gas junction to suction header level, then LEFT into the suction header. Single elbow. */}
         <AnimPipe points={[

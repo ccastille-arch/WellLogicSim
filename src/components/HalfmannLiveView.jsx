@@ -49,6 +49,14 @@ const LIVE_WELL_YESTERDAY_KEYS = [
   ['Wellhead #5 Yesterdays Total Flow', 'Well 5 Yesterdays Total Flow'],
 ]
 
+const LIVE_WELL_DESIRED_KEYS = [
+  ['Wellhead #1 Calculated Desired Flow', 'Well 1 Calculated Desired Flow', 'Wellhead #1 Setpoint From Customer PLC', 'Well 1 Setpoint From Customer PLC'],
+  ['Wellhead #2 Calculated Desired Flow', 'Well 2 Calculated Desired Flow', 'Wellhead #2 Setpoint From Customer PLC', 'Well 2 Setpoint From Customer PLC'],
+  ['Wellhead #3 Calculated Desired Flow', 'Well 3 Calculated Desired Flow', 'Wellhead #3 Setpoint From Customer PLC', 'Well 3 Setpoint From Customer PLC'],
+  ['Wellhead #4 Calculated Desired Flow', 'Well 4 Calculated Desired Flow', 'Wellhead #4 Setpoint From Customer PLC', 'Well 4 Setpoint From Customer PLC'],
+  ['Wellhead #5 Calculated Desired Flow', 'Well 5 Calculated Desired Flow', 'Wellhead #5 Setpoint From Customer PLC', 'Well 5 Setpoint From Customer PLC'],
+]
+
 // ─── fetch helpers ─────────────────────────────────────────────────────────────
 
 async function readErrorPayload(res) {
@@ -457,10 +465,11 @@ export default function HalfmannLiveView() {
       `Compressor #${i + 1} Desired Flow SP For PID Murphy`,
     ]) ??
     resolvePreferredDatapoint(unitDataMaps[i], [
-      'Compressor #1 Desire Flow SP For PID Murphy',
+      'Quck Start Setting - Desired Flow Rate',
       'Desire Flow SP For PID Murphy',
       'Desired Flow SP For PID Murphy',
       'Flow Rate PID SP',
+      'Target Flow Rate',
     ])
   )
   const unitActualFlows = unitDataMaps.map(dataMap =>
@@ -524,10 +533,11 @@ export default function HalfmannLiveView() {
     : null
 
   const validWells = liveWellPerformance.filter(w => w.actual != null && w.desired != null)
+  const wellMatchAvg = validWells.length > 0 ? average(validWells.map(w => w.matchPct)) : null
   const wowMetrics = {
     totalActual:  totalActualFlow,
-    totalDesired: totalDesiredSite,
-    currentMatch: padMatchPct,
+    totalDesired: totalDesiredSite ?? (validWells.length > 0 ? validWells.reduce((s, w) => s + w.desired, 0) : null),
+    currentMatch: padMatchPct ?? wellMatchAvg,
     // Only compute wells-at-target when we have desired data; avoid misleading "0/5"
     wellsAtTarget: wellsMeetingRate ?? (validWells.length > 0 ? validWells.filter(w => w.atTarget).length : null),
     historicalAtTarget: null,      // no 30-day CSV for Halfmann
@@ -608,21 +618,34 @@ export default function HalfmannLiveView() {
                   {LIVE_WELL_FLOW_KEYS.map((keys, i) => {
                     const dp = resolvePreferredDatapoint(panel, keys)
                     const val = dp ? parseFloat(dp.value) : null
+                    const desiredDp = resolvePreferredDatapoint(panel, LIVE_WELL_DESIRED_KEYS[i])
+                    const desiredVal = desiredDp ? parseFloat(desiredDp.value) : null
                     const yesterdayDp = resolvePreferredDatapoint(panel, LIVE_WELL_YESTERDAY_KEYS[i])
                     const yesterdayVal = yesterdayDp ? parseFloat(yesterdayDp.value) : null
-                    const maxFlow = 1.2
+                    const maxFlow = desiredVal != null && desiredVal > 0 ? desiredVal * 1.25 : 1.2
                     const widthPct = val != null && !Number.isNaN(val) ? Math.max(0, Math.min(100, (val / maxFlow) * 100)) : 0
+                    const desiredPct = desiredVal != null && !Number.isNaN(desiredVal) ? Math.max(0, Math.min(100, (desiredVal / maxFlow) * 100)) : null
                     return (
                       <div key={i} className="bg-[#0a0a14] rounded-lg border border-[#2a2a3a] p-4 text-center">
                         <div className="text-[10px] text-[#888] mb-1">Well {i + 1}</div>
-                        <div className="text-2xl text-[#22c55e] font-bold mb-2" style={{ fontFamily: "'Arial Black'" }}>
+                        <div className="text-2xl text-[#22c55e] font-bold mb-0.5" style={{ fontFamily: "'Arial Black'" }}>
                           {val != null && !Number.isNaN(val) ? val.toFixed(3) : '--'}
                         </div>
-                        <div className="text-[9px] text-[#888]">MMSCFD</div>
-                        <div className="w-full bg-[#1a1a2a] rounded h-2 mt-2 overflow-hidden">
+                        <div className="text-[9px] text-[#888]">MMSCFD actual</div>
+                        <div className="relative w-full bg-[#1a1a2a] rounded h-2 mt-2 overflow-hidden">
+                          {desiredPct != null && (
+                            <div className="absolute top-0 bottom-0 w-0.5 bg-[#4fc3f7]/70 z-10" style={{ left: `${desiredPct}%` }} />
+                          )}
                           <div className="h-full bg-[#22c55e] rounded transition-all" style={{ width: `${widthPct}%` }} />
                         </div>
-                        <div className="mt-3 pt-2 border-t border-[#1a1a2a]">
+                        <div className="mt-2 flex items-center justify-center gap-1">
+                          <span className="text-[8px] text-[#4fc3f7]">Target:</span>
+                          <span className="text-[10px] text-[#4fc3f7] font-bold" style={{ fontFamily: "'Arial Black'" }}>
+                            {desiredVal != null && !Number.isNaN(desiredVal) ? desiredVal.toFixed(3) : '--'}
+                          </span>
+                          <span className="text-[8px] text-[#4fc3f7]">MMSCFD</span>
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-[#1a1a2a]">
                           <div className="text-[8px] text-[#666] uppercase tracking-wider">Yesterday Flow</div>
                           <div className="text-[12px] text-white font-bold mt-0.5" style={{ fontFamily: "'Arial Black'" }}>
                             {yesterdayVal != null && !Number.isNaN(yesterdayVal) ? yesterdayVal.toFixed(3) : '--'}
