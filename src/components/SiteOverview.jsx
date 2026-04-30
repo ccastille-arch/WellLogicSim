@@ -53,23 +53,29 @@ export default function SiteOverview({ state, animateFlow = true, verticalOffset
         <Scrubber x={L.scrubLeft} y={L.scrubCY - 35} pressure={scrubberPressure} level={scrubberLevel}
           levelColor={scrubberLevelColor} alarmed={wellUnloadActive} />
 
-        {/* Water — exits bottom-left of scrubber */}
+        {/* Water — exits bottom-left of scrubber, drops below the gas line, then runs east into the WATER TANK */}
         <AnimPipe points={[
           [L.scrubLeft, L.scrubCY + 35],
-          [L.scrubLeft, L.scrubCY + 60],
-          [L.scrubLeft - 50, L.scrubCY + 60],
+          [L.scrubLeft, L.waterTankY + 20],
+          [L.tankX, L.waterTankY + 20],
         ]} rate={0.3} color="#3b82f6" animate={animateFlow} />
-        <text x={L.scrubLeft - 55} y={L.scrubCY + 57} textAnchor="end" fill="#3b82f6" fontSize={8} fontWeight="bold">WATER →</text>
-        <text x={L.scrubLeft - 55} y={L.scrubCY + 67} textAnchor="end" fill="#444" fontSize={6}>DISPOSAL</text>
 
-        {/* Oil — exits bottom of scrubber */}
+        {/* Oil — exits bottom of scrubber (offset 40px right of water leg) and runs east into the OIL TANK */}
         <AnimPipe points={[
           [L.scrubLeft + 40, L.scrubCY + 35],
-          [L.scrubLeft + 40, L.scrubCY + 60],
-          [L.scrubLeft - 10, L.scrubCY + 60],
+          [L.scrubLeft + 40, L.oilTankY + 20],
+          [L.tankX, L.oilTankY + 20],
         ]} rate={0.4} color="#8B6914" animate={animateFlow} />
-        <text x={L.scrubLeft - 15} y={L.scrubCY + 57} textAnchor="end" fill="#8B6914" fontSize={8} fontWeight="bold">OIL →</text>
-        <text x={L.scrubLeft - 15} y={L.scrubCY + 67} textAnchor="end" fill="#444" fontSize={6}>TANK BATTERY</text>
+
+        {/* Water Tank */}
+        <rect x={L.tankX} y={L.waterTankY} width={L.tankW} height={40} rx={5} fill="#0a1422" stroke="#3b82f6" strokeWidth={1.5} />
+        <text x={L.tankX + L.tankW / 2} y={L.waterTankY + 16} textAnchor="middle" fill="#3b82f6" fontSize={10} fontWeight="bold">WATER TANK</text>
+        <text x={L.tankX + L.tankW / 2} y={L.waterTankY + 30} textAnchor="middle" fill="#555" fontSize={7}>DISPOSAL</text>
+
+        {/* Oil Tank */}
+        <rect x={L.tankX} y={L.oilTankY} width={L.tankW} height={40} rx={5} fill="#1a1408" stroke="#8B6914" strokeWidth={1.5} />
+        <text x={L.tankX + L.tankW / 2} y={L.oilTankY + 16} textAnchor="middle" fill="#8B6914" fontSize={10} fontWeight="bold">OIL TANK</text>
+        <text x={L.tankX + L.tankW / 2} y={L.oilTankY + 30} textAnchor="middle" fill="#555" fontSize={7}>BATTERY</text>
 
         {/* Gas — exits right side of scrubber, goes down to gas junction */}
         <AnimPipe points={[
@@ -89,20 +95,23 @@ export default function SiteOverview({ state, animateFlow = true, verticalOffset
         <text x={L.salesBoxX + 42} y={L.gasJuncY - 2} textAnchor="middle" fill="#22c55e" fontSize={10} fontWeight="bold">SALES LINE</text>
         <text x={L.salesBoxX + 42} y={L.gasJuncY + 12} textAnchor="middle" fill="#555" fontSize={7}>→ PIPELINE</text>
 
-        {/* ↓ Recirc / Buyback — goes DOWN from gas junction, then LEFT to suction header end */}
+        {/* ↓ Recirc / Buyback — straight DOWN from gas junction to suction header level, then LEFT into the suction header. Single elbow. */}
         <AnimPipe points={[
           [L.gasX, L.gasJuncY],
-          [L.gasX, L.recircTurnY],
-          [L.suctionHdrX2 + 10, L.recircTurnY],
-          [L.suctionHdrX2 + 10, L.suctionHdrY],
+          [L.gasX, L.suctionHdrY],
+          [L.suctionHdrX2, L.suctionHdrY],
         ]} rate={0.6} color="#22c55e" animate={animateFlow} />
-        <text x={L.gasX + 5} y={L.gasJuncY + 14} fill="#22c55e" fontSize={7} fontWeight="bold">↓ RECIRC</text>
-        <text x={(L.gasX + L.suctionHdrX2) / 2} y={L.recircTurnY - 6} textAnchor="middle" fill="#22c55e" fontSize={9} fontWeight="bold">
+        {/* Label sits along the vertical run, well clear of the sales valve */}
+        <text x={L.gasX + 8} y={(L.gasJuncY + L.suctionHdrY) / 2} fill="#22c55e" fontSize={9} fontWeight="bold">
           BUYBACK / RECIRC LINE
         </text>
 
         {/* ═══════════ TOP: PRODUCTION HEADER ═══════════ */}
-        <HdrPipe x1={L.prodHdrX1} y={L.prodHdrY} x2={L.prodHdrX2} label="PRODUCTION HEADER" color="#8B6914" animate={animateFlow} />
+        {/* Label is rendered separately ABOVE the line because the
+             header now ends exactly at W1; the default left-of-x1
+             placement would clip off the viewport. */}
+        <HdrPipe x1={L.prodHdrX1} y={L.prodHdrY} x2={L.prodHdrX2} label="" color="#8B6914" animate={animateFlow} />
+        <text x={L.prodHdrX1} y={L.prodHdrY - 8} fill="#8B6914" fontSize={9} fontWeight="bold" opacity={0.9}>PRODUCTION HEADER</text>
 
         {/* ═══════════ WELLS ═══════════ */}
         {wells.map((w, i) => {
@@ -136,7 +145,8 @@ export default function SiteOverview({ state, animateFlow = true, verticalOffset
         })}
 
         {/* ═══════════ DISCHARGE HEADER ═══════════ */}
-        <HdrPipe x1={L.prodHdrX1} y={L.dischHdrY} x2={L.prodHdrX2} label="DISCHARGE HEADER" color="#22c55e" animate={animateFlow} />
+        <HdrPipe x1={L.prodHdrX1} y={L.dischHdrY} x2={L.prodHdrX2} label="" color="#22c55e" animate={animateFlow} />
+        <text x={L.prodHdrX1} y={L.dischHdrY - 8} fill="#22c55e" fontSize={9} fontWeight="bold" opacity={0.9}>DISCHARGE HEADER</text>
 
         {/* ═══════════ COMPRESSORS ═══════════ */}
         {compressors.map((c, i) => {
@@ -261,12 +271,20 @@ function computeLayout(nc, nw) {
   const scrubLeft = W - 310
   const scrubCY = 110
 
-  // Gas/sales/recirc — right side
-  const gasX = W - 200
+  // Gas/sales/recirc — right side. gasX must clear the scrubber's right
+  // edge (scrubLeft + 120) so the gas-out down-leg doesn't pass through
+  // the separator icon.
+  const gasX = scrubLeft + 140
   const gasJuncY = scrubCY + 60
-  const salesVlvX = W - 165
-  const salesBoxX = W - 100
+  const salesVlvX = scrubLeft + 175
+  const salesBoxX = scrubLeft + 205
   const recircTurnY = suctionHdrY - 40
+
+  // Tanks on the far right — water above oil, below the sales line.
+  const tankX = salesBoxX
+  const tankW = 85
+  const waterTankY = 230
+  const oilTankY = 300
 
   // Well horizontal spread — left 75% of page (leave right for scrubber/sales)
   const wellAreaW = W - 380
@@ -278,9 +296,10 @@ function computeLayout(nc, nw) {
   const compSpacing = nc > 1 ? (wellAreaW - wellMargin * 2) / (nc - 1) : 0
   const compCX = i => nc === 1 ? wellAreaW / 2 : wellMargin + i * compSpacing
 
-  // Headers span across wells
-  const prodHdrX1 = wellCX(0) - 35
-  const prodHdrX2 = wellCX(nw - 1) + 35
+  // Headers terminate exactly at first/last well (no past-end stubs) so the
+  // end connections are 90° elbows, not T-intersections with a dead stub.
+  const prodHdrX1 = wellCX(0)
+  const prodHdrX2 = wellCX(nw - 1)
 
   // Suction header — wide enough for compressors + recirc entry
   const suctionHdrX1 = compCX(0) - 40
@@ -292,6 +311,7 @@ function computeLayout(nc, nw) {
     compY, scvY, witchY, suctionHdrY,
     scrubLeft, scrubCY,
     gasX, gasJuncY, salesVlvX, salesBoxX, recircTurnY,
+    tankX, tankW, waterTankY, oilTankY,
     wellCX, compCX,
     prodHdrX1, prodHdrX2,
     suctionHdrX1, suctionHdrX2,
