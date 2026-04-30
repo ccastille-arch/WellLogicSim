@@ -53,23 +53,23 @@ export default function SiteOverview({ state, animateFlow = true, verticalOffset
         <Scrubber x={L.scrubLeft} y={L.scrubCY - 35} pressure={scrubberPressure} level={scrubberLevel}
           levelColor={scrubberLevelColor} alarmed={wellUnloadActive} />
 
-        {/* Water — exits bottom-left of scrubber */}
+        {/* Water — exits scrubber bottom-left, drops straight into Water Tank */}
         <AnimPipe points={[
-          [L.scrubLeft, L.scrubCY + 35],
-          [L.scrubLeft, L.scrubCY + 60],
-          [L.scrubLeft - 50, L.scrubCY + 60],
+          [L.scrubLeft + 25, L.scrubCY + 35],
+          [L.scrubLeft + 25, L.scrubCY + 95],
         ]} rate={0.3} color="#3b82f6" animate={animateFlow} />
-        <text x={L.scrubLeft - 55} y={L.scrubCY + 57} textAnchor="end" fill="#3b82f6" fontSize={8} fontWeight="bold">WATER →</text>
-        <text x={L.scrubLeft - 55} y={L.scrubCY + 67} textAnchor="end" fill="#444" fontSize={6}>DISPOSAL</text>
+        <rect x={L.scrubLeft} y={L.scrubCY + 95} width={50} height={38} rx={4} fill="#0a1a2a" stroke="#3b82f6" strokeWidth={1.5} />
+        <text x={L.scrubLeft + 25} y={L.scrubCY + 111} textAnchor="middle" fill="#3b82f6" fontSize={10} fontWeight="bold">WATER</text>
+        <text x={L.scrubLeft + 25} y={L.scrubCY + 124} textAnchor="middle" fill="#3b82f6" fontSize={8}>TANK</text>
 
-        {/* Oil — exits bottom of scrubber */}
+        {/* Oil — exits scrubber bottom-right, drops straight into Oil Tank */}
         <AnimPipe points={[
-          [L.scrubLeft + 40, L.scrubCY + 35],
-          [L.scrubLeft + 40, L.scrubCY + 60],
-          [L.scrubLeft - 10, L.scrubCY + 60],
+          [L.scrubLeft + 95, L.scrubCY + 35],
+          [L.scrubLeft + 95, L.scrubCY + 95],
         ]} rate={0.4} color="#8B6914" animate={animateFlow} />
-        <text x={L.scrubLeft - 15} y={L.scrubCY + 57} textAnchor="end" fill="#8B6914" fontSize={8} fontWeight="bold">OIL →</text>
-        <text x={L.scrubLeft - 15} y={L.scrubCY + 67} textAnchor="end" fill="#444" fontSize={6}>TANK BATTERY</text>
+        <rect x={L.scrubLeft + 70} y={L.scrubCY + 95} width={50} height={38} rx={4} fill="#1a1408" stroke="#8B6914" strokeWidth={1.5} />
+        <text x={L.scrubLeft + 95} y={L.scrubCY + 111} textAnchor="middle" fill="#8B6914" fontSize={10} fontWeight="bold">OIL</text>
+        <text x={L.scrubLeft + 95} y={L.scrubCY + 124} textAnchor="middle" fill="#8B6914" fontSize={8}>TANK</text>
 
         {/* Gas — exits right side of scrubber, goes down to gas junction */}
         <AnimPipe points={[
@@ -169,7 +169,7 @@ export default function SiteOverview({ state, animateFlow = true, verticalOffset
              the default "to the left of x1" text that was getting
              clipped off the viewport). The chip below replaces it
              with an in-bounds label + live pressure readout. */}
-        <HdrPipe x1={L.suctionHdrX1} y={L.suctionHdrY} x2={L.suctionHdrX2 + 10} label="" color="#f97316" animate={animateFlow} />
+        <HdrPipe x1={L.suctionHdrX1} y={L.suctionHdrY} x2={L.suctionHdrX2} label="" color="#f97316" animate={animateFlow} />
         {/* SUCTION HEADER chip — sits ABOVE the pipe so it's always
              within the viewport regardless of screen width. Dark-filled
              so it stays legible over the navy background, orange
@@ -261,10 +261,12 @@ function computeLayout(nc, nw) {
   const scrubLeft = W - 310
   const scrubCY = 110
 
-  // Gas/sales/recirc — right side
-  const gasX = W - 200
+  // Gas/sales/recirc — right side. gasX must be RIGHT of scrubber's
+  // right edge (scrubLeft + 120) so the gas drop doesn't pass through
+  // the scrubber icon.
+  const gasX = scrubLeft + 145
   const gasJuncY = scrubCY + 60
-  const salesVlvX = W - 165
+  const salesVlvX = gasX + 30
   const salesBoxX = W - 100
   const recircTurnY = suctionHdrY - 40
 
