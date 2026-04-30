@@ -72,6 +72,22 @@ async function fetchDevice(deviceId) {
   }
 }
 
+// fetchDeviceFull calls /device/full which merges LatestDeviceData (2-sec registers)
+// with RunReport data (15-min registers) so fields like desired flows and
+// yesterday flows are included even when they aren't in the latest batch.
+async function fetchDeviceFull(deviceId) {
+  try {
+    const res = await fetch(`${API_BASE}/api/mlink/device/full?deviceId=${encodeURIComponent(deviceId)}`)
+    if (!res.ok) {
+      // Fall back to normal device endpoint if /full fails
+      return fetchDevice(deviceId)
+    }
+    return { data: await res.json(), error: '' }
+  } catch (err) {
+    return fetchDevice(deviceId)
+  }
+}
+
 function getTimestamp(data, idx = 0) {
   if (!data?.timestamps?.[idx]) return null
   return new Date(data.timestamps[idx] * 1000)
@@ -385,7 +401,7 @@ export default function HalfmannLiveView() {
     setLoading(true)
     setLiveError('')
     const [panelResult, ...unitResults] = await Promise.all([
-      fetchDevice(HALFMANN_DEVICES.panel),
+      fetchDeviceFull(HALFMANN_DEVICES.panel),  // use /full to get 15-min registers too
       ...HALFMANN_UNITS.map(u => fetchDevice(u.deviceId)),
     ])
     setPanelData(panelResult.data)
@@ -492,7 +508,7 @@ export default function HalfmannLiveView() {
   const totalDesiredSite = parseLiveNumeric(
     resolvePreferredDatapoint(panel, ['Total Desired Site Flow'])?.value
   )
-  const wellsMeetingRateRaw = resolvePreferredDatapoint(panel, ['Wells Meeting Rate'])
+  const wellsMeetingRateRaw = resolvePreferredDatapoint(panel, ['Wells Meeting Rate', 'All Wells Meeting Rate'])
   const wellsMeetingRate = wellsMeetingRateRaw != null
     ? Math.round(parseLiveNumeric(wellsMeetingRateRaw.value) ?? 0)
     : null

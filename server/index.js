@@ -178,6 +178,99 @@ app.get('/api/mlink/device/keys', async (req, res) => {
   }
 })
 
+// Probes RunReport with several timestamp formats and returns whatever
+// works — used to identify the correct parameter format for this Murphy
+// API version, then implement the full merge in /api/mlink/device/full.
+app.get('/api/mlink/runreport/probe', async (req, res) => {
+  const key = process.env.MLINK_API_KEY
+  if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
+  const { deviceId } = req.query
+  if (!deviceId) return res.status(400).json({ error: 'deviceId required' })
+  const nowSec = Math.floor(Date.now() / 1000)
+  const attempts = [
+    { label: '1h-sec',  startTs: nowSec - 3600,       endTs: nowSec },
+    { label: '24h-sec', startTs: nowSec - 86400,       endTs: nowSec },
+    { label: '1h-ms',   startTs: (nowSec - 3600) * 1000, endTs: nowSec * 1000 },
+    { label: '24h-ms',  startTs: (nowSec - 86400) * 1000, endTs: nowSec * 1000 },
+  ]
+  const results = {}
+  for (const { label, startTs, endTs } of attempts) {
+    try {
+      const url = `${MLINK_BASE}/RunReport?deviceId=${encodeURIComponent(deviceId)}&startTs=${startTs}&endTs=${endTs}&code=${key}`
+      const r = await fetch(url)
+      const text = await r.text().catch(() => '')
+      results[label] = { status: r.status, ok: r.ok, snippet: text.slice(0, 3000) }
+    } catch (err) {
+      results[label] = { error: err.message }
+    }
+  }
+  res.json({ deviceId, nowSec, results })
+})
+
+// Fetches LatestDeviceData + RunReport and merges all datapoints so the
+// Halfmann panel returns all registers regardless of freeze-group interval.
+app.get('/api/mlink/device/full', async (req, res) => {
+  const key = process.env.MLINK_API_KEY
+  if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
+  const { deviceId } = req.query
+  if (!deviceId) return res.status(400).json({ error: 'deviceId required' })
+
+  // Fetch LatestDeviceData (real-time fast registers)
+  let latestData = null
+  try {
+    const r = await fetch(`${MLINK_BASE}/LatestDeviceData?deviceId=${encodeURIComponent(deviceId)}&code=${key}`)
+    if (r.ok) latestData = await r.json()
+  } catch {}
+
+  // Fetch RunReport for last 24h (slow/15-min registers)
+  let runReportDps = []
+  const nowSec = Math.floor(Date.now() / 1000)
+  for (const [startTs, endTs] of [
+    [nowSec - 86400, nowSec],
+    [(nowSec - 86400) * 1000, nowSec * 1000],
+  ]) {
+    try {
+      const r = await fetch(`${MLINK_BASE}/RunReport?deviceId=${encodeURIComponent(deviceId)}&startTs=${startTs}&endTs=${endTs}&code=${key}`)
+      if (!r.ok) continue
+      const data = await r.json()
+      // RunReport may return array of records or a single record with datapoints
+      const records = Array.isArray(data) ? data : [data]
+      for (const rec of records) {
+        for (const dp of (rec.datapoints || rec.data || [])) {
+          runReportDps.push(dp)
+        }
+      }
+      if (runReportDps.length > 0) break // found data, stop trying formats
+    } catch {}
+  }
+
+  if (!latestData && runReportDps.length === 0) {
+    return res.status(502).json({ error: 'No data from MLink' })
+  }
+
+  // Merge: RunReport provides baseline; LatestDeviceData overwrites (fresher)
+  const byKey = {}
+  const keyOf = dp => dp.alias || dp.desc || dp.dataSourceName || dp.Name || dp.name
+
+  // Older RunReport data first (lowest priority)
+  for (const dp of runReportDps) {
+    const k = keyOf(dp)
+    if (k && !byKey[k]) byKey[k] = dp
+  }
+  // LatestDeviceData overwrites (highest priority)
+  for (const dp of (latestData?.datapoints || [])) {
+    const k = keyOf(dp)
+    if (k) byKey[k] = dp
+  }
+
+  res.json({
+    ...(latestData || {}),
+    datapoints: Object.values(byKey),
+    _merged: true,
+    _runReportCount: runReportDps.length,
+  })
+})
+
 app.get('/api/mlink/runreport', async (req, res) => {
   const key = process.env.MLINK_API_KEY
   if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
