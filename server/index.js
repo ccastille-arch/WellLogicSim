@@ -69,6 +69,11 @@ app.post('/api/tts', async (req, res) => {
 
 const MLINK_BASE = 'https://api.fwmurphy-iot.com/api'
 
+// RunReport is rate-limited to once per 15 minutes per device on Murphy's side.
+// Cache results in memory so the frontend's 30-second poll doesn't burn the quota.
+const RUN_REPORT_CACHE = new Map()  // deviceId → { dps, fetchedAt, status, debug }
+const RUN_REPORT_TTL_MS = 14 * 60 * 1000  // 14 min to stay safely inside the 15-min limit
+
 // Single source of truth for which MLink devices the frontend polls.
 // Previously the frontend had these hardcoded in
 // src/engine/liveRegisters.js, which meant changing a device ID
@@ -224,36 +229,48 @@ app.get('/api/mlink/device/full', async (req, res) => {
     if (r.ok) latestData = await r.json()
   } catch {}
 
-  // Fetch RunReport for yesterday UTC (Murphy rejects queries that include today)
-  // Use UTC midnight boundaries: yesterday 00:00 → today 00:00
-  let runReportDps = []
+  // Fetch RunReport for yesterday UTC (Murphy rejects queries that include today,
+  // and rate-limits to once per 15 minutes per device — serve from cache in between).
   const todayMidnightUTC = Math.floor(Date.now() / 86400000) * 86400  // seconds
   const yesterdayStartUTC = todayMidnightUTC - 86400
   const yesterdayEndUTC = todayMidnightUTC - 1  // 23:59:59 yesterday, excludes today
 
+  let runReportDps = []
   let _runReportStatus = null
   let _runReportDebug = null
-  try {
-    const r = await fetch(
-      `${MLINK_BASE}/RunReport?deviceId=${encodeURIComponent(deviceId)}&startTs=${yesterdayStartUTC}&endTs=${yesterdayEndUTC}&code=${key}`
-    )
-    _runReportStatus = r.status
-    if (r.ok) {
-      const data = await r.json()
-      // RunReport may return an array of records or a single record with datapoints
-      const records = Array.isArray(data) ? data : [data]
-      for (const rec of records) {
-        for (const dp of (rec.datapoints || rec.data || [])) {
-          runReportDps.push(dp)
+  let _runReportFromCache = false
+
+  const cached = RUN_REPORT_CACHE.get(deviceId)
+  if (cached && Date.now() - cached.fetchedAt < RUN_REPORT_TTL_MS) {
+    // Serve from cache — don't hammer Murphy's rate limit
+    runReportDps = cached.dps
+    _runReportStatus = cached.status
+    _runReportDebug = `cache hit (age ${Math.round((Date.now() - cached.fetchedAt) / 1000)}s): ${cached.debug}`
+    _runReportFromCache = true
+  } else {
+    try {
+      const r = await fetch(
+        `${MLINK_BASE}/RunReport?deviceId=${encodeURIComponent(deviceId)}&startTs=${yesterdayStartUTC}&endTs=${yesterdayEndUTC}&code=${key}`
+      )
+      _runReportStatus = r.status
+      if (r.ok) {
+        const data = await r.json()
+        const records = Array.isArray(data) ? data : [data]
+        for (const rec of records) {
+          for (const dp of (rec.datapoints || rec.data || [])) {
+            runReportDps.push(dp)
+          }
         }
+        _runReportDebug = `ok, ${records.length} records, ${runReportDps.length} dps`
+        // Store successful result in cache
+        RUN_REPORT_CACHE.set(deviceId, { dps: runReportDps, fetchedAt: Date.now(), status: r.status, debug: _runReportDebug })
+      } else {
+        const errText = await r.text().catch(() => '')
+        _runReportDebug = errText.slice(0, 300)
       }
-      _runReportDebug = `ok, ${records.length} records, ${runReportDps.length} dps`
-    } else {
-      const errText = await r.text().catch(() => '')
-      _runReportDebug = errText.slice(0, 300)
+    } catch (e) {
+      _runReportDebug = `fetch error: ${e.message}`
     }
-  } catch (e) {
-    _runReportDebug = `fetch error: ${e.message}`
   }
 
   if (!latestData && runReportDps.length === 0) {
@@ -282,6 +299,7 @@ app.get('/api/mlink/device/full', async (req, res) => {
     _runReportCount: runReportDps.length,
     _runReportStatus,
     _runReportDebug,
+    _runReportFromCache,
     _window: { yesterdayStartUTC, yesterdayEndUTC },
   })
 })
