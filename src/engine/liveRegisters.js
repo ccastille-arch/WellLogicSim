@@ -30,6 +30,16 @@ export const COMPRESSOR_DEFAULT_VISIBLE_LABELS = [
   'Inlet Diff Pressure Reading',
   'Inlet Witches Hat DP Setpoint',
   'Skid - Shutdown',
+  // Halfmann 1214 unit registers (2507/2504 series compressors)
+  'Compressor Oil Pressure',
+  'Compressor Oil Temperature',
+  'Engine Load',
+  'Engine Oil Pressure',
+  'Engine Oil Temperature',
+  'Number of Start Attempts per Hour',
+  'Stage 1 Discharge Temperature',
+  'Stage 2 Discharge Temperature',
+  'System Voltage',
 ]
 
 const KLONDIKE_DEFAULT_VISIBLE_LABELS = new Set([
@@ -378,6 +388,7 @@ function buildCandidateLabels(label) {
 
   if (label === 'Compressor Speed') {
     candidates.add('Driver Speed')
+    candidates.add('RPM')
   }
 
   if (label === 'Stage 1 Suction Prs') {

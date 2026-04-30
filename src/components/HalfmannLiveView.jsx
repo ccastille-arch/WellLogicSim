@@ -203,7 +203,7 @@ function WowMetricCard({ label, value, helper, tone }) {
 }
 
 function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers }) {
-  const rpm = data['Compressor Speed'] || data['Driver Speed']
+  const rpm = data['Compressor Speed'] || data['Driver Speed'] || data['RPM']
   const shutdown = data['Skid - Shutdown']
   const isShutdown = shutdown && String(shutdown.value).toLowerCase().includes('shutdown')
   const hasRpm = rpm && parseFloat(rpm.value) > 100
@@ -488,12 +488,25 @@ export default function HalfmannLiveView() {
     actual: parseLiveNumeric(unitActualFlows[i]?.value),
   }))
 
+  // Halfmann panel publishes site-level desired flow and wells-meeting-rate directly
+  const totalDesiredSite = parseLiveNumeric(
+    resolvePreferredDatapoint(panel, ['Total Desired Site Flow'])?.value
+  )
+  const wellsMeetingRateRaw = resolvePreferredDatapoint(panel, ['Wells Meeting Rate'])
+  const wellsMeetingRate = wellsMeetingRateRaw != null
+    ? Math.round(parseLiveNumeric(wellsMeetingRateRaw.value) ?? 0)
+    : null
+  const totalActualFlow = liveWellPerformance.reduce((sum, w) => sum + (w.actual ?? 0), 0)
+  const padMatchPct = totalDesiredSite != null && totalDesiredSite > 0
+    ? Math.max(0, 100 - (Math.abs(totalActualFlow - totalDesiredSite) / totalDesiredSite) * 100)
+    : null
+
   const validWells = liveWellPerformance.filter(w => w.actual != null && w.desired != null)
   const wowMetrics = {
-    totalActual:  validWells.reduce((sum, w) => sum + w.actual, 0),
-    totalDesired: validWells.reduce((sum, w) => sum + w.desired, 0),
-    currentMatch: average(validWells.map(w => w.matchPct)),
-    wellsAtTarget: validWells.filter(w => w.atTarget).length,
+    totalActual:  totalActualFlow,
+    totalDesired: totalDesiredSite,
+    currentMatch: padMatchPct,
+    wellsAtTarget: wellsMeetingRate ?? validWells.filter(w => w.atTarget).length,
     historicalAtTarget: null,      // no 30-day CSV for Halfmann
     historicalUnderTarget: null,
     compressorMatch: average(liveUnitPerformance.map(u => computeMatchPct(u.actual, u.desired))),
