@@ -278,9 +278,10 @@ function computeLayout(nc, nw) {
   const compSpacing = nc > 1 ? (wellAreaW - wellMargin * 2) / (nc - 1) : 0
   const compCX = i => nc === 1 ? wellAreaW / 2 : wellMargin + i * compSpacing
 
-  // Headers span across wells
-  const prodHdrX1 = wellCX(0) - 35
-  const prodHdrX2 = wellCX(nw - 1) + 35
+  // Headers span across wells (end exactly at first/last well for clean
+  // 90° elbows where well lines drop in, instead of T-intersections)
+  const prodHdrX1 = wellCX(0)
+  const prodHdrX2 = wellCX(nw - 1)
 
   // Suction header — wide enough for compressors + recirc entry
   const suctionHdrX1 = compCX(0) - 40
