@@ -1,5 +1,6 @@
 import { useAuth } from './auth/AuthProvider'
 import { LOGOS } from '../constants/logos'
+import officialLogoUrl from '../assets/welllogic_official_logo.png'
 
 /**
  * Well Logic brand lockup — SC-aligned, vector, self-contained.
@@ -104,61 +105,12 @@ export function WellLogicLogo({ size = 160, showTagline = true }) {
   if (activeLogo) {
     return <div className="inline-flex items-center justify-center">{activeLogo.full(size)}</div>
   }
-  const markSize = Math.round(size * 0.95)
-  const wordFont = Math.round(size * 0.3)
-  const taglineFont = Math.max(8, Math.round(size * 0.075))
-
   return (
-    <div
-      className="inline-flex items-center"
-      style={{ gap: Math.round(size * 0.16) }}
-      role="img"
-      aria-label="Well Logic"
-    >
-      <HexMark size={markSize} />
-      <div className="leading-none">
-        <div
-          style={{
-            fontFamily: "'Montserrat', sans-serif",
-            fontWeight: 800,
-            fontSize: wordFont,
-            letterSpacing: '-0.5px',
-            color: '#FFFFFF',
-            lineHeight: 1,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          Well&nbsp;Logic
-          <sup
-            style={{
-              fontSize: '0.38em',
-              fontWeight: 600,
-              marginLeft: 2,
-              color: 'rgba(255,255,255,0.7)',
-              letterSpacing: 0,
-            }}
-          >
-            ™
-          </sup>
-        </div>
-        {showTagline && (
-          <div
-            style={{
-              marginTop: Math.round(size * 0.06),
-              fontFamily: "'Montserrat', sans-serif",
-              fontWeight: 600,
-              fontSize: taglineFont,
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-              color: CYAN,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            The Night Crew That Never Goes Home
-          </div>
-        )}
-      </div>
-    </div>
+    <img
+      src={officialLogoUrl}
+      alt="Well Logic"
+      style={{ height: size, width: 'auto', display: 'block' }}
+    />
   )
 }
 
@@ -167,45 +119,12 @@ export function WellLogicCompact({ size = 38 }) {
   if (activeLogo) {
     return <div className="inline-flex items-center">{activeLogo.compact(size)}</div>
   }
-  const markSize = Math.round(size * 1.1)
   return (
-    <div
-      className="inline-flex items-center"
-      style={{ gap: 10 }}
-      role="img"
-      aria-label="Well Logic"
-    >
-      <HexMark size={markSize} />
-      <div className="leading-none">
-        <div
-          style={{
-            fontFamily: "'Montserrat', sans-serif",
-            fontWeight: 800,
-            fontSize: Math.max(13, Math.round(size * 0.42)),
-            letterSpacing: 1.4,
-            textTransform: 'uppercase',
-            color: '#FFFFFF',
-            lineHeight: 1,
-          }}
-        >
-          Well&nbsp;Logic
-        </div>
-        <div
-          style={{
-            marginTop: 3,
-            fontFamily: "'Montserrat', sans-serif",
-            fontWeight: 600,
-            fontSize: 7,
-            letterSpacing: 2.2,
-            textTransform: 'uppercase',
-            color: CYAN,
-            lineHeight: 1,
-          }}
-        >
-          The Night Crew That Never Goes Home
-        </div>
-      </div>
-    </div>
+    <img
+      src={officialLogoUrl}
+      alt="Well Logic"
+      style={{ height: size, width: 'auto', display: 'block' }}
+    />
   )
 }
 
