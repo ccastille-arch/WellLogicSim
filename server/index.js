@@ -186,12 +186,14 @@ app.get('/api/mlink/runreport/probe', async (req, res) => {
   if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
   const { deviceId } = req.query
   if (!deviceId) return res.status(400).json({ error: 'deviceId required' })
-  const nowSec = Math.floor(Date.now() / 1000)
+  const todayMidnightUTC = Math.floor(Date.now() / 86400000) * 86400
+  const yesterdayStart = todayMidnightUTC - 86400
+  const yesterdayEnd   = todayMidnightUTC - 1
   const attempts = [
-    { label: '1h-sec',  startTs: nowSec - 3600,       endTs: nowSec },
-    { label: '24h-sec', startTs: nowSec - 86400,       endTs: nowSec },
-    { label: '1h-ms',   startTs: (nowSec - 3600) * 1000, endTs: nowSec * 1000 },
-    { label: '24h-ms',  startTs: (nowSec - 86400) * 1000, endTs: nowSec * 1000 },
+    { label: 'yesterday-sec',     startTs: yesterdayStart,         endTs: yesterdayEnd },
+    { label: 'yesterday-end-now', startTs: yesterdayStart,         endTs: Math.floor(Date.now() / 1000) },
+    { label: 'yesterday-ms',      startTs: yesterdayStart * 1000,  endTs: yesterdayEnd * 1000 },
+    { label: 'two-days-ago-sec',  startTs: yesterdayStart - 86400, endTs: yesterdayStart - 1 },
   ]
   const results = {}
   for (const { label, startTs, endTs } of attempts) {
@@ -222,27 +224,28 @@ app.get('/api/mlink/device/full', async (req, res) => {
     if (r.ok) latestData = await r.json()
   } catch {}
 
-  // Fetch RunReport for last 24h (slow/15-min registers)
+  // Fetch RunReport for yesterday UTC (Murphy rejects queries that include today)
+  // Use UTC midnight boundaries: yesterday 00:00 → today 00:00
   let runReportDps = []
-  const nowSec = Math.floor(Date.now() / 1000)
-  for (const [startTs, endTs] of [
-    [nowSec - 86400, nowSec],
-    [(nowSec - 86400) * 1000, nowSec * 1000],
-  ]) {
-    try {
-      const r = await fetch(`${MLINK_BASE}/RunReport?deviceId=${encodeURIComponent(deviceId)}&startTs=${startTs}&endTs=${endTs}&code=${key}`)
-      if (!r.ok) continue
+  const todayMidnightUTC = Math.floor(Date.now() / 86400000) * 86400  // seconds
+  const yesterdayStartUTC = todayMidnightUTC - 86400
+  const yesterdayEndUTC = todayMidnightUTC - 1  // 23:59:59 yesterday, excludes today
+
+  try {
+    const r = await fetch(
+      `${MLINK_BASE}/RunReport?deviceId=${encodeURIComponent(deviceId)}&startTs=${yesterdayStartUTC}&endTs=${yesterdayEndUTC}&code=${key}`
+    )
+    if (r.ok) {
       const data = await r.json()
-      // RunReport may return array of records or a single record with datapoints
+      // RunReport may return an array of records or a single record with datapoints
       const records = Array.isArray(data) ? data : [data]
       for (const rec of records) {
         for (const dp of (rec.datapoints || rec.data || [])) {
           runReportDps.push(dp)
         }
       }
-      if (runReportDps.length > 0) break // found data, stop trying formats
-    } catch {}
-  }
+    }
+  } catch {}
 
   if (!latestData && runReportDps.length === 0) {
     return res.status(502).json({ error: 'No data from MLink' })
