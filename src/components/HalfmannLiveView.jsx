@@ -429,7 +429,7 @@ export default function HalfmannLiveView() {
     setLiveError('')
     const [panelResult, ...unitResults] = await Promise.all([
       fetchDeviceFull(HALFMANN_DEVICES.panel),  // use /full to get 15-min registers too
-      ...HALFMANN_UNITS.map(u => fetchDevice(u.deviceId)),
+      ...HALFMANN_UNITS.map(u => fetchDeviceFull(u.deviceId)),
     ])
     setPanelData(panelResult.data)
     const newUnitData = {}
@@ -723,6 +723,18 @@ export default function HalfmannLiveView() {
                   ))}
                 </div>
               </div>
+
+              {/* Surface Equipment */}
+              {recycleVal != null && (
+                <div className="bg-[#111118] rounded-xl border border-[#222] px-5 py-3 mb-4 flex items-center gap-6">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#49D0E2] shrink-0">Surface Equipment</span>
+                  <DataPoint
+                    label="Recycle Valve Position"
+                    value={`${recycleVal.toFixed(1)}%`}
+                    color={recycleVal > 0 ? '#E8200C' : '#22c55e'}
+                  />
+                </div>
+              )}
 
               {/* Panel status bar */}
               <div className="flex items-center gap-3 mb-6">

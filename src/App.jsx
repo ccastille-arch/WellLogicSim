@@ -291,7 +291,7 @@ function AppContent() {
       {page !== 'home' && (
         <button
           onClick={() => { setPage('home') }}
-          className="fixed bottom-16 left-5 z-40 flex items-center gap-2 transition-all"
+          className="fixed bottom-24 left-5 z-40 flex items-center gap-2 transition-all"
           style={{
             fontFamily: "'Montserrat', sans-serif",
             fontWeight: 700,
