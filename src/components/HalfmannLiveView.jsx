@@ -119,7 +119,7 @@ function computeMatchPct(actual, desired) {
 
 function isWithinTarget(actual, desired) {
   if (actual == null || desired == null || desired <= 0) return false
-  return Math.abs(actual - desired) <= desired * 0.03
+  return Math.abs(actual - desired) <= desired * 0.05
 }
 
 function average(values) {
@@ -293,7 +293,7 @@ function LivePerformanceHero({ metrics, wells, timestamp }) {
               label="Wells On Target"
               value={metrics.wellsAtTarget != null ? `${metrics.wellsAtTarget}/${wells.length}` : '--'}
               tone="blue"
-              helper={metrics.wellsAtTarget != null ? 'Within 3% of desired injection' : 'Per-well targets not in API feed'}
+              helper={metrics.wellsAtTarget != null ? 'Within 5% of desired injection' : 'Per-well targets not in API feed'}
             />
             <WowMetricCard
               label="30-Day Under Target"
@@ -547,11 +547,19 @@ export default function HalfmannLiveView() {
     : null
 
   const validWells = liveWellPerformance.filter(w => w.actual != null && w.desired != null)
+  const perWellTarget = totalDesiredSite != null && liveWellPerformance.length > 0
+    ? totalDesiredSite / liveWellPerformance.length
+    : null
+  const wellsAtTargetCount = wellsMeetingRate
+    ?? (validWells.length > 0 ? validWells.filter(w => w.atTarget).length : null)
+    ?? (perWellTarget != null
+      ? liveWellPerformance.filter(w => w.actual != null && isWithinTarget(w.actual, perWellTarget)).length
+      : null)
   const wowMetrics = {
     totalActual:  totalActualFlow,
     totalDesired: totalDesiredSite,
     currentMatch: padMatchPct,
-    wellsAtTarget: wellsMeetingRate ?? (validWells.length > 0 ? validWells.filter(w => w.atTarget).length : null),
+    wellsAtTarget: wellsAtTargetCount,
     historicalAtTarget: null,
     historicalUnderTarget: null,
     compressorMatch: average(liveUnitPerformance.map(u => computeMatchPct(u.actual, u.desired))),
@@ -606,8 +614,10 @@ export default function HalfmannLiveView() {
   const alertRecycle = recycleVal == null ? 'gray' : recycleVal > 0 ? 'fail' : 'pass'
 
   const alertWellFlow = liveWellPerformance.map(w => {
-    if (w.actual == null || w.desired == null || w.desired <= 0) return 'gray'
-    return ((w.desired - w.actual) / w.desired) <= 0.05 ? 'pass' : 'fail'
+    if (w.actual == null) return 'gray'
+    const target = w.desired ?? perWellTarget
+    if (target == null || target <= 0) return 'gray'
+    return ((target - w.actual) / target) <= 0.05 ? 'pass' : 'fail'
   })
 
   const alertStaticVsDischarge = dischargeTriggerSP == null ? 'gray'
