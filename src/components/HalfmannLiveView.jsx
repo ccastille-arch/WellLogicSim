@@ -1,9 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import {
-  getVisibleCompressorRegisters,
-  formatLiveRegisterValue,
-  parseLiveDatapoints,
-} from '../engine/liveRegisters'
+import { parseLiveDatapoints } from '../engine/liveRegisters'
 
 // ─── Halfmann 1214 — standalone live field data view ─────────────────────────
 
