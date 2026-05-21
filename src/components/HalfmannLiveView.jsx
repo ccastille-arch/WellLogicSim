@@ -363,6 +363,30 @@ function CompressorCard({ label, dataRaw, compNum, panel }) {
   )
 }
 
+// ─── Alert badge ─────────────────────────────────────────────────────────────
+
+function AlertBadge({ label, status, value }) {
+  const c = status === 'pass'
+    ? { bg: '#0a1f0a', border: '#22c55e44', text: '#22c55e', icon: '✓' }
+    : status === 'fail'
+    ? { bg: '#1f0a0a', border: '#ef444444', text: '#ef4444', icon: '✗' }
+    : { bg: '#0c0c14', border: '#2a2a3a', text: '#444', icon: '—' }
+  return (
+    <div
+      className="rounded-lg p-2.5 flex flex-col gap-1 min-w-0"
+      style={{ background: c.bg, border: `1px solid ${c.border}` }}
+    >
+      <div className="flex items-center justify-between gap-1">
+        <span className="text-[8px] text-[#666] uppercase tracking-wider leading-tight truncate">{label}</span>
+        <span className="text-[13px] font-black shrink-0" style={{ color: c.text, fontFamily: "'Arial Black', sans-serif" }}>{c.icon}</span>
+      </div>
+      <div className="text-[9px] font-bold truncate" style={{ color: c.text, fontFamily: "'Arial Black', sans-serif" }}>
+        {value || '—'}
+      </div>
+    </div>
+  )
+}
+
 // ─── main component ────────────────────────────────────────────────────────────
 
 export default function HalfmannLiveView() {
@@ -473,6 +497,58 @@ export default function HalfmannLiveView() {
     'Recycle Valve',
   )
   const panelStatuses = [1,2,3,4,5].map(n => getVal(panel, `Panel Status comp${n}`))
+
+  // Per-well pressures for alerts
+  const wellStaticPres = [1,2,3,4,5].map(n => getVal(panel, ...wellKeys(n, 'Injection Static Pressure'), ...wellKeys(n, 'Static Pressure')))
+  const wellCasingPres = [1,2,3,4,5].map(n => getVal(panel, ...wellKeys(n, 'Casing Pressure')))
+  const wellTubingPres = [1,2,3,4,5].map(n => getVal(panel, ...wellKeys(n, 'Tubing Pressure')))
+
+  // Discharge trigger setpoint (Altronic) — try all known name variants from panel
+  const dischargeTriggerSP = getVal(panel,
+    'Altronic Discharge Pressure Trigger', 'Discharge Pressure Trigger Setpoint',
+    'Discharge Trigger Setpoint', 'Discharge Trigger', 'Altronic Discharge SP',
+    'Speed Auto Discharge SP', 'Discharge SP',
+  )
+
+  // Speed Control SP per compressor from unit devices
+  const compSpeedControlSP = HALFMANN_UNITS.map(u => {
+    const d = parseLiveDatapoints(unitDataRaw[u.key])
+    return getVal(d, 'Speed Control SP', 'Altronic Speed Control SP', 'Speed Auto Discharge SP', 'Discharge Pressure SP', 'Speed SP')
+  })
+
+  // ── Alert statuses ──────────────────────────────────────────────────────────
+  const alertRecycle = recycleValve == null ? 'gray' : recycleValve > 0 ? 'fail' : 'pass'
+
+  const alertWellFlow = [0,1,2,3,4].map(i => {
+    const flow = wellFlows[i], sp = wellSetpoints[i]
+    if (flow == null || sp == null || sp === 0) return 'gray'
+    return flow >= sp * 0.95 ? 'pass' : 'fail'
+  })
+
+  const alertStaticVsDischarge = dischargeTriggerSP == null ? 'gray'
+    : wellStaticPres.some(p => p != null && p >= dischargeTriggerSP) ? 'fail' : 'pass'
+
+  const alertSpeedControlSP = (() => {
+    if (compSpeedControlSP.every(v => v == null)) return 'gray'
+    const anyTriggered = HALFMANN_UNITS.some((u, i) => {
+      const d = parseLiveDatapoints(unitDataRaw[u.key])
+      const dischPrs = getVal(d, 'Stage 3 Discharge Prs', 'Discharge Pressure')
+      const sp = compSpeedControlSP[i]
+      return sp != null && dischPrs != null && Math.abs(sp - dischPrs) < 10
+    })
+    return anyTriggered ? 'fail' : 'pass'
+  })()
+
+  const alertSiteFlow = totalDesired == null || totalDesired === 0 ? 'gray'
+    : totalActual >= totalDesired * 0.95 ? 'pass' : 'fail'
+
+  const alertWellPres = [0,1,2,3,4].map(i => {
+    if (dischargeTriggerSP == null) return 'gray'
+    const casing = wellCasingPres[i], tubing = wellTubingPres[i]
+    if (casing == null && tubing == null) return 'gray'
+    return (casing != null && casing >= dischargeTriggerSP) || (tubing != null && tubing >= dischargeTriggerSP)
+      ? 'fail' : 'pass'
+  })
 
   // ─── render ────────────────────────────────────────────────────────────────
   return (
@@ -634,7 +710,54 @@ export default function HalfmannLiveView() {
             </div>
           </div>
 
-          {/* ── Section 2: Surface Equipment ── */}
+          {/* ── Section 2: Site Alerts & Status ── */}
+          <div>
+            <SectionHeader>Site Alerts &amp; Status</SectionHeader>
+            <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4 space-y-4">
+
+              {/* Site-level alerts */}
+              <div>
+                <div className="text-[8px] text-[#49D0E2] uppercase tracking-[0.18em] font-bold mb-2">Site</div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <AlertBadge label="Recycle Valve" status={alertRecycle}
+                    value={recycleValve != null ? fmtPct(recycleValve) : '—'} />
+                  <AlertBadge label="Site Flow Match" status={alertSiteFlow}
+                    value={totalDesired != null ? `${totalActual.toFixed(3)} / ${totalDesired.toFixed(3)} MMSCFD` : '—'} />
+                  <AlertBadge label="Static vs Discharge" status={alertStaticVsDischarge}
+                    value={dischargeTriggerSP != null ? `Trigger: ${fmtPsi(dischargeTriggerSP)}` : '—'} />
+                  <AlertBadge label="Speed Control SP" status={alertSpeedControlSP}
+                    value={compSpeedControlSP.some(v => v != null)
+                      ? compSpeedControlSP.map((v, i) => v != null ? `C${i+1}: ${v.toFixed(0)}` : null).filter(Boolean).join('  ')
+                      : '—'} />
+                </div>
+              </div>
+
+              {/* Per-well flow alerts */}
+              <div>
+                <div className="text-[8px] text-[#49D0E2] uppercase tracking-[0.18em] font-bold mb-2">Per-Well Flow (≥95% of Target)</div>
+                <div className="grid grid-cols-5 gap-2">
+                  {[0,1,2,3,4].map(i => (
+                    <AlertBadge key={i} label={`Well #${i+1} Flow`} status={alertWellFlow[i]}
+                      value={wellFlows[i] != null ? fmtFlow(wellFlows[i]) : '—'} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Per-well pressure alerts */}
+              <div>
+                <div className="text-[8px] text-[#49D0E2] uppercase tracking-[0.18em] font-bold mb-2">Per-Well Casing / Tubing vs Discharge</div>
+                <div className="grid grid-cols-5 gap-2">
+                  {[0,1,2,3,4].map(i => (
+                    <AlertBadge key={i} label={`Well #${i+1} Pressure`} status={alertWellPres[i]}
+                      value={wellCasingPres[i] != null ? `C: ${fmtPsi(wellCasingPres[i])}` : wellTubingPres[i] != null ? `T: ${fmtPsi(wellTubingPres[i])}` : '—'} />
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* ── Section 3: Surface Equipment ── */}
           <div>
             <SectionHeader>Surface Equipment</SectionHeader>
             <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4">
