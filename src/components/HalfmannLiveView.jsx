@@ -508,6 +508,8 @@ export default function HalfmannLiveView() {
     const wellNumber = index + 1
     const actual = parseLiveNumeric(resolvePreferredDatapoint(panel, keys)?.value)
     const desiredDatapoint = resolvePreferredDatapoint(panel, [
+      `Wellhead #${wellNumber} Injection Flow Rate From Customer PLC`,
+      `Well ${wellNumber} Injection Flow Rate From Customer PLC`,
       `Wellhead #${wellNumber} Calculated Desired Flow`,
       `Wellhead #${wellNumber} Setpoint From Customer PLC`,
       `Well ${wellNumber} Calculated Desired Flow`,
