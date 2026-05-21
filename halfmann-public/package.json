@@ -1,0 +1,12 @@
+{
+  "name": "halfmann-live",
+  "version": "1.0.0",
+  "description": "Halfmann 1214 standalone live field data viewer",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
