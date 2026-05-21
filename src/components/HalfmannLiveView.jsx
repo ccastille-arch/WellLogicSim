@@ -1,27 +1,23 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  findRegisterDatapoint,
   getVisibleCompressorRegisters,
   formatLiveRegisterValue,
-  getVisibleLiveRegisters,
-  loadAwiRegisterCatalog,
   parseLiveDatapoints,
 } from '../engine/liveRegisters'
 
-// Public read-only live MLink dashboard — Halfmann 1214 pad — no auth required
-// Exact feature parity with PublicLiveView; device IDs swapped for Halfmann devices.
+// ─── Halfmann 1214 — standalone live field data view ─────────────────────────
+// Displays every register from the Halfmann Modbus list, organized by device.
+// Registers not yet published in the Murphy MLink portal show "—".
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
-const REFRESH_INTERVAL_S = 60 // 1-minute refresh (5 devices, faster than Klondike)
-
-// ─── Halfmann device IDs ───────────────────────────────────────────────────────
+const REFRESH_INTERVAL_S = 60
 
 const HALFMANN_DEVICES = {
-  panel:    '2507-501508', // Halfmann well control panel
-  unit2130: '2507-500709', // 2130 Halfmann 1214 01H/02H/03H
-  unit2127: '2504-504108', // 2127 Halfmann 1214 01H/02H/03H
-  unit2129: '2504-504102', // 2129 Halfmann 1214 01H/02H/03H
-  unit2128: '2507-500076', // 2128 Halfmann 1214 01H/02H/03H
+  panel:    '2507-501508',
+  unit2130: '2507-500709',
+  unit2127: '2504-504108',
+  unit2129: '2504-504102',
+  unit2128: '2507-500076',
 }
 
 const HALFMANN_UNITS = [
@@ -31,340 +27,101 @@ const HALFMANN_UNITS = [
   { key: 'unit2128', label: 'Unit 2128', deviceId: HALFMANN_DEVICES.unit2128 },
 ]
 
-// ─── well register key aliases (same naming as Klondike panel) ─────────────────
-
-const LIVE_WELL_FLOW_KEYS = [
-  ['Well 1 Injection Gas Flow Rate', 'Well #1 Flow Rate'],
-  ['Well 2 Injection Gas Flow Rate', 'Well #2 Flow Rate'],
-  ['Well 3 Injection Gas Flow Rate', 'Well #3 Flow Rate'],
-  ['Well 4 Injection Gas Flow Rate', 'Well #4 Flow Rate'],
-  // Murphy portal publishes Well 5 with a space: 'Well # 5 Flow Rate' — add both variants
-  ['Well 5 Injection Gas Flow Rate', 'Well #5 Flow Rate', 'Well # 5 Flow Rate'],
-]
-
-// Excel register labels (from Updated Well-PLC Modbus List) as primary keys,
-// with legacy Klondike-style aliases as fallback.
-const LIVE_WELL_YESTERDAY_KEYS = [
-  ['Well 1 Yesterdays Flow', 'Wellhead #1 Yesterdays Total Flow', 'Well 1 Yesterdays Total Flow'],
-  ['Well 2 Yesterdays Flow', 'Wellhead #2 Yesterdays Total Flow', 'Well 2 Yesterdays Total Flow'],
-  ['Well 3 Yesterdays Flow', 'Wellhead #3 Yesterdays Total Flow', 'Well 3 Yesterdays Total Flow'],
-  ['Well 4 Yesterdays Flow', 'Wellhead #4 Yesterdays Total Flow', 'Well 4 Yesterdays Total Flow'],
-  ['Well 5 Yesterdays Flow', 'Wellhead #5 Yesterdays Total Flow', 'Well 5 Yesterdays Total Flow'],
-]
-
-const LIVE_WELL_DESIRED_KEYS = [
-  ['Well 1 Setpoint', 'Wellhead #1 Calculated Desired Flow', 'Well 1 Calculated Desired Flow', 'Wellhead #1 Setpoint From Customer PLC', 'Well 1 Setpoint From Customer PLC'],
-  ['Well 2 Setpoint', 'Wellhead #2 Calculated Desired Flow', 'Well 2 Calculated Desired Flow', 'Wellhead #2 Setpoint From Customer PLC', 'Well 2 Setpoint From Customer PLC'],
-  ['Well 3 Setpoint', 'Wellhead #3 Calculated Desired Flow', 'Well 3 Calculated Desired Flow', 'Wellhead #3 Setpoint From Customer PLC', 'Well 3 Setpoint From Customer PLC'],
-  ['Well 4 Setpoint', 'Wellhead #4 Calculated Desired Flow', 'Well 4 Calculated Desired Flow', 'Wellhead #4 Setpoint From Customer PLC', 'Well 4 Setpoint From Customer PLC'],
-  ['Well 5 Setpoint', 'Wellhead #5 Calculated Desired Flow', 'Well 5 Calculated Desired Flow', 'Wellhead #5 Setpoint From Customer PLC', 'Well 5 Setpoint From Customer PLC'],
-]
-
-// ─── fetch helpers ─────────────────────────────────────────────────────────────
-
-async function readErrorPayload(res) {
-  const contentType = res.headers.get('content-type') || ''
-  if (contentType.includes('application/json')) {
-    const body = await res.json().catch(() => ({}))
-    return body?.details || body?.error || res.statusText
-  }
-  return (await res.text().catch(() => '')).trim() || res.statusText
-}
+// ─── fetch helpers ────────────────────────────────────────────────────────────
 
 async function fetchDevice(deviceId) {
   try {
     const res = await fetch(`${API_BASE}/api/mlink/device?deviceId=${encodeURIComponent(deviceId)}`)
-    if (!res.ok) {
-      return { data: null, error: `device ${deviceId}: ${await readErrorPayload(res)}` }
-    }
-    return { data: await res.json(), error: '' }
-  } catch (err) {
-    return { data: null, error: `device ${deviceId}: ${err.message}` }
-  }
+    if (!res.ok) return null
+    return res.json()
+  } catch { return null }
 }
 
-// fetchDeviceFull calls /device/full which merges LatestDeviceData (2-sec registers)
-// with RunReport data (15-min registers) so fields like desired flows and
-// yesterday flows are included even when they aren't in the latest batch.
-async function fetchDeviceFull(deviceId) {
-  try {
-    const res = await fetch(`${API_BASE}/api/mlink/device/full?deviceId=${encodeURIComponent(deviceId)}`)
-    if (!res.ok) {
-      // Fall back to normal device endpoint if /full fails
-      return fetchDevice(deviceId)
-    }
-    return { data: await res.json(), error: '' }
-  } catch (err) {
-    return fetchDevice(deviceId)
-  }
-}
+// ─── register lookup helpers ──────────────────────────────────────────────────
 
-function getTimestamp(data, idx = 0) {
-  if (!data?.timestamps?.[idx]) return null
-  return new Date(data.timestamps[idx] * 1000)
-}
-
-function getFirstDatapoint(dataMap, keys) {
+// Look up a value from parseLiveDatapoints map, trying multiple label variants.
+// Returns the numeric value or null.
+function getVal(panel, ...keys) {
   for (const key of keys) {
-    if (dataMap[key] != null) return dataMap[key]
+    const dp = panel[key]
+    if (dp?.value != null && dp.value !== '' && !isNaN(Number(dp.value))) {
+      return Number(dp.value)
+    }
   }
   return null
 }
 
-// ─── numeric / display helpers ────────────────────────────────────────────────
-
-function parseLiveNumeric(value) {
-  const numeric = Number(value)
-  return Number.isFinite(numeric) ? numeric : null
-}
-
-function resolvePreferredDatapoint(dataMap, labels) {
-  for (const label of labels) {
-    const datapoint = findRegisterDatapoint(dataMap, { label, decimals: 3 })
-    if (datapoint) return datapoint
+// Same but returns raw string value (for text registers like Manual/Auto).
+function getStr(panel, ...keys) {
+  for (const key of keys) {
+    const dp = panel[key]
+    if (dp?.value != null && String(dp.value).trim() !== '') return String(dp.value)
   }
   return null
 }
 
-function computeMatchPct(actual, desired) {
-  if (actual == null || desired == null || desired <= 0) return null
-  return Math.max(0, 100 - (Math.abs(actual - desired) / desired) * 100)
+// Per-well register key builder — matches Murphy MLink label AND Excel Modbus labels.
+function wellKeys(n, suffix) {
+  return [
+    `Well ${n} ${suffix}`,
+    `Well #${n} ${suffix}`,
+    `Wellhead #${n} ${suffix}`,
+    `Wellhead ${n} ${suffix}`,
+  ]
 }
 
-function isWithinTarget(actual, desired) {
-  if (actual == null || desired == null || desired <= 0) return false
-  return Math.abs(actual - desired) <= desired * 0.03
+// ─── formatters ───────────────────────────────────────────────────────────────
+
+const fmt = (v, decimals = 3, unit = '') =>
+  v != null ? `${Number(v).toFixed(decimals)}${unit ? ' ' + unit : ''}` : '—'
+
+const fmtFlow = v => fmt(v, 3, 'MMSCFD')
+const fmtPsi  = v => fmt(v, 1, 'PSI')
+const fmtTemp = v => fmt(v, 1, '°F')
+const fmtPct  = v => fmt(v, 1, '%')
+const fmtRpm  = v => v != null ? `${Math.round(v)} RPM` : '—'
+const fmtHrs  = v => v != null ? `${Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 })} hrs` : '—'
+
+function fmtManualAuto(v) {
+  if (v == null) return '—'
+  const n = Number(v)
+  if (n === 0) return 'Manual'
+  if (n === 1) return 'Auto'
+  return String(v)
 }
 
-function average(values) {
-  const valid = values.filter(v => v != null && Number.isFinite(v))
-  if (!valid.length) return null
-  return valid.reduce((sum, v) => sum + v, 0) / valid.length
+function matchColor(pct) {
+  if (pct == null) return '#4a5568'
+  if (pct >= 97) return '#22c55e'
+  if (pct >= 90) return '#eab308'
+  return '#ef4444'
 }
 
-function formatPercent(value, decimals = 0) {
-  return value != null && Number.isFinite(value) ? `${value.toFixed(decimals)}%` : '--'
-}
+// ─── sub-components ───────────────────────────────────────────────────────────
 
-function formatFlow(value) {
-  return value != null && Number.isFinite(value) ? `${value.toFixed(3)} MMSCFD` : '--'
-}
-
-function formatSignedFlow(value) {
-  if (value == null || !Number.isFinite(value)) return '--'
-  return `${value > 0 ? '+' : ''}${value.toFixed(3)} MMSCFD`
-}
-
-function formatFlowValue(value) {
-  const numeric = Number(value)
-  return Number.isFinite(numeric) ? numeric.toFixed(3) : '--'
-}
-
-function formatHourMeterValue(value) {
-  const numeric = Number(value)
-  return Number.isFinite(numeric) ? numeric.toLocaleString() : '--'
-}
-
-function getCompressorUnit(label) {
-  if (/temperature/i.test(label)) return 'deg F'
-  if (/speed/i.test(label)) return 'RPM'
-  if (/pressure|prs|dp/i.test(label)) return 'PSI'
-  if (/flow/i.test(label)) return 'MMSCFD'
-  return ''
-}
-
-function getCompressorColor(label, value) {
-  const numeric = Number(value)
-  if (!Number.isFinite(numeric)) return '#fff'
-  if (/stage 3 discharge prs/i.test(label)) return numeric > 900 ? '#E8200C' : '#22c55e'
-  if (/stage 1 suction prs/i.test(label)) return numeric < 30 ? '#eab308' : '#22c55e'
-  if (/3rd stage discharge temperature/i.test(label)) return numeric > 275 ? '#E8200C' : '#22c55e'
-  if (/skid - shutdown/i.test(label)) return numeric > 0 ? '#E8200C' : '#22c55e'
-  return '#fff'
-}
-
-// ─── sub-components (identical to PublicLiveView) ─────────────────────────────
-
-function DataPoint({ label, value, unit, color, compact = false }) {
+function Field({ label, value, accent }) {
+  const hasData = value && value !== '—'
   return (
-    <div className={`bg-[#0a0a14] rounded border border-[#2a2a3a] ${compact ? 'p-2' : 'p-2'}`}>
-      <div className="text-[8px] text-[#888] uppercase tracking-wider">{label}</div>
-      <div className="flex items-baseline gap-1">
-        <span className={compact ? 'text-[16px] font-bold' : 'text-[14px] font-bold'} style={{ color: color || '#fff', fontFamily: "'Arial Black'" }}>
-          {value || '--'}
-        </span>
-        <span className="text-[8px] text-[#666]">{unit}</span>
-      </div>
+    <div className="flex items-center justify-between py-1 border-b border-[#1a1a28] last:border-0">
+      <span className="text-[9px] text-[#666] uppercase tracking-wider leading-tight pr-2">{label}</span>
+      <span
+        className="text-[11px] font-bold text-right shrink-0"
+        style={{ color: hasData ? (accent || '#e2e8f0') : '#3a3a50', fontFamily: "'Arial Black', sans-serif" }}
+      >
+        {value || '—'}
+      </span>
     </div>
   )
 }
 
-function LiveRegisterRow({ label, value, unit }) {
+function SectionHeader({ children }) {
   return (
-    <div className="flex items-start justify-between gap-3">
-      <div className="text-[8px] text-[#777] leading-tight">{label}</div>
-      <div className="text-right">
-        <div className="text-[10px] text-white font-bold">{value}</div>
-        {unit && <div className="text-[8px] text-[#666]">{unit}</div>}
-      </div>
-    </div>
-  )
-}
-
-function WowMetricCard({ label, value, helper, tone }) {
-  const tones = {
-    green:  'from-[#10311f] to-[#0e1712] border-[#1d6c3d] text-[#5def95]',
-    blue:   'from-[#10273d] to-[#0f151d] border-[#275d92] text-[#72c8ff]',
-    amber:  'from-[#34260e] to-[#17120d] border-[#8a6421] text-[#f8c767]',
-    purple: 'from-[#26183a] to-[#121019] border-[#5c3ea1] text-[#c69bff]',
-  }
-  return (
-    <div className={`rounded-2xl border bg-gradient-to-br p-4 ${tones[tone] || tones.green}`}>
-      <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">{label}</div>
-      <div className="mt-2 text-[28px] font-black leading-none text-white" style={{ fontFamily: "'Arial Black'" }}>
-        {value}
-      </div>
-      <div className="mt-2 text-[11px] leading-relaxed text-white/65">{helper}</div>
-    </div>
-  )
-}
-
-function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers }) {
-  const rpm = data['Compressor Speed'] || data['Driver Speed'] || data['RPM'] || data['Engine Speed']
-  const shutdown = data['Skid - Shutdown']
-  const isShutdown = shutdown && String(shutdown.value).toLowerCase().includes('shutdown')
-  const hasRpm = rpm && parseFloat(rpm.value) > 100
-  const hasFlow = actualFlow != null && parseFloat(actualFlow.value) > 0.01
-  const isRunning = (hasRpm || hasFlow) && !isShutdown
-  const visibleRegisters = registers.filter(meta => meta.label !== 'Flow Rate PID PV')
-  const desiredFlowValue = formatFlowValue(desiredFlow?.value)
-  const actualFlowValue = formatFlowValue(actualFlow?.value)
-  return (
-    <div className="bg-[#111118] rounded-xl border border-[#222] p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <div className={`w-3 h-3 rounded-full ${isRunning ? 'bg-[#22c55e] shadow-lg shadow-[#22c55e]/50' : 'bg-[#E8200C]'}`} />
-        <h3 className="text-[13px] text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>{label}</h3>
-        <span className={`text-[9px] font-bold ml-auto ${isRunning ? 'text-[#22c55e]' : 'text-[#E8200C]'}`}>
-          {isRunning ? 'RUNNING' : 'STOPPED'}
-        </span>
-      </div>
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <DataPoint label="Desired Flow" value={desiredFlowValue} unit={desiredFlow?.units || 'MMSCFD'} color="#4fc3f7" compact />
-        <DataPoint label="Actual Flow" value={actualFlowValue} unit={actualFlow?.units || 'MMSCFD'} color={getCompressorColor('Flow Rate PID PV', actualFlow?.value)} compact />
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        {visibleRegisters.map(meta => (
-          <DataPoint
-            key={meta.id}
-            label={meta.label}
-            value={formatLiveRegisterValue(meta, meta.datapoint)}
-            unit={meta.datapoint.units || getCompressorUnit(meta.label)}
-            color={getCompressorColor(meta.label, meta.datapoint.value)}
-          />
-        ))}
-      </div>
-      {time && <div className="text-[8px] text-[#444] mt-2 text-right">Updated: {time.toLocaleString()}</div>}
-    </div>
-  )
-}
-
-function LivePerformanceHero({ metrics, wells, timestamp }) {
-  const headline = metrics.currentMatch != null && metrics.currentMatch >= 97
-    ? 'Running Tight. Running On Target.'
-    : metrics.currentMatch != null && metrics.currentMatch >= 93
-      ? 'Pad Logic Is Holding This Pad In Tight Balance.'
-      : 'Live Field Data Is Tracking In Real Time.'
-
-  return (
-    <div className="mb-5 overflow-hidden rounded-2xl border border-[#1c2d21] bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),_rgba(8,8,16,0.95)_45%),linear-gradient(135deg,_#10151d,_#090b12)] shadow-[0_0_50px_rgba(34,197,94,0.08)]">
-      <div className="grid gap-5 p-5 lg:grid-cols-[1.15fr_0.85fr]">
-        <div>
-          <div className="mb-2 flex items-center gap-2">
-            <span className="rounded-full border border-[#20502d] bg-[#0e1e13] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#66f0a0]">
-              Live Performance Proof
-            </span>
-            {timestamp && <span className="text-[10px] text-[#6b7280]">Snapshot {timestamp.toLocaleString()}</span>}
-          </div>
-          <div className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#ff6b57]">
-            Does your SCADA do this?
-          </div>
-          <h2 className="text-[30px] font-black leading-none text-white" style={{ fontFamily: "'Arial Black'" }}>
-            {headline}
-          </h2>
-          <p className="mt-2 max-w-[680px] text-[13px] leading-relaxed text-[#a0a7b5]">
-            This is actual live data from a running location right now. See how tightly this pad is operating:
-            actual well injection riding on top of desired injection, compressors carrying commanded flow, and
-            the historical time spent below target exposed in plain sight.
-          </p>
-          <div className="mt-5 grid gap-3 md:grid-cols-4">
-            <WowMetricCard
-              label="Live Injection Match"
-              value={formatPercent(metrics.currentMatch, 1)}
-              tone="green"
-              helper={metrics.totalDesired ? `${metrics.totalActual?.toFixed(3)} actual vs ${metrics.totalDesired.toFixed(3)} desired` : 'Waiting on desired-rate tags'}
-            />
-            <WowMetricCard
-              label="Wells On Target"
-              value={metrics.wellsAtTarget != null ? `${metrics.wellsAtTarget}/${wells.length}` : '--'}
-              tone="blue"
-              helper={metrics.wellsAtTarget != null ? 'Within 3% of desired injection' : 'Per-well targets not in API feed'}
-            />
-            <WowMetricCard
-              label="30-Day Under Target"
-              value={formatPercent(metrics.historicalUnderTarget, 1)}
-              tone={metrics.historicalUnderTarget != null && metrics.historicalUnderTarget <= 8 ? 'green' : 'amber'}
-              helper={metrics.historicalUnderTarget != null ? 'Time spent not meeting desired injection' : 'No 30-day history available for this pad'}
-            />
-            <WowMetricCard
-              label="Compressor Flow Match"
-              value={formatPercent(metrics.compressorMatch, 1)}
-              tone="purple"
-              helper="Desired flow vs actual compressor flow"
-            />
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-[#1c2836] bg-[#0a0f17]/90 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9db2ce]">Actual vs Desired By Well</span>
-            <span className="text-[10px] text-[#5e6b80]">Live target tracking</span>
-          </div>
-          <div className="space-y-3">
-            {wells.map((well) => (
-              <div key={well.wellNumber} className="rounded-xl border border-[#15202d] bg-[#0b1119] p-3">
-                <div className="mb-1 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[12px] font-bold text-white">Well {well.wellNumber}</span>
-                    {well.desired != null && (
-                      <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${well.atTarget ? 'bg-[#0d2d18] text-[#58e68f]' : 'bg-[#33260c] text-[#f7c65d]'}`}>
-                        {well.atTarget ? 'On Target' : 'Chasing'}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[10px] text-[#8d97a8]">{formatPercent(well.matchPct, 1)} match</span>
-                </div>
-                <div className={`gap-3 text-[11px] ${well.desired != null ? 'grid grid-cols-[1fr_auto_auto]' : 'flex items-center'}`}>
-                  {well.desired != null && (
-                    <div className="pt-1">
-                      <div className="h-2 overflow-hidden rounded-full bg-[#14202c]">
-                        <div className="h-full rounded-full bg-gradient-to-r from-[#22c55e] to-[#4fc3f7]" style={{ width: `${Math.max(0, Math.min(100, well.matchPct ?? 0))}%` }} />
-                      </div>
-                    </div>
-                  )}
-                  <span className="font-bold text-[#22c55e]">{formatFlow(well.actual)}</span>
-                  {well.desired != null && <span className="text-[#8d97a8]">of {formatFlow(well.desired)}</span>}
-                </div>
-                {well.desired != null && (
-                  <div className="mt-1 text-[10px] text-[#697386]">
-                    Gap {formatSignedFlow(well.gap)}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+    <h2
+      className="text-[11px] font-bold uppercase tracking-[0.2em] mb-3"
+      style={{ color: '#49D0E2', fontFamily: "'Montserrat', sans-serif" }}
+    >
+      {children}
+    </h2>
   )
 }
 
@@ -375,64 +132,227 @@ function RefreshCountdown({ secondsLeft, loading, onRefresh }) {
       onClick={onRefresh}
       disabled={loading}
       className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#2a2a3a] bg-[#111120] hover:bg-[#1a1a2a] disabled:opacity-50 transition-colors"
-      title="Click to refresh now"
     >
-      <svg width="16" height="16" viewBox="0 0 36 36" className="shrink-0 -rotate-90">
+      <svg width="14" height="14" viewBox="0 0 36 36" className="shrink-0 -rotate-90">
         <circle cx="18" cy="18" r="15" fill="none" stroke="#1a2a1a" strokeWidth="3" />
         <circle
           cx="18" cy="18" r="15" fill="none" stroke="#22c55e" strokeWidth="3"
           strokeDasharray={`${2 * Math.PI * 15}`}
           strokeDashoffset={`${2 * Math.PI * 15 * (1 - pct / 100)}`}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 1s linear' }}
+          strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s linear' }}
         />
       </svg>
-      <span className="text-[10px] text-[#888]">
-        {loading ? 'Loading…' : `Refreshes in ${secondsLeft}s`}
+      <span className="text-[9px] text-[#888]">
+        {loading ? 'Loading…' : `Refresh in ${secondsLeft}s`}
       </span>
     </button>
+  )
+}
+
+// ─── Well card — shows all Modbus-list registers for one well ─────────────────
+
+function WellCard({ number, panel }) {
+  const n = number
+  const flowRate      = getVal(panel, ...wellKeys(n, 'Flow Rate'), ...wellKeys(n, 'Injection Gas Flow Rate'))
+  const setpoint      = getVal(panel, ...wellKeys(n, 'Setpoint'), ...wellKeys(n, 'Setpoint From Customer PLC'), ...wellKeys(n, 'Calculated Desired Flow'))
+  const yesterdayFlow = getVal(panel, ...wellKeys(n, 'Yesterdays Flow'), ...wellKeys(n, 'Yesterdays Total Flow'))
+  const staticPres    = getVal(panel, ...wellKeys(n, 'Injection Static Pressure'), ...wellKeys(n, 'Static Pressure'))
+  const diffPres      = getVal(panel, ...wellKeys(n, 'Injection Differential Pressure'), ...wellKeys(n, 'Injection Differential Prs'))
+  const injTemp       = getVal(panel, ...wellKeys(n, 'Injection Temp'))
+  const manualAuto    = getStr(panel, ...wellKeys(n, 'Manual/Auto'), ...wellKeys(n, 'In Manual/Auto'))
+  const chokePos      = getVal(panel, ...wellKeys(n, 'Choke Position'), ...wellKeys(n, 'Analog Output ' + n))
+  const casingPres    = getVal(panel, ...wellKeys(n, 'Casing Pressure'))
+  const tubingPres    = getVal(panel, ...wellKeys(n, 'Tubing Pressure'))
+
+  const matchPct = flowRate != null && setpoint != null && setpoint > 0
+    ? Math.max(0, 100 - (Math.abs(flowRate - setpoint) / setpoint) * 100)
+    : null
+
+  const isOnTarget = matchPct != null && matchPct >= 97
+
+  return (
+    <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4">
+      {/* Well header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${flowRate != null ? 'bg-[#22c55e] shadow-[0_0_6px_rgba(34,197,94,0.7)]' : 'bg-[#444]'}`} />
+          <span className="text-[13px] font-black text-white" style={{ fontFamily: "'Arial Black', sans-serif" }}>
+            Well {n}
+          </span>
+        </div>
+        {matchPct != null && (
+          <span
+            className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+            style={{
+              background: isOnTarget ? 'rgba(34,197,94,0.15)' : 'rgba(234,179,8,0.15)',
+              color: isOnTarget ? '#22c55e' : '#eab308',
+              border: `1px solid ${isOnTarget ? '#22c55e44' : '#eab30844'}`,
+            }}
+          >
+            {isOnTarget ? 'ON TARGET' : 'CHASING'}
+          </span>
+        )}
+      </div>
+
+      {/* Live injection — hero value */}
+      <div className="bg-[#0c0c18] rounded-lg p-3 mb-3 text-center">
+        <div className="text-[9px] text-[#666] uppercase tracking-[0.15em] mb-1">Live Injection</div>
+        <div
+          className="text-[26px] font-black leading-none"
+          style={{ color: flowRate != null ? '#22c55e' : '#3a3a50', fontFamily: "'Arial Black', sans-serif" }}
+        >
+          {flowRate != null ? flowRate.toFixed(3) : '—'}
+        </div>
+        <div className="text-[9px] text-[#555] mt-0.5">MMSCFD</div>
+
+        {/* Progress bar */}
+        {setpoint != null && setpoint > 0 && flowRate != null && (
+          <div className="mt-2">
+            <div className="relative w-full bg-[#1a1a2a] rounded-full h-1.5 overflow-hidden">
+              <div className="absolute top-0 bottom-0 w-px bg-[#4fc3f7]/60 z-10" style={{ left: `${Math.min(100, (setpoint / (setpoint * 1.15)) * 100)}%` }} />
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${Math.min(100, (flowRate / (setpoint * 1.15)) * 100)}%`,
+                  background: isOnTarget ? '#22c55e' : '#eab308',
+                }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* All Modbus-list registers */}
+      <div>
+        <Field label="Setpoint"              value={fmtFlow(setpoint)}      accent="#4fc3f7" />
+        <Field label="Yesterday Flow"        value={fmtFlow(yesterdayFlow)} accent="#a78bfa" />
+        <Field label="Static Pressure"       value={fmtPsi(staticPres)}    />
+        <Field label="Differential Pressure" value={fmtPsi(diffPres)}      />
+        <Field label="Injection Temp"        value={fmtTemp(injTemp)}      />
+        <Field label="Mode"                  value={fmtManualAuto(manualAuto)} />
+        <Field label="Choke Position"        value={fmtPct(chokePos)}      />
+        <Field label="Casing Pressure"       value={fmtPsi(casingPres)}    />
+        <Field label="Tubing Pressure"       value={fmtPsi(tubingPres)}    />
+      </div>
+    </div>
+  )
+}
+
+// ─── Compressor unit card — all available Murphy registers ────────────────────
+
+function CompressorCard({ label, dataRaw }) {
+  const data = parseLiveDatapoints(dataRaw)
+
+  // All register lookups — normalized matching handled by liveRegisters engine
+  const engineSpeed   = getVal(data, 'Engine Speed', 'Compressor Speed', 'Driver Speed', 'RPM')
+  const flowRate      = getVal(data, 'Flow Rate PID PV', 'Flow Rate', 'Flow Rate PV')
+  const suctionPrs    = getVal(data, 'Stage 1 Suction Prs', 'Suction Pressure')
+  const dischargePrs  = getVal(data, 'Stage 3 Discharge Prs', 'Discharge Pressure')
+  const stage1Temp    = getVal(data, '1st Stage Discharge Temperature', 'Stage 1 Discharge Temperature')
+  const stage2Temp    = getVal(data, '2nd Stage Discharge Temperature', 'Stage 2 Discharge Temperature')
+  const stage3Temp    = getVal(data, '3rd Stage Discharge Temperature', 'Discharge Temperature')
+  const compOilPress  = getVal(data, 'Compressor Oil Pressure')
+  const compOilTemp   = getVal(data, 'Compressor Oil Temperature')
+  const engOilTemp    = getVal(data, 'Engine Oil Temperature')
+  const engOilPress   = getVal(data, 'Engine Oil Presssure', 'Engine Oil Pressure')   // Murphy typo: 3 s's
+  const engLoad       = getVal(data, 'Engine Load')
+  const sysVolts      = getVal(data, 'System Volts', 'System Voltage')
+  const hourMeter     = getVal(data, 'Hour Meter')
+  const oilTemp       = getVal(data, 'Oil Temperature', 'EICS Oil Temperature')
+  const startAttempts = getVal(data, 'Number of Start Attempts Per Hour', 'Number of Start Attempts per Hour')
+  const lockout       = getStr(data, 'Setpoint Edit Lockout Enabled')
+
+  const isRunning = (engineSpeed != null && engineSpeed > 100) || (flowRate != null && flowRate > 0.01)
+  const shutdown  = getStr(data, 'Skid - Shutdown')
+  const isStopped = (shutdown && shutdown.toLowerCase().includes('shutdown')) || !isRunning
+
+  // Pressure/temp alert colors
+  const discColor = dischargePrs != null && dischargePrs > 1300 ? '#ef4444' : '#e2e8f0'
+  const s3TempColor = stage3Temp != null && stage3Temp > 280 ? '#ef4444' : '#e2e8f0'
+
+  return (
+    <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4">
+      {/* Unit header */}
+      <div className="flex items-center gap-2 mb-4">
+        <div className={`w-3 h-3 rounded-full ${!isStopped ? 'bg-[#22c55e] shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-[#ef4444]'}`} />
+        <span className="text-[13px] font-black text-white" style={{ fontFamily: "'Arial Black', sans-serif" }}>{label}</span>
+        <span className={`ml-auto text-[9px] font-bold tracking-widest ${!isStopped ? 'text-[#22c55e]' : 'text-[#ef4444]'}`}>
+          {!isStopped ? 'RUNNING' : 'STOPPED'}
+        </span>
+      </div>
+
+      {/* Hero: RPM + Flow */}
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="bg-[#0c0c18] rounded-lg p-2.5 text-center">
+          <div className="text-[8px] text-[#666] uppercase tracking-wider mb-1">Engine Speed</div>
+          <div className="text-[18px] font-black text-white leading-none" style={{ fontFamily: "'Arial Black', sans-serif" }}>
+            {engineSpeed != null ? Math.round(engineSpeed).toLocaleString() : '—'}
+          </div>
+          <div className="text-[8px] text-[#555]">RPM</div>
+        </div>
+        <div className="bg-[#0c0c18] rounded-lg p-2.5 text-center">
+          <div className="text-[8px] text-[#666] uppercase tracking-wider mb-1">Flow Rate</div>
+          <div className="text-[18px] font-black leading-none" style={{ color: flowRate != null ? '#22c55e' : '#3a3a50', fontFamily: "'Arial Black', sans-serif" }}>
+            {flowRate != null ? flowRate.toFixed(3) : '—'}
+          </div>
+          <div className="text-[8px] text-[#555]">MMSCFD</div>
+        </div>
+      </div>
+
+      {/* All registers from Modbus list */}
+      <div>
+        <div className="text-[8px] text-[#49D0E2] uppercase tracking-[0.18em] font-bold mb-1.5">Pressures</div>
+        <Field label="Stage 1 Suction Pressure"    value={fmtPsi(suctionPrs)}   />
+        <Field label="Stage 3 Discharge Pressure"  value={fmtPsi(dischargePrs)} accent={discColor} />
+        <Field label="Compressor Oil Pressure"      value={fmtPsi(compOilPress)} />
+        <Field label="Engine Oil Pressure"          value={fmtPsi(engOilPress)}  />
+
+        <div className="text-[8px] text-[#49D0E2] uppercase tracking-[0.18em] font-bold mt-2.5 mb-1.5">Temperatures</div>
+        <Field label="1st Stage Discharge Temp"     value={fmtTemp(stage1Temp)} />
+        <Field label="2nd Stage Discharge Temp"     value={fmtTemp(stage2Temp)} />
+        <Field label="3rd Stage Discharge Temp"     value={fmtTemp(stage3Temp)} accent={s3TempColor} />
+        <Field label="Compressor Oil Temp"          value={fmtTemp(compOilTemp)} />
+        <Field label="Engine Oil Temp"              value={fmtTemp(engOilTemp)}  />
+        <Field label="Oil Temp (EICS)"              value={fmtTemp(oilTemp)}     />
+
+        <div className="text-[8px] text-[#49D0E2] uppercase tracking-[0.18em] font-bold mt-2.5 mb-1.5">Engine / System</div>
+        <Field label="Engine Load"                  value={fmtPct(engLoad)}      />
+        <Field label="System Voltage"               value={sysVolts != null ? `${sysVolts.toFixed(1)} VDC` : '—'} />
+        <Field label="Hour Meter"                   value={fmtHrs(hourMeter)}    />
+        <Field label="Start Attempts / Hr"          value={startAttempts != null ? String(Math.round(startAttempts)) : '—'} />
+        <Field label="Setpoint Lockout"             value={lockout || '—'}       />
+      </div>
+    </div>
   )
 }
 
 // ─── main component ────────────────────────────────────────────────────────────
 
 export default function HalfmannLiveView() {
-  const [panelData, setPanelData] = useState(null)
-  const [unitDataRaw, setUnitDataRaw] = useState({ unit2130: null, unit2127: null, unit2129: null, unit2128: null })
-  const [registerCatalog, setRegisterCatalog] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [liveError, setLiveError] = useState('')
-  const [lastRefresh, setLastRefresh] = useState(null)
-  const [countdown, setCountdown] = useState(REFRESH_INTERVAL_S)
-  const [padVisible, setPadVisible] = useState(true)
+  const [panelData, setPanelData]       = useState(null)
+  const [unitDataRaw, setUnitDataRaw]   = useState({})
+  const [loading, setLoading]           = useState(true)
+  const [lastRefresh, setLastRefresh]   = useState(null)
+  const [countdown, setCountdown]       = useState(REFRESH_INTERVAL_S)
+  const [padVisible, setPadVisible]     = useState(true)
 
-  // ─── pad visibility gate (non-admins see "not available" if hidden) ──────────
   useEffect(() => {
     fetch(`${API_BASE}/api/public/pad-visibility`)
-      .then(res => res.ok ? res.json() : null)
-      .then(body => { if (body && body.halfmann === false) setPadVisible(false) })
+      .then(r => r.ok ? r.json() : null)
+      .then(b => { if (b?.halfmann === false) setPadVisible(false) })
       .catch(() => {})
   }, [])
 
   const refresh = useCallback(async () => {
     setLoading(true)
-    setLiveError('')
-    const [panelResult, ...unitResults] = await Promise.all([
-      fetchDeviceFull(HALFMANN_DEVICES.panel),  // use /full to get 15-min registers too
+    const [panel, ...unitResults] = await Promise.all([
+      fetchDevice(HALFMANN_DEVICES.panel),
       ...HALFMANN_UNITS.map(u => fetchDevice(u.deviceId)),
     ])
-    setPanelData(panelResult.data)
-    const newUnitData = {}
-    HALFMANN_UNITS.forEach((u, i) => { newUnitData[u.key] = unitResults[i].data })
-    setUnitDataRaw(newUnitData)
-
-    const allErrors = [panelResult.error, ...unitResults.map(r => r.error)].filter(Boolean)
-    const allNull = !panelResult.data && unitResults.every(r => !r.data)
-    if (allNull) {
-      setLiveError(allErrors.length > 0
-        ? `No live MLINK data available right now. ${allErrors.join(' | ')}`
-        : 'No live MLINK data available right now. Check field comms.')
-    }
+    setPanelData(panel)
+    const raw = {}
+    HALFMANN_UNITS.forEach((u, i) => { raw[u.key] = unitResults[i] })
+    setUnitDataRaw(raw)
     setLastRefresh(new Date())
     setLoading(false)
     setCountdown(REFRESH_INTERVAL_S)
@@ -440,269 +360,221 @@ export default function HalfmannLiveView() {
 
   useEffect(() => {
     refresh()
-    const interval = setInterval(refresh, REFRESH_INTERVAL_S * 1000)
-    return () => clearInterval(interval)
+    const iv = setInterval(refresh, REFRESH_INTERVAL_S * 1000)
+    return () => clearInterval(iv)
   }, [refresh])
 
   useEffect(() => {
-    const tick = setInterval(() => setCountdown(c => (c > 0 ? c - 1 : REFRESH_INTERVAL_S)), 1000)
+    const tick = setInterval(() => setCountdown(c => c > 0 ? c - 1 : REFRESH_INTERVAL_S), 1000)
     return () => clearInterval(tick)
   }, [])
 
-  useEffect(() => {
-    loadAwiRegisterCatalog().then(setRegisterCatalog).catch(() => {})
-  }, [])
-
-  // ─── derived data ───────────────────────────────────────────────────────────
-  const panel = parseLiveDatapoints(panelData)
-  const panelTime = getTimestamp(panelData)
-
-  // Parse each unit into a dataMap
-  const unitDataMaps = HALFMANN_UNITS.map(u => parseLiveDatapoints(unitDataRaw[u.key]))
-
-  // Compressor desired/actual flow — check panel first (it may carry the SP), then the unit itself
-  const unitDesiredFlows = HALFMANN_UNITS.map((u, i) =>
-    resolvePreferredDatapoint(panel, [
-      `Compressor #${i + 1} Desire Flow SP For PID Murphy`,
-      `Compressor ${i + 1} Desire Flow SP For PID Murphy`,
-      `Compressor #${i + 1} Desired Flow SP For PID Murphy`,
-    ]) ??
-    resolvePreferredDatapoint(unitDataMaps[i], [
-      'Quck Start Setting - Desired Flow Rate',
-      'Desire Flow SP For PID Murphy',
-      'Desired Flow SP For PID Murphy',
-      'Flow Rate PID SP',
-      'Target Flow Rate',
-    ])
-  )
-  const unitActualFlows = unitDataMaps.map(dataMap =>
-    resolvePreferredDatapoint(dataMap, [
-      'Flow Rate PID PV',
-      'Flow Rate PV',
-      'Flow PID PV',
-      'Compressor Flow Rate PID PV',
-    ])
-  )
-
-  const visibleRegisters = getVisibleLiveRegisters(panel, registerCatalog, {})
-  const hourMeterRegister = visibleRegisters.find(meta => meta.label === 'Hour Meter')
-  const additionalWellRegisters = LIVE_WELL_FLOW_KEYS.map((_, index) =>
-    visibleRegisters.filter(meta => (
-      meta.groupId === `well-${index + 1}`
-      && !meta.label.endsWith('Injection Gas Flow Rate')
-      && !meta.label.endsWith('Yesterdays Flow')
-    ))
-  )
-
-  // Per-well injection performance
-  const liveWellPerformance = LIVE_WELL_FLOW_KEYS.map((keys, index) => {
-    const wellNumber = index + 1
-    const actual = parseLiveNumeric(resolvePreferredDatapoint(panel, keys)?.value)
-    const desiredDatapoint = resolvePreferredDatapoint(panel, [
-      `Wellhead #${wellNumber} Calculated Desired Flow`,
-      `Wellhead #${wellNumber} Setpoint From Customer PLC`,
-      `Well ${wellNumber} Calculated Desired Flow`,
-      `Well ${wellNumber} Setpoint From Customer PLC`,
-    ])
-    const desired = parseLiveNumeric(desiredDatapoint?.value) ?? null
-    const gap = actual != null && desired != null ? actual - desired : null
-    return {
-      wellNumber,
-      actual,
-      desired,
-      gap,
-      matchPct: computeMatchPct(actual, desired),
-      atTarget: isWithinTarget(actual, desired),
-    }
-  })
-
-  // Compressor performance per unit
-  const liveUnitPerformance = unitDesiredFlows.map((desiredDp, i) => ({
-    desired: parseLiveNumeric(desiredDp?.value),
-    actual: parseLiveNumeric(unitActualFlows[i]?.value),
-  }))
-
-  // Halfmann panel publishes site-level desired flow and wells-meeting-rate directly
-  const totalDesiredSite = parseLiveNumeric(
-    resolvePreferredDatapoint(panel, ['Total Desired Site Flow'])?.value
-  )
-  const wellsMeetingRateRaw = resolvePreferredDatapoint(panel, ['Wells Meeting Rate', 'All Wells Meeting Rate'])
-  const wellsMeetingRate = wellsMeetingRateRaw != null
-    ? Math.round(parseLiveNumeric(wellsMeetingRateRaw.value) ?? 0)
-    : null
-  const totalActualFlow = liveWellPerformance.reduce((sum, w) => sum + (w.actual ?? 0), 0)
-  const padMatchPct = totalDesiredSite != null && totalDesiredSite > 0
-    ? Math.max(0, 100 - (Math.abs(totalActualFlow - totalDesiredSite) / totalDesiredSite) * 100)
-    : null
-
-  const validWells = liveWellPerformance.filter(w => w.actual != null && w.desired != null)
-  const wellMatchAvg = validWells.length > 0 ? average(validWells.map(w => w.matchPct)) : null
-  const wowMetrics = {
-    totalActual:  totalActualFlow,
-    totalDesired: totalDesiredSite ?? (validWells.length > 0 ? validWells.reduce((s, w) => s + w.desired, 0) : null),
-    currentMatch: padMatchPct ?? wellMatchAvg,
-    // Only compute wells-at-target when we have desired data; avoid misleading "0/5"
-    wellsAtTarget: wellsMeetingRate ?? (validWells.length > 0 ? validWells.filter(w => w.atTarget).length : null),
-    historicalAtTarget: null,      // no 30-day CSV for Halfmann
-    historicalUnderTarget: null,
-    compressorMatch: average(liveUnitPerformance.map(u => computeMatchPct(u.actual, u.desired))),
-  }
-
-  // ─── not available gate ───────────────────────────────────────────────────────
   if (!padVisible) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#080810]">
-        <div className="text-center">
-          <div className="text-[15px] text-[#888]">This page is not currently available.</div>
-        </div>
+        <div className="text-[14px] text-[#888]">This page is not currently available.</div>
       </div>
     )
   }
 
-  // ─── render ─────────────────────────────────────────────────────────────────
+  // ─── derived panel data ────────────────────────────────────────────────────
+  const panel = parseLiveDatapoints(panelData)
+
+  const totalDesired  = getVal(panel, 'Total Desired Site Flow')
+  const recNumComps   = getVal(panel, 'Recommended Number Of Compressors')
+  const panelHourMtr  = getVal(panel, 'Hour Meter')
+
+  // Well flow rates
+  const wellFlows = [1,2,3,4,5].map(n =>
+    getVal(panel,
+      `Well #${n} Flow Rate`, `Well # ${n} Flow Rate`,
+      `Well ${n} Injection Gas Flow Rate`,
+      `Well ${n} Flow Rate`,
+    )
+  )
+  const totalActual = wellFlows.reduce((s, v) => s + (v ?? 0), 0)
+  const padMatch = totalDesired != null && totalDesired > 0
+    ? Math.max(0, 100 - (Math.abs(totalActual - totalDesired) / totalDesired) * 100)
+    : null
+
+  // Site equipment (Modbus list — may be null if not published)
+  const suctionPres  = getVal(panel, 'Suction Header Pressure')
+  const suctionValve = getVal(panel, 'Suction/Sales Valve Position')
+  const recycleValve = getVal(panel, 'Recycle Valve Position')
+  const panelStatuses = [1,2,3,4,5].map(n => getVal(panel, `Panel Status comp${n}`))
+
+  // ─── render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col min-h-screen bg-[#080810]">
+
+      {/* ── Header ── */}
       <header className="flex items-center justify-between px-5 py-3 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-2.5 h-2.5 rounded-full bg-[#22c55e] shadow-lg shadow-[#22c55e]/60 animate-pulse" />
           <div>
-            <div className="text-[13px] text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>
-              Live Field Data — Halfmann 1214
+            <div className="text-[14px] text-white font-black" style={{ fontFamily: "'Arial Black', sans-serif" }}>
+              Halfmann 1214 — Live Field Data
             </div>
-            <div className="text-[10px] text-[#666]">
-              Active Pad Logic panel · read-only public view
-            </div>
+            <div className="text-[9px] text-[#555]">Active Pad Logic panel · read-only · MLink live feed</div>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {lastRefresh && (
-            <span className="text-[9px] text-[#555] hidden sm:inline">
-              Last update: {lastRefresh.toLocaleTimeString()}
-            </span>
-          )}
+          {lastRefresh && <span className="text-[9px] text-[#444] hidden sm:block">Updated {lastRefresh.toLocaleTimeString()}</span>}
           <RefreshCountdown secondsLeft={countdown} loading={loading} onRefresh={refresh} />
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto p-5 sm:p-6">
-        <div className="max-w-[1280px] mx-auto">
-          {loading && !panelData ? (
-            <div className="text-center py-24 text-[#888] text-sm">Connecting to field units…</div>
-          ) : (
-            <>
-              {liveError && (
-                <div className="mb-4 rounded-lg border border-[#5a1d1d] bg-[#1f0c0c] px-4 py-3 text-[11px] text-[#fca5a5]">
-                  {liveError}
+      <div className="flex-1 overflow-auto p-4 sm:p-6">
+        <div className="max-w-[1400px] mx-auto space-y-8">
+
+          {/* ── Section 1: Site Overview ── */}
+          <div>
+            <SectionHeader>Site Overview</SectionHeader>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+
+              {/* Total injection match */}
+              <div className="col-span-2 bg-[#111118] rounded-xl border border-[#1e1e2e] p-4 flex items-center gap-5">
+                <div>
+                  <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1">Pad Injection Match</div>
+                  <div
+                    className="text-[36px] font-black leading-none"
+                    style={{ color: matchColor(padMatch), fontFamily: "'Arial Black', sans-serif" }}
+                  >
+                    {padMatch != null ? `${padMatch.toFixed(1)}%` : '—'}
+                  </div>
+                  {totalDesired != null && (
+                    <div className="text-[10px] text-[#666] mt-1">
+                      {totalActual.toFixed(3)} actual vs {totalDesired.toFixed(3)} desired MMSCFD
+                    </div>
+                  )}
+                </div>
+                {padMatch != null && (
+                  <div className="ml-auto">
+                    <svg width="52" height="52" viewBox="0 0 36 36">
+                      <circle cx="18" cy="18" r="15" fill="none" stroke="#1a2a1a" strokeWidth="3" />
+                      <circle
+                        cx="18" cy="18" r="15" fill="none"
+                        stroke={matchColor(padMatch)}
+                        strokeWidth="3"
+                        strokeDasharray={`${2 * Math.PI * 15}`}
+                        strokeDashoffset={`${2 * Math.PI * 15 * (1 - padMatch / 100)}`}
+                        strokeLinecap="round"
+                        style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}
+                      />
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4 flex flex-col justify-between">
+                <div className="text-[9px] text-[#666] uppercase tracking-wider">Total Desired Flow</div>
+                <div className="text-[22px] font-black text-[#4fc3f7] leading-none mt-1" style={{ fontFamily: "'Arial Black', sans-serif" }}>
+                  {totalDesired != null ? totalDesired.toFixed(3) : '—'}
+                </div>
+                <div className="text-[9px] text-[#555]">MMSCFD</div>
+              </div>
+
+              <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4 flex flex-col justify-between">
+                <div className="text-[9px] text-[#666] uppercase tracking-wider">Recommended Compressors</div>
+                <div className="text-[22px] font-black text-white leading-none mt-1" style={{ fontFamily: "'Arial Black', sans-serif" }}>
+                  {recNumComps != null ? Math.round(recNumComps) : '—'}
+                </div>
+                <div className="text-[9px] text-[#555]">Units running</div>
+              </div>
+            </div>
+
+            {/* Panel status strip */}
+            <div className="mt-3 bg-[#111118] rounded-xl border border-[#1e1e2e] px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse" />
+                <span className="text-[10px] text-[#22c55e] font-bold">PANEL ONLINE</span>
+              </div>
+              <div className="text-[9px] text-[#555]">Hour Meter: <span className="text-[10px] text-white font-bold">{fmtHrs(panelHourMtr)}</span></div>
+              {lastRefresh && <div className="text-[9px] text-[#555]">Data: {lastRefresh.toLocaleString()}</div>}
+              {/* Panel compressor status registers */}
+              {panelStatuses.some(v => v != null) && (
+                <div className="flex items-center gap-3 ml-auto">
+                  {panelStatuses.map((v, i) => (
+                    <div key={i} className="text-[9px] text-[#555]">
+                      Comp {i+1}: <span className="text-white font-bold">{v != null ? v.toFixed(0) : '—'}</span>
+                    </div>
+                  ))}
                 </div>
               )}
+            </div>
+          </div>
 
-              <LivePerformanceHero metrics={wowMetrics} wells={liveWellPerformance} timestamp={panelTime} />
-
-              {/* Panel status bar */}
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-3 h-3 rounded-full bg-[#22c55e] shadow-lg shadow-[#22c55e]/50" />
-                <span className="text-[13px] text-[#22c55e] font-bold">ONLINE — Panel Active</span>
-                <div className="ml-auto flex items-center gap-3">
-                  <span className="rounded-full border border-[#2f2f40] bg-[#111120] px-2 py-0.5 text-[8px] uppercase tracking-[0.18em] text-[#777]">
-                    Hour Meter <span className="ml-1 text-[10px] text-white font-bold normal-case tracking-normal">
-                      {formatHourMeterValue(hourMeterRegister?.datapoint?.value ?? panel['\t Hour Meter']?.value ?? panel['Hour Meter']?.value)}
-                    </span>
-                  </span>
-                  {panelTime && <span className="text-[10px] text-[#555]">Data from: {panelTime.toLocaleString()}</span>}
-                </div>
-              </div>
-
-              {/* Well Injection Flow Rates */}
-              <div className="bg-[#111118] rounded-xl border border-[#222] p-5 mb-4">
-                <h2 className="text-sm text-white font-bold mb-4" style={{ fontFamily: "'Arial Black'" }}>
-                  Well Injection Flow Rates
-                </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                  {LIVE_WELL_FLOW_KEYS.map((keys, i) => {
-                    const dp = resolvePreferredDatapoint(panel, keys)
-                    const val = dp ? parseFloat(dp.value) : null
-                    const desiredDp = resolvePreferredDatapoint(panel, LIVE_WELL_DESIRED_KEYS[i])
-                    const desiredVal = desiredDp ? parseFloat(desiredDp.value) : null
-                    const yesterdayDp = resolvePreferredDatapoint(panel, LIVE_WELL_YESTERDAY_KEYS[i])
-                    const yesterdayVal = yesterdayDp ? parseFloat(yesterdayDp.value) : null
-                    const maxFlow = desiredVal != null && desiredVal > 0 ? desiredVal * 1.25 : 1.2
-                    const widthPct = val != null && !Number.isNaN(val) ? Math.max(0, Math.min(100, (val / maxFlow) * 100)) : 0
-                    const desiredPct = desiredVal != null && !Number.isNaN(desiredVal) ? Math.max(0, Math.min(100, (desiredVal / maxFlow) * 100)) : null
-                    return (
-                      <div key={i} className="bg-[#0a0a14] rounded-lg border border-[#2a2a3a] p-4 text-center">
-                        <div className="text-[10px] text-[#888] mb-1">Well {i + 1}</div>
-                        <div className="text-2xl text-[#22c55e] font-bold mb-0.5" style={{ fontFamily: "'Arial Black'" }}>
-                          {val != null && !Number.isNaN(val) ? val.toFixed(3) : '--'}
-                        </div>
-                        <div className="text-[9px] text-[#888]">MMSCFD actual</div>
-                        <div className="relative w-full bg-[#1a1a2a] rounded h-2 mt-2 overflow-hidden">
-                          {desiredPct != null && (
-                            <div className="absolute top-0 bottom-0 w-0.5 bg-[#4fc3f7]/70 z-10" style={{ left: `${desiredPct}%` }} />
-                          )}
-                          <div className="h-full bg-[#22c55e] rounded transition-all" style={{ width: `${widthPct}%` }} />
-                        </div>
-                        <div className="mt-2 flex items-center justify-center gap-1">
-                          <span className="text-[8px] text-[#4fc3f7]">Target:</span>
-                          <span className="text-[10px] text-[#4fc3f7] font-bold" style={{ fontFamily: "'Arial Black'" }}>
-                            {desiredVal != null && !Number.isNaN(desiredVal) ? desiredVal.toFixed(3) : '--'}
-                          </span>
-                          <span className="text-[8px] text-[#4fc3f7]">MMSCFD</span>
-                        </div>
-                        <div className="mt-2 pt-2 border-t border-[#1a1a2a]">
-                          <div className="text-[8px] text-[#666] uppercase tracking-wider">Yesterday Flow</div>
-                          <div className="text-[12px] text-white font-bold mt-0.5" style={{ fontFamily: "'Arial Black'" }}>
-                            {yesterdayVal != null && !Number.isNaN(yesterdayVal) ? yesterdayVal.toFixed(3) : '--'}
-                          </div>
-                          <div className="text-[8px] text-[#666]">MMSCFD</div>
-                        </div>
-                        {additionalWellRegisters[i].length > 0 && (
-                          <div className="mt-3 pt-2 border-t border-[#1a1a2a] space-y-1.5 text-left">
-                            {additionalWellRegisters[i].map(meta => (
-                              <LiveRegisterRow
-                                key={meta.id}
-                                label={meta.label}
-                                value={formatLiveRegisterValue(meta, meta.datapoint)}
-                                unit={meta.datapoint.units}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-                <div className="mt-3 text-center">
-                  <span className="text-[#888] text-[11px]">Total Injection: </span>
-                  <span className="text-white font-bold text-[14px]" style={{ fontFamily: "'Arial Black'" }}>
-                    {LIVE_WELL_FLOW_KEYS.reduce((sum, keys) => {
-                      const dp = resolvePreferredDatapoint(panel, keys)
-                      return sum + (dp ? parseFloat(dp.value) || 0 : 0)
-                    }, 0).toFixed(3)} MMSCFD
-                  </span>
-                </div>
-              </div>
-
-              {/* Compression Units — 2×2 grid for all 4 Halfmann units */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                {HALFMANN_UNITS.map((u, i) => (
-                  <CompressorCard
-                    key={u.key}
-                    label={u.label}
-                    data={unitDataMaps[i]}
-                    time={getTimestamp(unitDataRaw[u.key])}
-                    desiredFlow={unitDesiredFlows[i]}
-                    actualFlow={unitActualFlows[i]}
-                    registers={getVisibleCompressorRegisters(unitDataMaps[i], {})}
-                  />
+          {/* ── Section 2: Surface Equipment ── */}
+          <div>
+            <SectionHeader>Surface Equipment</SectionHeader>
+            <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                {[
+                  { label: 'Suction Header Pressure', value: fmtPsi(suctionPres) },
+                  { label: 'Suction / Sales Valve',   value: fmtPct(suctionValve) },
+                  { label: 'Recycle Valve Position',  value: fmtPct(recycleValve) },
+                  { label: 'Panel Status — Comp 1',   value: panelStatuses[0] != null ? panelStatuses[0].toFixed(0) : '—' },
+                  { label: 'Panel Status — Comp 2',   value: panelStatuses[1] != null ? panelStatuses[1].toFixed(0) : '—' },
+                  { label: 'Panel Status — Comp 3',   value: panelStatuses[2] != null ? panelStatuses[2].toFixed(0) : '—' },
+                  { label: 'Panel Status — Comp 4',   value: panelStatuses[3] != null ? panelStatuses[3].toFixed(0) : '—' },
+                  { label: 'Panel Status — Comp 5',   value: panelStatuses[4] != null ? panelStatuses[4].toFixed(0) : '—' },
+                ].map(({ label, value }) => (
+                  <div key={label} className="bg-[#0c0c18] rounded-lg p-3">
+                    <div className="text-[8px] text-[#555] uppercase tracking-wider mb-1">{label}</div>
+                    <div
+                      className="text-[16px] font-black"
+                      style={{
+                        color: value !== '—' ? '#e2e8f0' : '#2a2a3a',
+                        fontFamily: "'Arial Black', sans-serif",
+                      }}
+                    >
+                      {value}
+                    </div>
+                  </div>
                 ))}
               </div>
-            </>
-          )}
+            </div>
+          </div>
+
+          {/* ── Section 3: Wells ── */}
+          <div>
+            <SectionHeader>Well Injection — All Parameters</SectionHeader>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              {[1,2,3,4,5].map(n => (
+                <WellCard key={n} number={n} panel={panel} />
+              ))}
+            </div>
+            {/* Total injection footer */}
+            <div className="mt-3 text-center">
+              <span className="text-[11px] text-[#666]">Total Injection: </span>
+              <span className="text-[16px] font-black text-white" style={{ fontFamily: "'Arial Black', sans-serif" }}>
+                {totalActual.toFixed(3)} MMSCFD
+              </span>
+            </div>
+          </div>
+
+          {/* ── Section 4: Compression Units ── */}
+          <div>
+            <SectionHeader>Compression Units — All Parameters</SectionHeader>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              {HALFMANN_UNITS.map(u => (
+                <CompressorCard
+                  key={u.key}
+                  label={u.label}
+                  dataRaw={unitDataRaw[u.key]}
+                />
+              ))}
+            </div>
+          </div>
+
         </div>
       </div>
 
-      <footer className="px-5 py-3 bg-[#0c0c16] border-t border-[#1a1a2a] text-center">
-        <span className="text-[9px] text-[#444]">WellLogic™ Simulator · Halfmann 1214 · Read-only public view · Data refreshes every 60 seconds</span>
+      {/* ── Footer ── */}
+      <footer className="px-5 py-2.5 bg-[#0c0c16] border-t border-[#1a1a2a] text-center">
+        <span className="text-[8px] text-[#333]">
+          WellLogic™ · Halfmann 1214 · Read-only live view · Refreshes every {REFRESH_INTERVAL_S}s · MLink data via Murphy FW
+        </span>
       </footer>
     </div>
   )
