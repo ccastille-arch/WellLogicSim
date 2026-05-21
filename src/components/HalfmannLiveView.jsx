@@ -6,8 +6,6 @@ import {
 } from '../engine/liveRegisters'
 
 // ─── Halfmann 1214 — standalone live field data view ─────────────────────────
-// Displays every register from the Halfmann Modbus list, organized by device.
-// Registers not yet published in the Murphy MLink portal show "—".
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
 const REFRESH_INTERVAL_S = 60
@@ -39,8 +37,6 @@ async function fetchDevice(deviceId) {
 
 // ─── register lookup helpers ──────────────────────────────────────────────────
 
-// Look up a value from parseLiveDatapoints map, trying multiple label variants.
-// Returns the numeric value or null.
 function getVal(panel, ...keys) {
   for (const key of keys) {
     const dp = panel[key]
@@ -51,7 +47,6 @@ function getVal(panel, ...keys) {
   return null
 }
 
-// Same but returns raw string value (for text registers like Manual/Auto).
 function getStr(panel, ...keys) {
   for (const key of keys) {
     const dp = panel[key]
@@ -60,13 +55,22 @@ function getStr(panel, ...keys) {
   return null
 }
 
-// Per-well register key builder — matches Murphy MLink label AND Excel Modbus labels.
 function wellKeys(n, suffix) {
   return [
     `Well ${n} ${suffix}`,
     `Well #${n} ${suffix}`,
     `Wellhead #${n} ${suffix}`,
     `Wellhead ${n} ${suffix}`,
+  ]
+}
+
+// Compressor desired flow register label variants from DE4000 panel.
+function compDesiredKeys(n) {
+  return [
+    `Compressor ${n} Desire Flow SP For PID Murphy`,
+    `Compressor #${n} Desire Flow SP For PID Murphy`,
+    `Compressor ${n} Desired Flow SP For PID Murphy`,
+    `Compressor #${n} Desired Flow SP For PID Murphy`,
   ]
 }
 
@@ -92,7 +96,7 @@ function fmtManualAuto(v) {
 
 function matchColor(pct) {
   if (pct == null) return '#4a5568'
-  if (pct >= 97) return '#22c55e'
+  if (pct >= 98) return '#22c55e'
   if (pct >= 90) return '#eab308'
   return '#ef4444'
 }
@@ -149,14 +153,14 @@ function RefreshCountdown({ secondsLeft, loading, onRefresh }) {
   )
 }
 
-// ─── Well card — shows all Modbus-list registers for one well ─────────────────
+// ─── Well card ────────────────────────────────────────────────────────────────
 
 function WellCard({ number, panel }) {
   const n = number
   const flowRate      = getVal(panel, ...wellKeys(n, 'Flow Rate'), ...wellKeys(n, 'Injection Gas Flow Rate'))
-  // Primary: customer PLC injection flow rate as desired/setpoint (desc-indexed key from Murphy API)
+  // "Injection Flow Rate From Customer PLC" is the authoritative desired flow per well.
   const setpoint      = getVal(panel,
-    `Wellhead #${n} Injection Flow Rate From Customer PLC`,
+    ...wellKeys(n, 'Injection Flow Rate From Customer PLC'),
     ...wellKeys(n, 'Setpoint'),
     ...wellKeys(n, 'Setpoint From Customer PLC'),
     ...wellKeys(n, 'Calculated Desired Flow'),
@@ -170,18 +174,12 @@ function WellCard({ number, panel }) {
   const casingPres    = getVal(panel, ...wellKeys(n, 'Casing Pressure'))
   const tubingPres    = getVal(panel, ...wellKeys(n, 'Tubing Pressure'))
 
-  // actual / desired × 100
+  // actual / desired * 100 (not error-based)
   const matchPct = flowRate != null && setpoint != null && setpoint > 0
     ? (flowRate / setpoint) * 100
     : null
 
   const isOnTarget = matchPct != null && matchPct >= 98
-
-  const badgeColor =
-    matchPct == null ? null :
-    matchPct >= 98   ? '#22c55e' :
-    matchPct >= 90   ? '#eab308' :
-                       '#ef4444'
 
   return (
     <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4">
@@ -197,9 +195,9 @@ function WellCard({ number, panel }) {
           <span
             className="text-[9px] font-bold px-2 py-0.5 rounded-full"
             style={{
-              background: `${badgeColor}22`,
-              color: badgeColor,
-              border: `1px solid ${badgeColor}44`,
+              background: matchColor(matchPct) + '26',
+              color: matchColor(matchPct),
+              border: `1px solid ${matchColor(matchPct)}44`,
             }}
           >
             {matchPct.toFixed(1)}%
@@ -237,36 +235,26 @@ function WellCard({ number, panel }) {
 
       {/* All Modbus-list registers */}
       <div>
-        <Field label="Setpoint"              value={fmtFlow(setpoint)}      accent="#4fc3f7" />
-        <Field label="Yesterday Flow"        value={fmtFlow(yesterdayFlow)} accent="#a78bfa" />
-        <Field label="Static Pressure"       value={fmtPsi(staticPres)}    />
-        <Field label="Differential Pressure" value={fmtPsi(diffPres)}      />
-        <Field label="Injection Temp"        value={fmtTemp(injTemp)}      />
-        <Field label="Mode"                  value={fmtManualAuto(manualAuto)} />
-        <Field label="Choke Position"        value={fmtPct(chokePos)}      />
-        <Field label="Casing Pressure"       value={fmtPsi(casingPres)}    />
-        <Field label="Tubing Pressure"       value={fmtPsi(tubingPres)}    />
+        <Field label="Target (Customer PLC)"  value={fmtFlow(setpoint)}      accent="#4fc3f7" />
+        <Field label="Match vs Target"        value={matchPct != null ? `${matchPct.toFixed(1)}%` : '—'} accent={matchColor(matchPct)} />
+        <Field label="Yesterday Flow"         value={fmtFlow(yesterdayFlow)} accent="#a78bfa" />
+        <Field label="Static Pressure"        value={fmtPsi(staticPres)}    />
+        <Field label="Differential Pressure"  value={fmtPsi(diffPres)}      />
+        <Field label="Injection Temp"         value={fmtTemp(injTemp)}      />
+        <Field label="Mode"                   value={fmtManualAuto(manualAuto)} />
+        <Field label="Choke Position"         value={fmtPct(chokePos)}      />
+        <Field label="Casing Pressure"        value={fmtPsi(casingPres)}    />
+        <Field label="Tubing Pressure"        value={fmtPsi(tubingPres)}    />
       </div>
     </div>
   )
 }
 
-// ─── Compressor unit card — all available Murphy registers ────────────────────
+// ─── Compressor unit card ──────────────────────────────────────────────────────
 
-function CompressorCard({ label, dataRaw, panel, compNum }) {
+function CompressorCard({ label, dataRaw, compNum, panel }) {
   const data = parseLiveDatapoints(dataRaw)
 
-  // Desired flow setpoint from panel (may be null if Murphy hasn't published it)
-  const desiredFlow = panel && compNum != null
-    ? getVal(panel,
-        `Compressor #${compNum} Desire Flow SP For PID Murphy`,
-        `Compressor ${compNum} Desire Flow SP For PID Murphy`,
-        `Compressor #${compNum} Desired Flow SP For PID Murphy`,
-        `Compressor #${compNum} Desired Flow`,
-      )
-    : null
-
-  // All register lookups — normalized matching handled by liveRegisters engine
   const engineSpeed   = getVal(data, 'Engine Speed', 'Compressor Speed', 'Driver Speed', 'RPM')
   const flowRate      = getVal(data, 'Flow Rate PID PV', 'Flow Rate', 'Flow Rate PV')
   const suctionPrs    = getVal(data, 'Stage 1 Suction Prs', 'Suction Pressure')
@@ -277,7 +265,7 @@ function CompressorCard({ label, dataRaw, panel, compNum }) {
   const compOilPress  = getVal(data, 'Compressor Oil Pressure')
   const compOilTemp   = getVal(data, 'Compressor Oil Temperature')
   const engOilTemp    = getVal(data, 'Engine Oil Temperature')
-  const engOilPress   = getVal(data, 'Engine Oil Presssure', 'Engine Oil Pressure')   // Murphy typo: 3 s's
+  const engOilPress   = getVal(data, 'Engine Oil Presssure', 'Engine Oil Pressure')
   const engLoad       = getVal(data, 'Engine Load')
   const sysVolts      = getVal(data, 'System Volts', 'System Voltage')
   const hourMeter     = getVal(data, 'Hour Meter')
@@ -285,13 +273,22 @@ function CompressorCard({ label, dataRaw, panel, compNum }) {
   const startAttempts = getVal(data, 'Number of Start Attempts Per Hour', 'Number of Start Attempts per Hour')
   const lockout       = getStr(data, 'Setpoint Edit Lockout Enabled')
 
+  // Desired flow from DE4000 panel (Node 1) — "Compressor ## Desire Flow SP For PID Murphy"
+  const desiredFlow = compNum != null && panel != null
+    ? getVal(panel, ...compDesiredKeys(compNum))
+    : null
+
   const isRunning = (engineSpeed != null && engineSpeed > 100) || (flowRate != null && flowRate > 0.01)
   const shutdown  = getStr(data, 'Skid - Shutdown')
   const isStopped = (shutdown && shutdown.toLowerCase().includes('shutdown')) || !isRunning
 
-  // Pressure/temp alert colors
-  const discColor = dischargePrs != null && dischargePrs > 1300 ? '#ef4444' : '#e2e8f0'
+  const discColor   = dischargePrs != null && dischargePrs > 1300 ? '#ef4444' : '#e2e8f0'
   const s3TempColor = stage3Temp != null && stage3Temp > 280 ? '#ef4444' : '#e2e8f0'
+
+  // Flow match for this compressor
+  const compMatchPct = flowRate != null && desiredFlow != null && desiredFlow > 0
+    ? (flowRate / desiredFlow) * 100
+    : null
 
   return (
     <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4">
@@ -305,30 +302,39 @@ function CompressorCard({ label, dataRaw, panel, compNum }) {
       </div>
 
       {/* Hero: RPM + Flow + Desired Flow */}
-      <div className="grid grid-cols-2 gap-2 mb-3">
+      <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="bg-[#0c0c18] rounded-lg p-2.5 text-center">
           <div className="text-[8px] text-[#666] uppercase tracking-wider mb-1">Engine Speed</div>
-          <div className="text-[18px] font-black text-white leading-none" style={{ fontFamily: "'Arial Black', sans-serif" }}>
+          <div className="text-[16px] font-black text-white leading-none" style={{ fontFamily: "'Arial Black', sans-serif" }}>
             {engineSpeed != null ? Math.round(engineSpeed).toLocaleString() : '—'}
           </div>
           <div className="text-[8px] text-[#555]">RPM</div>
         </div>
         <div className="bg-[#0c0c18] rounded-lg p-2.5 text-center">
-          <div className="text-[8px] text-[#666] uppercase tracking-wider mb-1">Flow Rate</div>
-          <div className="text-[18px] font-black leading-none" style={{ color: flowRate != null ? '#22c55e' : '#3a3a50', fontFamily: "'Arial Black', sans-serif" }}>
+          <div className="text-[8px] text-[#666] uppercase tracking-wider mb-1">Actual Flow</div>
+          <div className="text-[16px] font-black leading-none" style={{ color: flowRate != null ? '#22c55e' : '#3a3a50', fontFamily: "'Arial Black', sans-serif" }}>
             {flowRate != null ? flowRate.toFixed(3) : '—'}
+          </div>
+          <div className="text-[8px] text-[#555]">MMSCFD</div>
+        </div>
+        <div className="bg-[#0c0c18] rounded-lg p-2.5 text-center">
+          <div className="text-[8px] text-[#666] uppercase tracking-wider mb-1">Desired Flow</div>
+          <div className="text-[16px] font-black leading-none" style={{ color: desiredFlow != null ? '#4fc3f7' : '#3a3a50', fontFamily: "'Arial Black', sans-serif" }}>
+            {desiredFlow != null ? desiredFlow.toFixed(3) : '—'}
           </div>
           <div className="text-[8px] text-[#555]">MMSCFD</div>
         </div>
       </div>
 
-      {/* Desired flow setpoint */}
-      <div className="bg-[#0c0c18] rounded-lg px-3 py-2 mb-3 flex items-center justify-between">
-        <span className="text-[8px] text-[#555] uppercase tracking-wider">Desired Flow SP</span>
-        <span className="text-[13px] font-black" style={{ color: desiredFlow != null ? '#4fc3f7' : '#2a2a3a', fontFamily: "'Arial Black', sans-serif" }}>
-          {desiredFlow != null ? `${desiredFlow.toFixed(3)} MMSCFD` : '—'}
-        </span>
-      </div>
+      {/* Flow match indicator */}
+      {compMatchPct != null && (
+        <div className="mb-3 flex items-center justify-between px-2 py-1.5 rounded-lg bg-[#0c0c18]">
+          <span className="text-[9px] text-[#666] uppercase tracking-wider">Flow Match</span>
+          <span className="text-[11px] font-bold" style={{ color: matchColor(compMatchPct) }}>
+            {compMatchPct.toFixed(1)}%
+          </span>
+        </div>
+      )}
 
       {/* All registers from Modbus list */}
       <div>
@@ -415,7 +421,7 @@ export default function HalfmannLiveView() {
   const recNumComps   = getVal(panel, 'Recommended Number Of Compressors')
   const panelHourMtr  = getVal(panel, 'Hour Meter')
 
-  // Well flow rates (actual injection)
+  // Per-well flows and Customer PLC setpoints
   const wellFlows = [1,2,3,4,5].map(n =>
     getVal(panel,
       `Well #${n} Flow Rate`, `Well # ${n} Flow Rate`,
@@ -423,52 +429,49 @@ export default function HalfmannLiveView() {
       `Well ${n} Flow Rate`,
     )
   )
-  // Well targets — customer PLC injection flow rate (primary) or other setpoint keys
-  const wellTargets = [1,2,3,4,5].map(n =>
+  const wellSetpoints = [1,2,3,4,5].map(n =>
     getVal(panel,
-      `Wellhead #${n} Injection Flow Rate From Customer PLC`,
+      ...wellKeys(n, 'Injection Flow Rate From Customer PLC'),
       ...wellKeys(n, 'Setpoint'),
       ...wellKeys(n, 'Setpoint From Customer PLC'),
       ...wellKeys(n, 'Calculated Desired Flow'),
     )
   )
-  // Wells on target: actual >= 98% of target
-  const wellsOnTarget = wellFlows.filter((flow, i) => {
-    const target = wellTargets[i]
-    return flow != null && target != null && target > 0 && flow >= target * 0.98
-  }).length
-  const wellsWithTarget = wellTargets.filter(t => t != null && t > 0).length
 
   const totalActual = wellFlows.reduce((s, v) => s + (v ?? 0), 0)
   const padMatch = totalDesired != null && totalDesired > 0
     ? Math.max(0, 100 - (Math.abs(totalActual - totalDesired) / totalDesired) * 100)
     : null
 
-  // Compressor unit flows + desired flows for compressor flow match KPI
-  const unitFlowMap = {}
-  HALFMANN_UNITS.forEach(u => {
-    const uData = parseLiveDatapoints(unitDataRaw[u.key])
-    unitFlowMap[u.key] = getVal(uData, 'Flow Rate PID PV', 'Flow Rate', 'Flow Rate PV')
-  })
-  const totalUnitActual = HALFMANN_UNITS.reduce((s, u) => s + (unitFlowMap[u.key] ?? 0), 0)
-  const totalCompDesired = HALFMANN_UNITS.reduce((s, u) => {
-    const v = getVal(panel,
-      `Compressor #${u.compNum} Desire Flow SP For PID Murphy`,
-      `Compressor ${u.compNum} Desire Flow SP For PID Murphy`,
-      `Compressor #${u.compNum} Desired Flow SP For PID Murphy`,
-      `Compressor #${u.compNum} Desired Flow`,
-    )
-    return s + (v ?? 0)
+  // Wells on target: actual >= 98% of desired (Customer PLC setpoint)
+  const wellsOnTarget = wellFlows.reduce((count, flow, i) => {
+    const sp = wellSetpoints[i]
+    if (flow != null && sp != null && sp > 0 && flow >= sp * 0.98) return count + 1
+    return count
   }, 0)
-  const hasAnyUnitFlow = HALFMANN_UNITS.some(u => unitFlowMap[u.key] != null)
-  const compressorFlowMatch = totalCompDesired > 0 && hasAnyUnitFlow
-    ? (totalUnitActual / totalCompDesired) * 100
-    : null
+  const wellsWithSp = [0,1,2,3,4].filter(i => wellFlows[i] != null && wellSetpoints[i] != null).length
 
-  // Site equipment (Modbus list — may be null if not published)
+  // Compressor flow match: sum(actual) / sum(desired) * 100
+  const compActualFlows  = HALFMANN_UNITS.map(u => {
+    const d = parseLiveDatapoints(unitDataRaw[u.key])
+    return getVal(d, 'Flow Rate PID PV', 'Flow Rate', 'Flow Rate PV')
+  })
+  const compDesiredFlows = HALFMANN_UNITS.map(u => getVal(panel, ...compDesiredKeys(u.compNum)))
+  const totalCompActual  = compActualFlows.reduce((s, v) => s + (v ?? 0), 0)
+  const totalCompDesired = compDesiredFlows.reduce((s, v) => s + (v ?? 0), 0)
+  const compFlowMatch    = totalCompDesired > 0 ? (totalCompActual / totalCompDesired) * 100 : null
+
+  // Surface equipment
   const suctionPres  = getVal(panel, 'Suction Header Pressure')
   const suctionValve = getVal(panel, 'Suction/Sales Valve Position')
-  const recycleValve = getVal(panel, 'Recycle Valve Position', 'Recycle Valve', 'Station Recycle', 'RCV')
+  const recycleValve = getVal(panel,
+    'Recycle Valve Position',
+    'Station Recycle Valve Position',
+    'Station Recycle Valve',
+    'Station Recycle',
+    'RCV Position',
+    'Recycle Valve',
+  )
   const panelStatuses = [1,2,3,4,5].map(n => getVal(panel, `Panel Status comp${n}`))
 
   // ─── render ────────────────────────────────────────────────────────────────
@@ -500,7 +503,7 @@ export default function HalfmannLiveView() {
             <SectionHeader>Site Overview</SectionHeader>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
 
-              {/* Total injection match */}
+              {/* Pad injection match */}
               <div className="col-span-2 bg-[#111118] rounded-xl border border-[#1e1e2e] p-4 flex items-center gap-5">
                 <div>
                   <div className="text-[9px] text-[#666] uppercase tracking-wider mb-1">Pad Injection Match</div>
@@ -571,6 +574,44 @@ export default function HalfmannLiveView() {
                 </div>
                 <div className="text-[9px] text-[#555]">Units running</div>
               </div>
+
+              {/* Wells on target */}
+              <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4 flex flex-col justify-between">
+                <div className="text-[9px] text-[#666] uppercase tracking-wider">Wells On Target</div>
+                <div
+                  className="text-[28px] font-black leading-none mt-1"
+                  style={{
+                    color: wellsWithSp === 0 ? '#3a3a50'
+                      : wellsOnTarget === wellsWithSp ? '#22c55e'
+                      : wellsOnTarget >= wellsWithSp * 0.8 ? '#eab308'
+                      : '#ef4444',
+                    fontFamily: "'Arial Black', sans-serif",
+                  }}
+                >
+                  {wellsWithSp > 0 ? `${wellsOnTarget}/${wellsWithSp}` : '—'}
+                </div>
+                <div className="text-[9px] text-[#555]">≥98% of Customer PLC SP</div>
+              </div>
+
+              {/* Compressor flow match */}
+              <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4 flex flex-col justify-between">
+                <div className="text-[9px] text-[#666] uppercase tracking-wider">Compressor Flow Match</div>
+                <div
+                  className="text-[28px] font-black leading-none mt-1"
+                  style={{ color: matchColor(compFlowMatch), fontFamily: "'Arial Black', sans-serif" }}
+                >
+                  {compFlowMatch != null ? `${compFlowMatch.toFixed(1)}%` : '—'}
+                </div>
+                <div className="text-[9px] text-[#555]">
+                  {totalCompDesired > 0
+                    ? `${totalCompActual.toFixed(3)} / ${totalCompDesired.toFixed(3)} MMSCFD`
+                    : 'Actual / Desired MMSCFD'}
+                </div>
+              </div>
+
+              {/* Two blank filler cells to keep 4-col grid tidy on wide screens */}
+              <div className="hidden sm:block" />
+              <div className="hidden sm:block" />
             </div>
 
             {/* Panel status strip */}
@@ -581,7 +622,6 @@ export default function HalfmannLiveView() {
               </div>
               <div className="text-[9px] text-[#555]">Hour Meter: <span className="text-[10px] text-white font-bold">{fmtHrs(panelHourMtr)}</span></div>
               {lastRefresh && <div className="text-[9px] text-[#555]">Data: {lastRefresh.toLocaleString()}</div>}
-              {/* Panel compressor status registers */}
               {panelStatuses.some(v => v != null) && (
                 <div className="flex items-center gap-3 ml-auto">
                   {panelStatuses.map((v, i) => (
@@ -634,7 +674,6 @@ export default function HalfmannLiveView() {
                 <WellCard key={n} number={n} panel={panel} />
               ))}
             </div>
-            {/* Total injection footer */}
             <div className="mt-3 text-center">
               <span className="text-[11px] text-[#666]">Total Injection: </span>
               <span className="text-[16px] font-black text-white" style={{ fontFamily: "'Arial Black', sans-serif" }}>
@@ -652,8 +691,8 @@ export default function HalfmannLiveView() {
                   key={u.key}
                   label={u.label}
                   dataRaw={unitDataRaw[u.key]}
-                  panel={panel}
                   compNum={u.compNum}
+                  panel={panel}
                 />
               ))}
             </div>
