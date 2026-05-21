@@ -400,6 +400,7 @@ function buildCandidateLabels(label) {
   if (label === 'Compressor Speed') {
     candidates.add('Driver Speed')
     candidates.add('RPM')
+    candidates.add('Engine Speed')          // Halfmann AWI units publish under this name
   }
 
   if (label === 'Stage 1 Suction Prs') {
@@ -415,6 +416,23 @@ function buildCandidateLabels(label) {
   if (label === '3rd Stage Discharge Temperature') {
     candidates.add('Discharge Temperature')
     candidates.add('3rd Stage Discharge Temp')
+  }
+
+  // Halfmann-unit label variants — Murphy portal uses these names/typos
+  if (label === 'System Voltage') {
+    candidates.add('System Volts')
+  }
+
+  if (label === 'Engine Oil Pressure') {
+    candidates.add('Engine Oil Presssure')  // Murphy portal typo (3 s's) on Halfmann units
+  }
+
+  if (label === 'Stage 1 Discharge Temperature') {
+    candidates.add('1st Stage Discharge Temperature')
+  }
+
+  if (label === 'Stage 2 Discharge Temperature') {
+    candidates.add('2nd Stage Discharge Temperature')
   }
 
   if (label === 'Flow Rate PID PV') {

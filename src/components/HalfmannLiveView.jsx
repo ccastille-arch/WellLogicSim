@@ -38,23 +38,26 @@ const LIVE_WELL_FLOW_KEYS = [
   ['Well 2 Injection Gas Flow Rate', 'Well #2 Flow Rate'],
   ['Well 3 Injection Gas Flow Rate', 'Well #3 Flow Rate'],
   ['Well 4 Injection Gas Flow Rate', 'Well #4 Flow Rate'],
-  ['Well 5 Injection Gas Flow Rate', 'Well #5 Flow Rate'],
+  // Murphy portal publishes Well 5 with a space: 'Well # 5 Flow Rate' — add both variants
+  ['Well 5 Injection Gas Flow Rate', 'Well #5 Flow Rate', 'Well # 5 Flow Rate'],
 ]
 
+// Excel register labels (from Updated Well-PLC Modbus List) as primary keys,
+// with legacy Klondike-style aliases as fallback.
 const LIVE_WELL_YESTERDAY_KEYS = [
-  ['Wellhead #1 Yesterdays Total Flow', 'Well 1 Yesterdays Total Flow'],
-  ['Wellhead #2 Yesterdays Total Flow', 'Well 2 Yesterdays Total Flow'],
-  ['Wellhead #3 Yesterdays Total Flow', 'Well 3 Yesterdays Total Flow'],
-  ['Wellhead #4 Yesterdays Total Flow', 'Well 4 Yesterdays Total Flow'],
-  ['Wellhead #5 Yesterdays Total Flow', 'Well 5 Yesterdays Total Flow'],
+  ['Well 1 Yesterdays Flow', 'Wellhead #1 Yesterdays Total Flow', 'Well 1 Yesterdays Total Flow'],
+  ['Well 2 Yesterdays Flow', 'Wellhead #2 Yesterdays Total Flow', 'Well 2 Yesterdays Total Flow'],
+  ['Well 3 Yesterdays Flow', 'Wellhead #3 Yesterdays Total Flow', 'Well 3 Yesterdays Total Flow'],
+  ['Well 4 Yesterdays Flow', 'Wellhead #4 Yesterdays Total Flow', 'Well 4 Yesterdays Total Flow'],
+  ['Well 5 Yesterdays Flow', 'Wellhead #5 Yesterdays Total Flow', 'Well 5 Yesterdays Total Flow'],
 ]
 
 const LIVE_WELL_DESIRED_KEYS = [
-  ['Wellhead #1 Calculated Desired Flow', 'Well 1 Calculated Desired Flow', 'Wellhead #1 Setpoint From Customer PLC', 'Well 1 Setpoint From Customer PLC'],
-  ['Wellhead #2 Calculated Desired Flow', 'Well 2 Calculated Desired Flow', 'Wellhead #2 Setpoint From Customer PLC', 'Well 2 Setpoint From Customer PLC'],
-  ['Wellhead #3 Calculated Desired Flow', 'Well 3 Calculated Desired Flow', 'Wellhead #3 Setpoint From Customer PLC', 'Well 3 Setpoint From Customer PLC'],
-  ['Wellhead #4 Calculated Desired Flow', 'Well 4 Calculated Desired Flow', 'Wellhead #4 Setpoint From Customer PLC', 'Well 4 Setpoint From Customer PLC'],
-  ['Wellhead #5 Calculated Desired Flow', 'Well 5 Calculated Desired Flow', 'Wellhead #5 Setpoint From Customer PLC', 'Well 5 Setpoint From Customer PLC'],
+  ['Well 1 Setpoint', 'Wellhead #1 Calculated Desired Flow', 'Well 1 Calculated Desired Flow', 'Wellhead #1 Setpoint From Customer PLC', 'Well 1 Setpoint From Customer PLC'],
+  ['Well 2 Setpoint', 'Wellhead #2 Calculated Desired Flow', 'Well 2 Calculated Desired Flow', 'Wellhead #2 Setpoint From Customer PLC', 'Well 2 Setpoint From Customer PLC'],
+  ['Well 3 Setpoint', 'Wellhead #3 Calculated Desired Flow', 'Well 3 Calculated Desired Flow', 'Wellhead #3 Setpoint From Customer PLC', 'Well 3 Setpoint From Customer PLC'],
+  ['Well 4 Setpoint', 'Wellhead #4 Calculated Desired Flow', 'Well 4 Calculated Desired Flow', 'Wellhead #4 Setpoint From Customer PLC', 'Well 4 Setpoint From Customer PLC'],
+  ['Well 5 Setpoint', 'Wellhead #5 Calculated Desired Flow', 'Well 5 Calculated Desired Flow', 'Wellhead #5 Setpoint From Customer PLC', 'Well 5 Setpoint From Customer PLC'],
 ]
 
 // ─── fetch helpers ─────────────────────────────────────────────────────────────
@@ -227,7 +230,7 @@ function WowMetricCard({ label, value, helper, tone }) {
 }
 
 function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers }) {
-  const rpm = data['Compressor Speed'] || data['Driver Speed'] || data['RPM']
+  const rpm = data['Compressor Speed'] || data['Driver Speed'] || data['RPM'] || data['Engine Speed']
   const shutdown = data['Skid - Shutdown']
   const isShutdown = shutdown && String(shutdown.value).toLowerCase().includes('shutdown')
   const hasRpm = rpm && parseFloat(rpm.value) > 100
