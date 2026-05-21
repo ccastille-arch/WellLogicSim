@@ -357,6 +357,11 @@ app.get('/live-view', (_req, res) => {
   res.sendFile(join(distPath, 'live-view.html'))
 })
 
+// Halfmann 1214 standalone live view — no auth required, no app chrome
+app.get('/halfmann-view', (_req, res) => {
+  res.sendFile(join(distPath, 'halfmann-view.html'))
+})
+
 app.use(express.static(distPath))
 app.get(/(.*)/, (req, res) => {
   if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' })
