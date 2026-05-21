@@ -158,9 +158,8 @@ function RefreshCountdown({ secondsLeft, loading, onRefresh }) {
 function WellCard({ number, panel }) {
   const n = number
   const flowRate      = getVal(panel, ...wellKeys(n, 'Flow Rate'), ...wellKeys(n, 'Injection Gas Flow Rate'))
-  // "Injection Flow Rate From Customer PLC" is the authoritative desired flow per well.
+  // Per-well setpoint — "Well N Setpoint" Modbus register (not yet published in Murphy portal)
   const setpoint      = getVal(panel,
-    ...wellKeys(n, 'Injection Flow Rate From Customer PLC'),
     ...wellKeys(n, 'Setpoint'),
     ...wellKeys(n, 'Setpoint From Customer PLC'),
     ...wellKeys(n, 'Calculated Desired Flow'),
@@ -453,9 +452,9 @@ export default function HalfmannLiveView() {
       `Well ${n} Flow Rate`,
     )
   )
+  // Per-well setpoints — "Well N Setpoint" Modbus register (not yet published by Murphy portal)
   const wellSetpoints = [1,2,3,4,5].map(n =>
     getVal(panel,
-      ...wellKeys(n, 'Injection Flow Rate From Customer PLC'),
       ...wellKeys(n, 'Setpoint'),
       ...wellKeys(n, 'Setpoint From Customer PLC'),
       ...wellKeys(n, 'Calculated Desired Flow'),
@@ -616,20 +615,35 @@ export default function HalfmannLiveView() {
               {/* Wells on target */}
               <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4 flex flex-col justify-between">
                 <div className="text-[9px] text-[#666] uppercase tracking-wider">Wells On Target</div>
-                <div className="text-[28px] font-black leading-none mt-1" style={{ color: wellsOnTarget === wellsWithTarget && wellsWithTarget > 0 ? '#22c55e' : wellsOnTarget > 0 ? '#eab308' : '#ef4444', fontFamily: "'Arial Black', sans-serif" }}>
-                  {wellsWithTarget > 0 ? `${wellsOnTarget}/${wellsWithTarget}` : '—'}
+                <div
+                  className="text-[28px] font-black leading-none mt-1"
+                  style={{
+                    color: wellsWithSp === 0 ? '#3a3a50'
+                      : wellsOnTarget === wellsWithSp ? '#22c55e'
+                      : wellsOnTarget > 0 ? '#eab308'
+                      : '#ef4444',
+                    fontFamily: "'Arial Black', sans-serif",
+                  }}
+                >
+                  {wellsWithSp > 0 ? `${wellsOnTarget}/${wellsWithSp}` : '—'}
                 </div>
-                <div className="text-[9px] text-[#555]">≥ 98% of target</div>
+                <div className="text-[9px] text-[#555]">≥ 98% of setpoint</div>
               </div>
 
               {/* Compressor flow match */}
               <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4 flex flex-col justify-between">
                 <div className="text-[9px] text-[#666] uppercase tracking-wider">Compressor Flow Match</div>
-                <div className="text-[28px] font-black leading-none mt-1"
-                  style={{ color: compressorFlowMatch != null ? matchColor(compressorFlowMatch) : '#3a3a50', fontFamily: "'Arial Black', sans-serif" }}>
-                  {compressorFlowMatch != null ? `${compressorFlowMatch.toFixed(1)}%` : '—'}
+                <div
+                  className="text-[28px] font-black leading-none mt-1"
+                  style={{ color: matchColor(compFlowMatch), fontFamily: "'Arial Black', sans-serif" }}
+                >
+                  {compFlowMatch != null ? `${compFlowMatch.toFixed(1)}%` : '—'}
                 </div>
-                <div className="text-[9px] text-[#555]">actual / desired</div>
+                <div className="text-[9px] text-[#555]">
+                  {totalCompDesired > 0
+                    ? `${totalCompActual.toFixed(3)} / ${totalCompDesired.toFixed(3)} MMSCFD`
+                    : 'Actual / Desired MMSCFD'}
+                </div>
               </div>
             </div>
 
@@ -650,44 +664,6 @@ export default function HalfmannLiveView() {
                 </div>
                 <div className="text-[9px] text-[#555]">Units running</div>
               </div>
-
-              {/* Wells on target */}
-              <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4 flex flex-col justify-between">
-                <div className="text-[9px] text-[#666] uppercase tracking-wider">Wells On Target</div>
-                <div
-                  className="text-[28px] font-black leading-none mt-1"
-                  style={{
-                    color: wellsWithSp === 0 ? '#3a3a50'
-                      : wellsOnTarget === wellsWithSp ? '#22c55e'
-                      : wellsOnTarget >= wellsWithSp * 0.8 ? '#eab308'
-                      : '#ef4444',
-                    fontFamily: "'Arial Black', sans-serif",
-                  }}
-                >
-                  {wellsWithSp > 0 ? `${wellsOnTarget}/${wellsWithSp}` : '—'}
-                </div>
-                <div className="text-[9px] text-[#555]">≥98% of Customer PLC SP</div>
-              </div>
-
-              {/* Compressor flow match */}
-              <div className="bg-[#111118] rounded-xl border border-[#1e1e2e] p-4 flex flex-col justify-between">
-                <div className="text-[9px] text-[#666] uppercase tracking-wider">Compressor Flow Match</div>
-                <div
-                  className="text-[28px] font-black leading-none mt-1"
-                  style={{ color: matchColor(compFlowMatch), fontFamily: "'Arial Black', sans-serif" }}
-                >
-                  {compFlowMatch != null ? `${compFlowMatch.toFixed(1)}%` : '—'}
-                </div>
-                <div className="text-[9px] text-[#555]">
-                  {totalCompDesired > 0
-                    ? `${totalCompActual.toFixed(3)} / ${totalCompDesired.toFixed(3)} MMSCFD`
-                    : 'Actual / Desired MMSCFD'}
-                </div>
-              </div>
-
-              {/* Two blank filler cells to keep 4-col grid tidy on wide screens */}
-              <div className="hidden sm:block" />
-              <div className="hidden sm:block" />
             </div>
 
             {/* Panel status strip */}
