@@ -304,6 +304,37 @@ app.get('/api/mlink/device/full', async (req, res) => {
   })
 })
 
+// Probe Murphy's DataExport endpoint — may expose all configured registers
+// (not just the published freeze-group 8) when queried with a time window.
+app.get('/api/mlink/dataexport', async (req, res) => {
+  const key = process.env.MLINK_API_KEY
+  if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
+  const { deviceId } = req.query
+  if (!deviceId) return res.status(400).json({ error: 'deviceId required' })
+  const todayMidnightUTC = Math.floor(Date.now() / 86400000) * 86400
+  const yesterdayStart = todayMidnightUTC - 86400
+  const yesterdayEnd   = todayMidnightUTC - 1
+  const attempts = [
+    { endpoint: 'DataExport',       params: `deviceId=${deviceId}&startTs=${yesterdayStart}&endTs=${yesterdayEnd}` },
+    { endpoint: 'DataExport',       params: `deviceId=${deviceId}&startDate=${new Date(yesterdayStart*1000).toISOString()}&endDate=${new Date(yesterdayEnd*1000).toISOString()}` },
+    { endpoint: 'GetRegisterData',  params: `deviceId=${deviceId}` },
+    { endpoint: 'AllRegisterData',  params: `deviceId=${deviceId}` },
+    { endpoint: 'RegisterHistory',  params: `deviceId=${deviceId}&startTs=${yesterdayStart}&endTs=${yesterdayEnd}` },
+  ]
+  const results = {}
+  for (const { endpoint, params } of attempts) {
+    try {
+      const url = `${MLINK_BASE}/${endpoint}?${params}&code=${key}`
+      const r = await fetch(url)
+      const text = await r.text().catch(() => '')
+      results[`${endpoint}?${params.split('&')[0]}`] = { status: r.status, ok: r.ok, snippet: text.slice(0, 2000) }
+    } catch (err) {
+      results[endpoint] = { error: err.message }
+    }
+  }
+  res.json({ deviceId, results })
+})
+
 app.get('/api/mlink/runreport', async (req, res) => {
   const key = process.env.MLINK_API_KEY
   if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
