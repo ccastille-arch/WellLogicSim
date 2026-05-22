@@ -119,7 +119,7 @@ function computeMatchPct(actual, desired) {
 
 function isWithinTarget(actual, desired) {
   if (actual == null || desired == null || desired <= 0) return false
-  return Math.abs(actual - desired) <= desired * 0.05
+  return actual >= desired * 0.95
 }
 
 function average(values) {
