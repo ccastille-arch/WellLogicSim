@@ -671,7 +671,7 @@ export default function HalfmannLiveView() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <a href="?tab=trending" className="text-[11px] font-bold text-[#49D0E2] hover:text-[#4fc3f7] uppercase tracking-wider">TRENDING</a>
+          <a href="/halfmann-trending" className="text-[11px] font-bold text-[#49D0E2] hover:text-[#4fc3f7] uppercase tracking-wider">TRENDING</a>
           {lastRefresh && (
             <span className="text-[9px] text-[#555] hidden sm:inline">
               Last update: {lastRefresh.toLocaleTimeString()}

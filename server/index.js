@@ -388,9 +388,14 @@ app.get('/live-view', (_req, res) => {
   res.sendFile(join(distPath, 'live-view.html'))
 })
 
-// Halfmann 1214 standalone live view — no auth required, no app chrome
+// Halfmann 1214 standalone live view - no auth required, no app chrome
 app.get('/halfmann-view', (_req, res) => {
   res.sendFile(join(distPath, 'halfmann-view.html'))
+})
+
+// Halfmann 1214 trending / playback view - no auth required, no app chrome
+app.get('/halfmann-trending', (_req, res) => {
+  res.sendFile(join(distPath, 'halfmann-trending.html'))
 })
 
 app.use(express.static(distPath))
