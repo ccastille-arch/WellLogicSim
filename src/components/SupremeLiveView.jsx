@@ -998,7 +998,7 @@ export default function SupremeLiveView() {
                         </div>
                         {yesterdayVal != null && !Number.isNaN(yesterdayVal) && (
                         <div className="mt-3 pt-2 border-t border-[#1a1a2a]">
-                          <div className="text-[8px] text-[#666] uppercase tracking-wider">{yesterdayVal != null ? 'Yesterday Flow' : wellMeta.active ? 'Desired Flow' : 'Future/Inactive'}</div>
+                          <div className="text-[8px] text-[#666] uppercase tracking-wider">Yesterday Flow</div>
                           <div className="text-[12px] text-white font-bold mt-0.5" style={{ fontFamily: "'Arial Black'" }}>
                             {yesterdayVal.toFixed(3)}
                           </div>
