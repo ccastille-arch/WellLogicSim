@@ -232,6 +232,7 @@ export default function SettingsTab() {
           {[
             { id: 'klondike', label: 'Klondike (WL0001)', url: '/live-view.html', desc: 'Klondike West Texas pad' },
             { id: 'halfmann', label: 'Halfmann 1214', url: '/halfmann-view.html', desc: 'Halfmann 5-device pad' },
+            { id: 'supreme', label: 'Supreme COP', url: '/supreme-view', desc: 'ConocoPhillips Supreme pad' },
           ].map(pad => {
             const visibility = settings.liveDataPadVisibility || {}
             const isVisible = visibility[pad.id] !== false

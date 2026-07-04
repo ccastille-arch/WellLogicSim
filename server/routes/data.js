@@ -161,9 +161,10 @@ router.get('/public/pad-visibility', async (_req, res) => {
     res.json({
       klondike: visibility.klondike !== false,
       halfmann: visibility.halfmann !== false,
+      supreme: visibility.supreme !== false,
     })
   } catch {
-    res.json({ klondike: true, halfmann: true })
+    res.json({ klondike: true, halfmann: true, supreme: true })
   }
 })
 

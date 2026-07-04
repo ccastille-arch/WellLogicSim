@@ -12,6 +12,7 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         'live-view': resolve(__dirname, 'live-view.html'),
         'halfmann-view': resolve(__dirname, 'halfmann-view.html'),
+        'supreme-view': resolve(__dirname, 'supreme-view.html'),
         'halfmann-trending': resolve(__dirname, 'halfmann-trending.html'),
       },
     },

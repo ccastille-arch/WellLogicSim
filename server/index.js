@@ -103,6 +103,128 @@ const MLINK_LABELS = {
   },
 }
 
+const SUPREME_MLINK_DEVICES = {
+  panel: process.env.MLINK_SUPREME_PANEL_DEVICE_ID || '',
+  unit2139: process.env.MLINK_SUPREME_UNIT_2139_DEVICE_ID || '',
+  unit2140: process.env.MLINK_SUPREME_UNIT_2140_DEVICE_ID || '',
+}
+
+const SUPREME_MLINK_LABELS = {
+  panel: {
+    name: 'Well Control Supreme COP',
+    description: 'ConocoPhillips Supreme well control panel',
+  },
+  unit2139: {
+    name: '2139 Conoco Supreme Federal 21 CTB',
+    description: 'Compressor #1 · Unit 2139',
+  },
+  unit2140: {
+    name: '2140 Conoco Supreme Federal 21 CTB',
+    description: 'Compressor #2 · Unit 2140',
+  },
+}
+
+function resolveSupremeDevice(asset) {
+  const key = String(asset || '').trim()
+  if (!Object.hasOwn(SUPREME_MLINK_DEVICES, key)) return null
+  const deviceId = SUPREME_MLINK_DEVICES[key]
+  return {
+    asset: key,
+    deviceId,
+    configured: !!deviceId,
+    ...SUPREME_MLINK_LABELS[key],
+  }
+}
+
+function mlinkDatapointKey(dp) {
+  return dp.alias || dp.desc || dp.dataSourceName || dp.Name || dp.name
+}
+
+async function fetchMlinkLatest(deviceId, key) {
+  const r = await fetch(`${MLINK_BASE}/LatestDeviceData?deviceId=${encodeURIComponent(deviceId)}&code=${encodeURIComponent(key)}`)
+  if (!r.ok) {
+    const body = await r.text().catch(() => '')
+    const err = new Error(body.slice(0, 500) || 'MLINK error')
+    err.status = r.status
+    throw err
+  }
+  return r.json()
+}
+
+async function fetchMlinkFull(deviceId, key) {
+  let latestData = null
+  try {
+    latestData = await fetchMlinkLatest(deviceId, key)
+  } catch {}
+
+  const todayMidnightUTC = Math.floor(Date.now() / 86400000) * 86400
+  const yesterdayStartUTC = todayMidnightUTC - 86400
+  const yesterdayEndUTC = todayMidnightUTC - 1
+
+  let runReportDps = []
+  let _runReportStatus = null
+  let _runReportDebug = null
+  let _runReportFromCache = false
+
+  const cached = RUN_REPORT_CACHE.get(deviceId)
+  if (cached && Date.now() - cached.fetchedAt < RUN_REPORT_TTL_MS) {
+    runReportDps = cached.dps
+    _runReportStatus = cached.status
+    _runReportDebug = `cache hit (age ${Math.round((Date.now() - cached.fetchedAt) / 1000)}s): ${cached.debug}`
+    _runReportFromCache = true
+  } else {
+    try {
+      const r = await fetch(
+        `${MLINK_BASE}/RunReport?deviceId=${encodeURIComponent(deviceId)}&startTs=${yesterdayStartUTC}&endTs=${yesterdayEndUTC}&code=${encodeURIComponent(key)}`
+      )
+      _runReportStatus = r.status
+      if (r.ok) {
+        const data = await r.json()
+        const records = Array.isArray(data) ? data : [data]
+        for (const rec of records) {
+          for (const dp of (rec.datapoints || rec.data || [])) {
+            runReportDps.push(dp)
+          }
+        }
+        _runReportDebug = `ok, ${records.length} records, ${runReportDps.length} dps`
+        RUN_REPORT_CACHE.set(deviceId, { dps: runReportDps, fetchedAt: Date.now(), status: r.status, debug: _runReportDebug })
+      } else {
+        const errText = await r.text().catch(() => '')
+        _runReportDebug = errText.slice(0, 300)
+      }
+    } catch (e) {
+      _runReportDebug = `fetch error: ${e.message}`
+    }
+  }
+
+  if (!latestData && runReportDps.length === 0) {
+    const err = new Error('No data from MLink')
+    err.status = 502
+    throw err
+  }
+
+  const byKey = {}
+  for (const dp of runReportDps) {
+    const k = mlinkDatapointKey(dp)
+    if (k && !byKey[k]) byKey[k] = dp
+  }
+  for (const dp of (latestData?.datapoints || [])) {
+    const k = mlinkDatapointKey(dp)
+    if (k) byKey[k] = dp
+  }
+
+  return {
+    ...(latestData || {}),
+    datapoints: Object.values(byKey),
+    _merged: true,
+    _runReportCount: runReportDps.length,
+    _runReportStatus,
+    _runReportDebug,
+    _runReportFromCache,
+    _window: { yesterdayStartUTC, yesterdayEndUTC },
+  }
+}
+
 app.get('/api/mlink/devices', (_req, res) => {
   res.json({
     devices: MLINK_DEVICES,
@@ -139,6 +261,77 @@ app.get('/api/mlink/devices/discover', async (_req, res) => {
     } catch { /* keep trying */ }
   }
   res.status(502).json({ error: 'No MLink device-list endpoint responded. Check MLink API docs for the right path and wire it here.' })
+})
+
+app.get('/api/mlink/supreme/devices', (_req, res) => {
+  const devices = {}
+  for (const asset of Object.keys(SUPREME_MLINK_DEVICES)) {
+    const resolved = resolveSupremeDevice(asset)
+    devices[asset] = {
+      asset,
+      deviceId: resolved.deviceId,
+      configured: resolved.configured,
+      name: resolved.name,
+      description: resolved.description,
+    }
+  }
+  res.json({
+    customer: 'ConocoPhillips',
+    location: 'Supreme',
+    plcPlatform: 'DE4000',
+    commissioningDate: '2026-07-03',
+    reportNo: 'SC-WP-SUP-001',
+    devices,
+    env: {
+      panel: 'MLINK_SUPREME_PANEL_DEVICE_ID',
+      unit2139: 'MLINK_SUPREME_UNIT_2139_DEVICE_ID',
+      unit2140: 'MLINK_SUPREME_UNIT_2140_DEVICE_ID',
+    },
+  })
+})
+
+app.get('/api/mlink/supreme/device', async (req, res) => {
+  const key = process.env.MLINK_API_KEY
+  if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
+  const resolved = resolveSupremeDevice(req.query.asset)
+  if (!resolved) return res.status(400).json({ error: 'unknown Supreme asset', validAssets: Object.keys(SUPREME_MLINK_DEVICES) })
+  if (!resolved.configured) {
+    return res.status(503).json({
+      error: 'Supreme MLink device ID not configured',
+      asset: resolved.asset,
+      requiredEnv: resolved.asset === 'panel'
+        ? 'MLINK_SUPREME_PANEL_DEVICE_ID'
+        : `MLINK_SUPREME_UNIT_${resolved.asset.replace('unit', '')}_DEVICE_ID`,
+    })
+  }
+  try {
+    const data = await fetchMlinkLatest(resolved.deviceId, key)
+    res.json({ ...data, _supremeAsset: resolved.asset, _assetName: resolved.name })
+  } catch (err) {
+    res.status(err.status || 502).json({ error: 'MLINK error', status: err.status || 502, details: err.message })
+  }
+})
+
+app.get('/api/mlink/supreme/device/full', async (req, res) => {
+  const key = process.env.MLINK_API_KEY
+  if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
+  const resolved = resolveSupremeDevice(req.query.asset)
+  if (!resolved) return res.status(400).json({ error: 'unknown Supreme asset', validAssets: Object.keys(SUPREME_MLINK_DEVICES) })
+  if (!resolved.configured) {
+    return res.status(503).json({
+      error: 'Supreme MLink device ID not configured',
+      asset: resolved.asset,
+      requiredEnv: resolved.asset === 'panel'
+        ? 'MLINK_SUPREME_PANEL_DEVICE_ID'
+        : `MLINK_SUPREME_UNIT_${resolved.asset.replace('unit', '')}_DEVICE_ID`,
+    })
+  }
+  try {
+    const data = await fetchMlinkFull(resolved.deviceId, key)
+    res.json({ ...data, _supremeAsset: resolved.asset, _assetName: resolved.name })
+  } catch (err) {
+    res.status(err.status || 502).json({ error: err.message || 'MLINK unreachable', details: err.message })
+  }
 })
 
 app.get('/api/mlink/device', async (req, res) => {
@@ -391,6 +584,11 @@ app.get('/live-view', (_req, res) => {
 // Halfmann 1214 standalone live view - no auth required, no app chrome
 app.get('/halfmann-view', (_req, res) => {
   res.sendFile(join(distPath, 'halfmann-view.html'))
+})
+
+// Supreme COP standalone live view - no auth required, no app chrome
+app.get(['/supreme-view', '/supreme'], (_req, res) => {
+  res.sendFile(join(distPath, 'supreme-view.html'))
 })
 
 // Halfmann 1214 trending / playback view - no auth required, no app chrome
