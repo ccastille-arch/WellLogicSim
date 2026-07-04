@@ -153,9 +153,12 @@ async function fetchMlinkLatest(deviceId, key) {
 
 async function fetchMlinkFull(deviceId, key) {
   let latestData = null
+  let latestError = null
   try {
     latestData = await fetchMlinkLatest(deviceId, key)
-  } catch {}
+  } catch (err) {
+    latestError = err
+  }
 
   const todayMidnightUTC = Math.floor(Date.now() / 86400000) * 86400
   const yesterdayStartUTC = todayMidnightUTC - 86400
@@ -198,8 +201,8 @@ async function fetchMlinkFull(deviceId, key) {
   }
 
   if (!latestData && runReportDps.length === 0) {
-    const err = new Error('No data from MLink')
-    err.status = 502
+    const err = latestError || new Error('No data from MLink')
+    err.status = err.status || 502
     throw err
   }
 
