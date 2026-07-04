@@ -778,7 +778,7 @@ export default function SupremeLiveView() {
               Live Field Data — Supreme COP
             </div>
             <div className="text-[10px] text-[#666]">
-              ConocoPhillips · Supreme · DE4000 · Report SC-WP-SUP-001
+              ConocoPhillips · Supreme · DE4000
             </div>
           </div>
         </div>

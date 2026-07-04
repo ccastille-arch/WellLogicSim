@@ -411,8 +411,6 @@ app.get('/api/mlink/supreme/devices', (_req, res) => {
     customer: 'ConocoPhillips',
     location: 'Supreme',
     plcPlatform: 'DE4000',
-    commissioningDate: '2026-07-03',
-    reportNo: 'SC-WP-SUP-001',
     devices,
     env: {
       panel: 'MLINK_SUPREME_PANEL_DEVICE_ID',
