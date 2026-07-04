@@ -149,6 +149,13 @@ function formatFlowValue(value) {
   return Number.isFinite(numeric) ? numeric.toFixed(3) : '--'
 }
 
+function normalizeUnit(unit) {
+  if (!unit) return ''
+  const text = String(unit).trim()
+  if (/^(?:Â°|°|deg\s*)F$/i.test(text) || /F$/.test(text) && text.includes('Â')) return 'deg F'
+  return text
+}
+
 function formatHourMeterValue(value) {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric.toLocaleString() : '--'
@@ -186,7 +193,7 @@ function DataPoint({ label, value, unit, color, compact = false }) {
         <span className={compact ? 'text-[16px] font-bold' : 'text-[14px] font-bold'} style={{ color: color || '#fff', fontFamily: "'Arial Black'" }}>
           {value || '--'}
         </span>
-        <span className="text-[8px] text-[#666]">{unit}</span>
+        <span className="text-[8px] text-[#666]">{normalizeUnit(unit)}</span>
       </div>
     </div>
   )
@@ -198,7 +205,7 @@ function LiveRegisterRow({ label, value, unit }) {
       <div className="text-[8px] text-[#777] leading-tight">{label}</div>
       <div className="text-right">
         <div className="text-[10px] text-white font-bold">{value}</div>
-        {unit && <div className="text-[8px] text-[#666]">{unit}</div>}
+        {unit && <div className="text-[8px] text-[#666]">{normalizeUnit(unit)}</div>}
       </div>
     </div>
   )
@@ -240,6 +247,10 @@ function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers 
   ))
   const desiredFlowValue = formatFlowValue(desiredFlow?.value)
   const actualFlowValue = formatFlowValue(actualFlow?.value)
+  const flowPoints = [
+    desiredFlow ? { label: 'Desired Flow', value: desiredFlowValue, unit: desiredFlow.units || 'MMSCFD', color: '#4fc3f7' } : null,
+    actualFlow ? { label: 'Actual Flow', value: actualFlowValue, unit: actualFlow.units || 'MMSCFD', color: getCompressorColor('Flow Rate PID PV', actualFlow.value) } : null,
+  ].filter(Boolean)
   return (
     <div className="bg-[#111118] rounded-xl border border-[#222] p-5">
       <div className="flex items-center gap-2 mb-3">
@@ -249,10 +260,13 @@ function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers 
           {statusLabel}
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <DataPoint label="Desired Flow" value={desiredFlowValue} unit={desiredFlow?.units || 'MMSCFD'} color="#4fc3f7" compact />
-        <DataPoint label="Actual Flow" value={actualFlowValue} unit={actualFlow?.units || 'MMSCFD'} color={getCompressorColor('Flow Rate PID PV', actualFlow?.value)} compact />
-      </div>
+      {flowPoints.length > 0 && (
+        <div className={`grid gap-2 mb-3 ${flowPoints.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {flowPoints.map(point => (
+            <DataPoint key={point.label} label={point.label} value={point.value} unit={point.unit} color={point.color} compact />
+          ))}
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-2">
         {visibleRegisters.map(meta => (
           <DataPoint
@@ -275,7 +289,9 @@ function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers 
 }
 
 function LivePerformanceHero({ metrics, wells, timestamp, isLive }) {
-  const activeWellCount = wells.filter(well => well.active !== false).length
+  const activeWells = wells.filter(well => well.active !== false)
+  const activeWellCount = activeWells.length
+  const targetableWells = activeWells.filter(well => well.desired != null)
   const headline = metrics.currentMatch != null && metrics.currentMatch >= 97
     ? 'Running Tight. Running On Target.'
     : metrics.currentMatch != null && metrics.currentMatch >= 93
@@ -304,57 +320,60 @@ function LivePerformanceHero({ metrics, wells, timestamp, isLive }) {
               : 'This Supreme-only field view displays live MLink values only. No static fallback values are shown.'}
           </p>
           <div className="mt-5 grid gap-3 md:grid-cols-4">
-            <WowMetricCard
-              label="Live Injection Match"
-              value={formatPercent(metrics.currentMatch, 1)}
-              tone="green"
-              helper={metrics.totalDesired ? `${metrics.totalActual?.toFixed(3)} actual vs ${metrics.totalDesired.toFixed(3)} desired` : 'Waiting on desired-rate tags'}
-            />
-            <WowMetricCard
-              label="Wells On Target"
-              value={metrics.wellsAtTarget != null ? `${metrics.wellsAtTarget}/${activeWellCount}` : '--'}
-              tone="blue"
-              helper={metrics.wellsAtTarget != null ? 'Within 2% of desired injection' : 'Per-well targets not in API feed'}
-            />
+            {metrics.currentMatch != null && (
+              <WowMetricCard
+                label="Live Injection Match"
+                value={formatPercent(metrics.currentMatch, 1)}
+                tone="green"
+                helper={`${metrics.totalActual?.toFixed(3)} actual vs ${metrics.totalDesired.toFixed(3)} desired`}
+              />
+            )}
+            {metrics.wellsAtTarget != null && (
+              <WowMetricCard
+                label="Wells On Target"
+                value={`${metrics.wellsAtTarget}/${targetableWells.length || activeWellCount}`}
+                tone="blue"
+                helper="Within 2% of desired injection"
+              />
+            )}
             <WowMetricCard
               label="Panel Feed"
               value={isLive ? 'Live' : 'Pending'}
               tone="amber"
               helper="Shows current MLink panel status only"
             />
-            <WowMetricCard
-              label="Compressor Flow Match"
-              value={formatPercent(metrics.compressorMatch, 1)}
-              tone="purple"
-              helper="Desired flow vs actual compressor flow"
-            />
+            {metrics.compressorMatch != null && (
+              <WowMetricCard
+                label="Compressor Flow Match"
+                value={formatPercent(metrics.compressorMatch, 1)}
+                tone="purple"
+                helper="Desired flow vs actual compressor flow"
+              />
+            )}
           </div>
         </div>
 
         <div className="rounded-2xl border border-[#1c2836] bg-[#0a0f17]/90 p-4">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9db2ce]">Actual vs Desired By Well</span>
-            <span className="text-[10px] text-[#5e6b80]">Live target tracking</span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#9db2ce]">
+              {targetableWells.length > 0 ? 'Actual vs Desired By Well' : 'Actual Well Flow'}
+            </span>
+            <span className="text-[10px] text-[#5e6b80]">{targetableWells.length > 0 ? 'Live target tracking' : 'Live MLink values'}</span>
           </div>
           <div className="space-y-3">
-            {wells.map((well) => (
+            {activeWells.map((well) => (
               <div key={well.wellNumber} className={`rounded-xl border p-3 ${well.active ? 'border-[#15202d] bg-[#0b1119]' : 'border-[#222633] bg-[#0b0d12] opacity-60'}`}>
                 <div className="mb-1 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] font-bold text-white">Well {well.wellNumber}</span>
                     {well.physical && <span className="text-[9px] text-[#7d8796]">{well.physical}</span>}
-                    {!well.active && (
-                      <span className="rounded-full bg-[#1a1d26] px-2 py-0.5 text-[9px] font-bold text-[#6b7280]">
-                        Future/Inactive
-                      </span>
-                    )}
                     {well.active && well.desired != null && (
                       <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${well.atTarget ? 'bg-[#0d2d18] text-[#58e68f]' : 'bg-[#33260c] text-[#f7c65d]'}`}>
                         {well.atTarget ? 'On Target' : 'Chasing'}
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-[#8d97a8]">{formatPercent(well.matchPct, 1)} match</span>
+                  {well.desired != null && <span className="text-[10px] text-[#8d97a8]">{formatPercent(well.matchPct, 1)} match</span>}
                 </div>
                 <div className={`gap-3 text-[11px] ${well.active && well.desired != null ? 'grid grid-cols-[1fr_auto_auto]' : 'flex items-center justify-between'}`}>
                   {well.active && well.desired != null && (
@@ -603,15 +622,13 @@ export default function SupremeLiveView() {
     const wellMeta = SUPREME_WELLS[index]
     const actual = parseLiveNumeric(resolvePreferredDatapoint(panel, keys)?.value)
     const desiredDatapoint = resolvePreferredDatapoint(panel, [
-      `Wellhead #${wellNumber} Injection Flow Rate From Customer PLC`,
-      `Well ${wellNumber} Injection Flow Rate From Customer PLC`,
       `Wellhead #${wellNumber} Calculated Desired Flow`,
       `Wellhead #${wellNumber} Setpoint From Customer PLC`,
       `Well ${wellNumber} Calculated Desired Flow`,
       `Well ${wellNumber} Setpoint From Customer PLC`,
     ])
-    const desired = wellMeta?.active ? parseLiveNumeric(desiredDatapoint?.value) : 0
-    const displayActual = wellMeta?.active ? actual : 0
+    const desired = wellMeta?.active ? parseLiveNumeric(desiredDatapoint?.value) : null
+    const displayActual = wellMeta?.active ? actual : null
     const gap = displayActual != null && desired != null ? displayActual - desired : null
     return {
       wellNumber,
@@ -755,6 +772,30 @@ export default function SupremeLiveView() {
     return (casing != null && casing >= dischargeTriggerSP) || (tubing != null && tubing >= dischargeTriggerSP)
       ? 'fail' : 'pass'
   })
+  const siteAlertItems = [
+    recycleVal != null ? { label: 'Recycle Valve', status: alertRecycle, value: `${recycleVal.toFixed(1)}%` } : null,
+    totalDesiredSite != null ? { label: 'Site Flow Match', status: alertSiteFlow, value: `${totalActualFlow.toFixed(3)} / ${totalDesiredSite.toFixed(3)} MMSCFD` } : null,
+    dischargeTriggerSP != null ? { label: 'Static vs Discharge', status: alertStaticVsDischarge, value: `Trigger: ${dischargeTriggerSP.toFixed(0)} PSI` } : null,
+    compSpeedControlSP.some(v => v != null)
+      ? {
+        label: 'Speed Control SP',
+        status: alertSpeedControlSP,
+        value: compSpeedControlSP.map((v, i) => v != null ? `C${i+1}: ${v.toFixed(0)}` : null).filter(Boolean).join('  '),
+      }
+      : null,
+  ].filter(Boolean)
+  const visibleWellFlowAlerts = liveWellPerformance
+    .map((well, index) => ({ well, index, status: alertWellFlow[index] }))
+    .filter(item => item.well.active && item.well.actual != null)
+  const visibleWellPressureAlerts = LIVE_WELL_FLOW_KEYS
+    .map((_, index) => ({
+      index,
+      status: alertWellPres[index],
+      casing: wellCasingPres[index],
+      tubing: wellTubingPres[index],
+      active: SUPREME_WELLS[index]?.active !== false,
+    }))
+    .filter(item => item.active && (item.casing != null || item.tubing != null))
 
   // ─── not available gate ───────────────────────────────────────────────────────
   if (!padVisible) {
@@ -844,11 +885,14 @@ export default function SupremeLiveView() {
               <DemandEventLog events={demandEvents} />
 
               {/* ─── Site Alerts & Status ─────────────────────────────────── */}
+              {(siteAlertItems.length > 0 || visibleWellFlowAlerts.length > 0 || visibleWellPressureAlerts.length > 0) && (
               <div style={{ background: '#0c0c16', border: '1px solid #1a1a2a', borderRadius: '12px', padding: '16px 20px', marginBottom: '16px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: '#49D0E2', marginBottom: '14px', fontFamily: "'Montserrat', sans-serif" }}>
-                  Site Alerts &amp; Status
+                  Live Status
                 </div>
 
+                {siteAlertItems.length > 0 && (
+                <>
                 {/* Site-level */}
                 <div style={{ fontSize: '9px', color: '#49D0E2', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700, marginBottom: '8px' }}>Site</div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
@@ -864,24 +908,32 @@ export default function SupremeLiveView() {
                       : '—'} />
                 </div>
 
+                </>
+                )}
+
                 {/* Per-well flow */}
-                <div style={{ fontSize: '9px', color: '#49D0E2', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700, marginBottom: '8px' }}>Per-Well Flow (≥98% of Target)</div>
+                <div style={{ fontSize: '9px', color: '#49D0E2', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700, marginBottom: '8px' }}>Live Well Flow Values</div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
-                  {liveWellPerformance.map((w, i) => (
-                    <AlertBadge key={i} label={`Well #${i+1} Flow`} status={alertWellFlow[i]}
+                  {visibleWellFlowAlerts.map(({ well: w, index: i, status }) => (
+                    <AlertBadge key={i} label={`Well #${i+1} Flow`} status={status}
                       value={w.actual != null ? `${w.actual.toFixed(3)} MMSCFD` : '—'} />
                   ))}
                 </div>
 
                 {/* Per-well pressure */}
+                {visibleWellPressureAlerts.length > 0 && (
+                <>
                 <div style={{ fontSize: '9px', color: '#49D0E2', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700, marginBottom: '8px' }}>Per-Well Casing / Tubing vs Discharge</div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-                  {LIVE_WELL_FLOW_KEYS.map((_, i) => (
+                  {visibleWellPressureAlerts.map(({ index: i }) => (
                     <AlertBadge key={i} label={`Well #${i+1} Pressure`} status={alertWellPres[i]}
                       value={wellCasingPres[i] != null ? `C: ${wellCasingPres[i].toFixed(0)} PSI` : wellTubingPres[i] != null ? `T: ${wellTubingPres[i].toFixed(0)} PSI` : '—'} />
                   ))}
                 </div>
+                </>
+                )}
               </div>
+              )}
 
               {/* Surface Equipment */}
               {recycleVal != null && (
@@ -923,10 +975,11 @@ export default function SupremeLiveView() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                   {LIVE_WELL_FLOW_KEYS.map((keys, i) => {
                     const wellMeta = SUPREME_WELLS[i]
+                    if (!wellMeta.active) return null
                     const dp = resolvePreferredDatapoint(panel, keys)
-                    const val = wellMeta.active ? (dp ? parseFloat(dp.value) : null) : 0
+                    const val = dp ? parseFloat(dp.value) : null
                     const yesterdayDp = resolvePreferredDatapoint(panel, LIVE_WELL_YESTERDAY_KEYS[i])
-                    const yesterdayVal = wellMeta.active && yesterdayDp ? parseFloat(yesterdayDp.value) : null
+                    const yesterdayVal = yesterdayDp ? parseFloat(yesterdayDp.value) : null
                     const maxFlow = 1.2
                     const widthPct = val != null && !Number.isNaN(val) ? Math.max(0, Math.min(100, (val / maxFlow) * 100)) : 0
                     return (
@@ -943,13 +996,15 @@ export default function SupremeLiveView() {
                         <div className="w-full bg-[#1a1a2a] rounded h-2 mt-2 overflow-hidden">
                           <div className="h-full bg-[#22c55e] rounded transition-all" style={{ width: `${widthPct}%` }} />
                         </div>
+                        {yesterdayVal != null && !Number.isNaN(yesterdayVal) && (
                         <div className="mt-3 pt-2 border-t border-[#1a1a2a]">
                           <div className="text-[8px] text-[#666] uppercase tracking-wider">{yesterdayVal != null ? 'Yesterday Flow' : wellMeta.active ? 'Desired Flow' : 'Future/Inactive'}</div>
                           <div className="text-[12px] text-white font-bold mt-0.5" style={{ fontFamily: "'Arial Black'" }}>
-                            {yesterdayVal != null && !Number.isNaN(yesterdayVal) ? yesterdayVal.toFixed(3) : '--'}
+                            {yesterdayVal.toFixed(3)}
                           </div>
                           <div className="text-[8px] text-[#666]">MMSCFD</div>
                         </div>
+                        )}
                         {wellMeta.active && additionalWellRegisters[i].length > 0 && (
                           <div className="mt-3 pt-2 border-t border-[#1a1a2a] space-y-1.5 text-left">
                             {additionalWellRegisters[i].map(meta => (
