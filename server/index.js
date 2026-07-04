@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import { appendFile, mkdir, readFile } from 'fs/promises'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import { initSchema } from './db.js'
@@ -142,6 +143,130 @@ function resolveSupremeDevice(asset) {
 
 function mlinkDatapointKey(dp) {
   return dp.alias || dp.desc || dp.dataSourceName || dp.Name || dp.name
+}
+
+function buildMlinkMap(data) {
+  const map = new Map()
+  for (const dp of (data?.datapoints || [])) {
+    const key = mlinkDatapointKey(dp)
+    if (key) map.set(key, dp)
+  }
+  return map
+}
+
+function readMlinkNumber(map, labels) {
+  for (const label of labels) {
+    const value = map.get(label)?.value
+    const numeric = Number(value)
+    if (Number.isFinite(numeric)) return numeric
+  }
+  return null
+}
+
+function readMlinkTimestamp(data) {
+  const ts = data?.timestamps?.[0]
+  return Number.isFinite(Number(ts)) ? new Date(Number(ts) * 1000).toISOString() : new Date().toISOString()
+}
+
+const SUPREME_DEMAND_EVENT_FILE = () => join(getStorageStatus().dataDir || '/data', 'supreme-compressor-demand-events.jsonl')
+
+const SUPREME_DEMAND_KEYS = [
+  {
+    id: 'comp1',
+    label: 'Compressor #1 Demand',
+    keys: [
+      'Compressor #1 Desire Flow SP For PID Murphy',
+      'Compressor 1 Desire Flow SP For PID Murphy',
+      'Compressor #1 Desired Flow SP For PID Murphy',
+      'Compressor #1 Flow Demand',
+      'Compressor 1 Flow Demand',
+      'Comp #1 Flow Demand',
+    ],
+  },
+  {
+    id: 'comp2',
+    label: 'Compressor #2 Demand',
+    keys: [
+      'Compressor #2 Desire Flow SP For PID Murphy',
+      'Compressor 2 Desire Flow SP For PID Murphy',
+      'Compressor #2 Desired Flow SP For PID Murphy',
+      'Compressor #2 Flow Demand',
+      'Compressor 2 Flow Demand',
+      'Comp #2 Flow Demand',
+    ],
+  },
+]
+
+const SUPREME_EVENT_WELLS = [
+  { wellNumber: 1, physical: '607H' },
+  { wellNumber: 2, physical: '606H' },
+  { wellNumber: 3, physical: '605H' },
+  { wellNumber: 4, physical: 'Future' },
+  { wellNumber: 5, physical: 'Future' },
+  { wellNumber: 6, physical: 'Future' },
+]
+
+function buildSupremeDemandEvent(panelData) {
+  const map = buildMlinkMap(panelData)
+  const demand = {}
+  for (const item of SUPREME_DEMAND_KEYS) {
+    demand[item.id] = readMlinkNumber(map, item.keys)
+  }
+
+  if (Object.values(demand).every(value => value == null)) return null
+
+  const wells = SUPREME_EVENT_WELLS.map(({ wellNumber, physical }) => ({
+    wellNumber,
+    physical,
+    staticPressure: readMlinkNumber(map, [
+      `Wellhead #${wellNumber} Injection Static Pressure From Customer PLC`,
+      `Well ${wellNumber} Injection Static Pressure`,
+      `Well #${wellNumber} Injection Static Pressure`,
+      `Wellhead #${wellNumber} Injection Static Pressure`,
+      `Well ${wellNumber} Static Pressure`,
+    ]),
+    flowRate: readMlinkNumber(map, [
+      `Well ${wellNumber} Injection Gas Flow Rate`,
+      `Well #${wellNumber} Flow Rate`,
+    ]),
+  }))
+
+  return {
+    timestamp: readMlinkTimestamp(panelData),
+    recordedAt: new Date().toISOString(),
+    demand,
+    wells,
+  }
+}
+
+async function readSupremeDemandEvents(limit = 50) {
+  const file = SUPREME_DEMAND_EVENT_FILE()
+  const text = await readFile(file, 'utf8').catch(() => '')
+  return text
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .slice(-limit)
+    .map(line => {
+      try { return JSON.parse(line) }
+      catch { return null }
+    })
+    .filter(Boolean)
+    .reverse()
+}
+
+async function recordSupremeDemandChange(panelData) {
+  const event = buildSupremeDemandEvent(panelData)
+  if (!event) return null
+
+  const previous = (await readSupremeDemandEvents(1))[0]
+  if (previous && JSON.stringify(previous.demand) === JSON.stringify(event.demand)) {
+    return null
+  }
+
+  const file = SUPREME_DEMAND_EVENT_FILE()
+  await mkdir(dirname(file), { recursive: true })
+  await appendFile(file, `${JSON.stringify(event)}\n`, 'utf8')
+  return event
 }
 
 async function fetchMlinkLatest(deviceId, key) {
@@ -313,9 +438,19 @@ app.get('/api/mlink/supreme/device', async (req, res) => {
   }
   try {
     const data = await fetchMlinkLatest(resolved.deviceId, key)
-    res.json({ ...data, _supremeAsset: resolved.asset, _assetName: resolved.name })
+    const demandEvent = resolved.asset === 'panel' ? await recordSupremeDemandChange(data).catch(() => null) : null
+    res.json({ ...data, _supremeAsset: resolved.asset, _assetName: resolved.name, _demandEvent: demandEvent })
   } catch (err) {
     res.status(err.status || 502).json({ error: 'MLINK error', status: err.status || 502, details: err.message })
+  }
+})
+
+app.get('/api/mlink/supreme/demand-events', async (req, res) => {
+  const limit = Math.max(1, Math.min(200, parseInt(req.query.limit || '50', 10) || 50))
+  try {
+    res.json({ events: await readSupremeDemandEvents(limit) })
+  } catch (err) {
+    res.status(500).json({ error: 'Demand event history read failed', details: err.message })
   }
 })
 

@@ -13,6 +13,7 @@ import {
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
 const REFRESH_INTERVAL_S = 60
+const FRESH_DATA_MAX_AGE_MS = 5 * 60 * 1000
 
 // ─── Supreme asset keys ────────────────────────────────────────────────────────
 
@@ -48,51 +49,13 @@ const LIVE_WELL_YESTERDAY_KEYS = [
 ]
 
 const SUPREME_WELLS = [
-  { physical: '607H', gasPriority: 1, oilPriority: 1, desired: 0.500, actual: 0.495, active: true },
-  { physical: '606H', gasPriority: 2, oilPriority: 2, desired: 0.500, actual: 0.495, active: true },
-  { physical: '605H', gasPriority: 3, oilPriority: 3, desired: 0.500, actual: 0.495, active: true },
-  { physical: 'Future', gasPriority: null, oilPriority: null, desired: 0.000, active: false },
-  { physical: 'Future', gasPriority: null, oilPriority: null, desired: 0.000, active: false },
-  { physical: 'Future', gasPriority: null, oilPriority: null, desired: 0.000, active: false },
+  { physical: '607H', gasPriority: 1, oilPriority: 1, active: true },
+  { physical: '606H', gasPriority: 2, oilPriority: 2, active: true },
+  { physical: '605H', gasPriority: 3, oilPriority: 3, active: true },
+  { physical: 'Future', gasPriority: null, oilPriority: null, active: false },
+  { physical: 'Future', gasPriority: null, oilPriority: null, active: false },
+  { physical: 'Future', gasPriority: null, oilPriority: null, active: false },
 ]
-
-const SUPREME_STATIC_VALUES = {
-  totalDesired: 1.500,
-  totalActual: 1.485,
-  suctionPressure: 46.9,
-  dischargePressure: 1002,
-  currentPvFlowRate: 1.54,
-  speedControlLvsIndex: 1,
-  panelState: 120,
-  speedSuctionSp: 25,
-  compressorSpeedDischargeSp: 1030,
-  wellPanelDischargeOverride: 1050,
-}
-
-const SUPREME_STATIC_COMPRESSORS = {
-  unit2139: {
-    status: 'RUNNING',
-    desiredFlow: 1.500,
-    actualFlow: 1.540,
-    fields: [
-      { label: 'Stage 1 Suction Prs', value: '46.9', unit: 'PSI', color: '#22c55e' },
-      { label: 'Stage 3 Discharge Prs', value: '1002', unit: 'PSI', color: '#22c55e' },
-      { label: 'Speed Discharge SP', value: '1030', unit: 'PSI', color: '#9db2ce' },
-      { label: 'Auto Start', value: 'Disabled', unit: 'Pending valves', color: '#f8c767' },
-    ],
-  },
-  unit2140: {
-    status: 'STANDBY',
-    desiredFlow: 0,
-    actualFlow: 0,
-    fields: [
-      { label: 'Stage 1 Suction Prs', value: '46.9', unit: 'PSI', color: '#22c55e' },
-      { label: 'Stage 3 Discharge Prs', value: '1002', unit: 'PSI', color: '#22c55e' },
-      { label: 'Speed Discharge SP', value: '1030', unit: 'PSI', color: '#9db2ce' },
-      { label: 'Auto Start', value: 'Disabled', unit: 'Pending valves', color: '#f8c767' },
-    ],
-  },
-}
 
 // ─── fetch helpers ─────────────────────────────────────────────────────────────
 
@@ -105,18 +68,26 @@ async function readErrorPayload(res) {
   return (await res.text().catch(() => '')).trim() || res.statusText
 }
 
-// fetchSupremeDeviceFull calls /supreme/device/full which merges LatestDeviceData (2-sec registers)
-// with RunReport data (15-min registers) so fields like desired flows and
-// yesterday flows are included even when they aren't in the latest batch.
 async function fetchSupremeDeviceFull(asset) {
   try {
-    const res = await fetch(`${API_BASE}/api/mlink/supreme/device/full?asset=${encodeURIComponent(asset)}`)
+    const res = await fetch(`${API_BASE}/api/mlink/supreme/device?asset=${encodeURIComponent(asset)}`)
     if (!res.ok) {
       return { data: null, error: `Supreme ${asset}: ${await readErrorPayload(res)}` }
     }
     return { data: await res.json(), error: '' }
   } catch (err) {
     return { data: null, error: `Supreme ${asset}: ${err.message}` }
+  }
+}
+
+async function fetchDemandEvents() {
+  try {
+    const res = await fetch(`${API_BASE}/api/mlink/supreme/demand-events?limit=25`)
+    if (!res.ok) return []
+    const body = await res.json()
+    return Array.isArray(body.events) ? body.events : []
+  } catch {
+    return []
   }
 }
 
@@ -183,6 +154,10 @@ function formatHourMeterValue(value) {
   return Number.isFinite(numeric) ? numeric.toLocaleString() : '--'
 }
 
+function isFreshTimestamp(time) {
+  return time instanceof Date && Number.isFinite(time.getTime()) && Date.now() - time.getTime() <= FRESH_DATA_MAX_AGE_MS
+}
+
 function getCompressorUnit(label) {
   if (/temperature/i.test(label)) return 'deg F'
   if (/speed/i.test(label)) return 'RPM'
@@ -247,30 +222,30 @@ function WowMetricCard({ label, value, helper, tone }) {
   )
 }
 
-function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers, fallback }) {
+function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers }) {
+  const isFresh = isFreshTimestamp(time)
   const rpm = data['Compressor Speed'] || data['Driver Speed'] || data['RPM']
   const shutdown = data['Skid - Shutdown']
   const isShutdown = shutdown && String(shutdown.value).toLowerCase().includes('shutdown')
   const hasRpm = rpm && parseFloat(rpm.value) > 100
   const hasFlow = actualFlow != null && parseFloat(actualFlow.value) > 0.01
   const hasLiveStatus = hasRpm || hasFlow || isShutdown
-  const isRunning = hasLiveStatus ? (hasRpm || hasFlow) && !isShutdown : fallback?.status === 'RUNNING'
-  const statusLabel = hasLiveStatus ? (isRunning ? 'RUNNING' : 'STOPPED') : fallback?.status || 'STANDBY'
+  const isRunning = isFresh && hasLiveStatus && (hasRpm || hasFlow) && !isShutdown
+  const statusLabel = !time ? 'LIVE STATUS UNAVAILABLE' : !isFresh ? 'STALE DATA' : hasLiveStatus ? (isRunning ? 'RUNNING' : 'STOPPED') : 'LIVE STATUS UNAVAILABLE'
   const visibleRegisters = registers.filter(meta => (
     meta.label !== 'Flow Rate PID PV'
     && meta.datapoint
     && meta.datapoint.value != null
     && String(meta.datapoint.value).trim() !== ''
   ))
-  const desiredFlowValue = formatFlowValue(desiredFlow?.value ?? fallback?.desiredFlow)
-  const actualFlowValue = formatFlowValue(actualFlow?.value ?? fallback?.actualFlow)
-  const fallbackFields = visibleRegisters.length ? [] : (fallback?.fields || [])
+  const desiredFlowValue = formatFlowValue(desiredFlow?.value)
+  const actualFlowValue = formatFlowValue(actualFlow?.value)
   return (
     <div className="bg-[#111118] rounded-xl border border-[#222] p-5">
       <div className="flex items-center gap-2 mb-3">
-        <div className={`w-3 h-3 rounded-full ${isRunning ? 'bg-[#22c55e] shadow-lg shadow-[#22c55e]/50' : statusLabel === 'STANDBY' ? 'bg-[#f8c767]' : 'bg-[#E8200C]'}`} />
+        <div className={`w-3 h-3 rounded-full ${isRunning ? 'bg-[#22c55e] shadow-lg shadow-[#22c55e]/50' : !time ? 'bg-[#555]' : !isFresh ? 'bg-[#f8c767]' : hasLiveStatus ? 'bg-[#E8200C]' : 'bg-[#555]'}`} />
         <h3 className="text-[13px] text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>{label}</h3>
-        <span className={`text-[9px] font-bold ml-auto ${isRunning ? 'text-[#22c55e]' : statusLabel === 'STANDBY' ? 'text-[#f8c767]' : 'text-[#E8200C]'}`}>
+        <span className={`text-[9px] font-bold ml-auto ${isRunning ? 'text-[#22c55e]' : !time ? 'text-[#888]' : !isFresh ? 'text-[#f8c767]' : hasLiveStatus ? 'text-[#E8200C]' : 'text-[#888]'}`}>
           {statusLabel}
         </span>
       </div>
@@ -288,16 +263,12 @@ function CompressorCard({ label, data, time, desiredFlow, actualFlow, registers,
             color={getCompressorColor(meta.label, meta.datapoint.value)}
           />
         ))}
-        {fallbackFields.map(field => (
-          <DataPoint
-            key={field.label}
-            label={field.label}
-            value={field.value}
-            unit={field.unit}
-            color={field.color}
-          />
-        ))}
       </div>
+      {!visibleRegisters.length && (
+        <div className="mt-3 rounded border border-[#2a2a3a] bg-[#0a0a14] p-3 text-[10px] text-[#777]">
+          No live compressor register values returned.
+        </div>
+      )}
       {time && <div className="text-[8px] text-[#444] mt-2 text-right">Updated: {time.toLocaleString()}</div>}
     </div>
   )
@@ -317,9 +288,9 @@ function LivePerformanceHero({ metrics, wells, timestamp, isLive }) {
         <div>
           <div className="mb-2 flex items-center gap-2">
             <span className="rounded-full border border-[#20502d] bg-[#0e1e13] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#66f0a0]">
-              {isLive ? 'Live Performance Proof' : 'Supreme Commissioning Snapshot'}
+              {isLive ? 'Live Performance Proof' : 'Live Data Pending'}
             </span>
-            {timestamp && <span className="text-[10px] text-[#6b7280]">Snapshot {timestamp.toLocaleString()}</span>}
+            {timestamp && <span className="text-[10px] text-[#6b7280]">MLink timestamp {timestamp.toLocaleString()}</span>}
           </div>
           <div className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#ff6b57]">
             ConocoPhillips · Supreme · DE4000
@@ -330,7 +301,7 @@ function LivePerformanceHero({ metrics, wells, timestamp, isLive }) {
           <p className="mt-2 max-w-[680px] text-[13px] leading-relaxed text-[#a0a7b5]">
             {isLive
               ? 'This is actual live data from the Supreme location. Actual injection is tracked against desired injection, with compressor flow and operating limits visible in one place.'
-              : 'This Supreme-only field view is showing the July 3, 2026 commissioning snapshot while MLink access is corrected. The layout matches the Halfmann live-data buildout without exposing the simulator app.'}
+              : 'This Supreme-only field view displays live MLink values only. No static fallback values are shown.'}
           </p>
           <div className="mt-5 grid gap-3 md:grid-cols-4">
             <WowMetricCard
@@ -346,10 +317,10 @@ function LivePerformanceHero({ metrics, wells, timestamp, isLive }) {
               helper={metrics.wellsAtTarget != null ? 'Within 2% of desired injection' : 'Per-well targets not in API feed'}
             />
             <WowMetricCard
-              label="Operating Mode"
-              value="Oil"
+              label="Panel Feed"
+              value={isLive ? 'Live' : 'Pending'}
               tone="amber"
-              helper="Gas and oil priorities are aligned 1 through 3 for active wells"
+              helper="Shows current MLink panel status only"
             />
             <WowMetricCard
               label="Compressor Flow Match"
@@ -462,12 +433,69 @@ function AlertBadge({ label, status, value }) {
 
 // ─���─ main component ────────────────────────────────────────────────────────────
 
+function DemandEventLog({ events }) {
+  const formatEventValue = (value, decimals = 3) =>
+    value != null && Number.isFinite(Number(value)) ? Number(value).toFixed(decimals) : '--'
+
+  return (
+    <div className="bg-[#111118] rounded-xl border border-[#222] p-5 mb-4">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-sm text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>
+          Compressor Demand Change Log
+        </h2>
+        <span className="text-[9px] uppercase tracking-[0.18em] text-[#666]">
+          Live panel changes only
+        </span>
+      </div>
+      {events.length === 0 ? (
+        <div className="rounded border border-[#2a2a3a] bg-[#0a0a14] p-3 text-[11px] text-[#777]">
+          No compressor demand changes have been recorded from live Supreme panel data yet.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {events.map((event, index) => (
+            <div key={`${event.timestamp}-${index}`} className="rounded-lg border border-[#2a2a3a] bg-[#0a0a14] p-3">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="text-[12px] font-bold text-white">
+                  {new Date(event.timestamp).toLocaleString()}
+                </div>
+                <div className="flex gap-2 text-[10px]">
+                  <span className="rounded border border-[#1f3650] bg-[#0b1520] px-2 py-1 text-[#72c8ff]">
+                    C1 Demand {formatEventValue(event.demand?.comp1)} MMSCFD
+                  </span>
+                  <span className="rounded border border-[#1f3650] bg-[#0b1520] px-2 py-1 text-[#72c8ff]">
+                    C2 Demand {formatEventValue(event.demand?.comp2)} MMSCFD
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                {(event.wells || []).map(well => (
+                  <div key={well.wellNumber} className="rounded border border-[#1f2430] bg-[#090913] p-2">
+                    <div className="text-[9px] font-bold text-white">Well {well.wellNumber} · {well.physical}</div>
+                    <div className="mt-1 text-[9px] text-[#888]">
+                      Static <span className="text-white">{formatEventValue(well.staticPressure, 0)}</span> PSI
+                    </div>
+                    <div className="text-[9px] text-[#888]">
+                      Flow <span className="text-white">{formatEventValue(well.flowRate)}</span> MMSCFD
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function SupremeLiveView() {
   const [panelData, setPanelData] = useState(null)
   const [unitDataRaw, setUnitDataRaw] = useState({ unit2139: null, unit2140: null })
   const [registerCatalog, setRegisterCatalog] = useState([])
   const [loading, setLoading] = useState(true)
   const [liveError, setLiveError] = useState('')
+  const [demandEvents, setDemandEvents] = useState([])
   const [lastRefresh, setLastRefresh] = useState(null)
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL_S)
   const [padVisible, setPadVisible] = useState(true)
@@ -496,10 +524,11 @@ export default function SupremeLiveView() {
     const allNull = !panelResult.data && unitResults.every(r => !r.data)
     if (allNull) {
       setLiveError(allErrors.length > 0
-        ? `MLink is not returning Supreme live data yet. Showing the Supreme commissioning snapshot. ${allErrors.join(' | ')}`
-        : 'MLink is not returning Supreme live data yet. Showing the Supreme commissioning snapshot.')
+        ? `MLink is not returning Supreme live data right now. ${allErrors.join(' | ')}`
+        : 'MLink is not returning Supreme live data right now.')
     }
     setLastRefresh(new Date())
+    fetchDemandEvents().then(setDemandEvents).catch(() => {})
     setLoading(false)
     setCountdown(REFRESH_INTERVAL_S)
   }, [])
@@ -526,6 +555,8 @@ export default function SupremeLiveView() {
   const panel = parseLiveDatapoints(panelData)
   const panelTime = getTimestamp(panelData)
   const hasLivePanelData = !!panelData
+  const hasFreshPanelData = isFreshTimestamp(panelTime)
+  const hasAnyLiveData = !!panelData || Object.values(unitDataRaw).some(Boolean)
 
   // Parse each unit into a dataMap
   const unitDataMaps = SUPREME_UNITS.map(u => parseLiveDatapoints(unitDataRaw[u.key]))
@@ -579,10 +610,8 @@ export default function SupremeLiveView() {
       `Well ${wellNumber} Calculated Desired Flow`,
       `Well ${wellNumber} Setpoint From Customer PLC`,
     ])
-    const desired = wellMeta?.active
-      ? (parseLiveNumeric(desiredDatapoint?.value) ?? wellMeta.desired)
-      : 0
-    const displayActual = wellMeta?.active ? (actual ?? wellMeta.actual) : 0
+    const desired = wellMeta?.active ? parseLiveNumeric(desiredDatapoint?.value) : 0
+    const displayActual = wellMeta?.active ? actual : 0
     const gap = displayActual != null && desired != null ? displayActual - desired : null
     return {
       wellNumber,
@@ -599,24 +628,21 @@ export default function SupremeLiveView() {
   })
 
   // Compressor performance per unit
-  const liveUnitPerformance = unitDesiredFlows.map((desiredDp, i) => {
-    const fallback = SUPREME_STATIC_COMPRESSORS[SUPREME_UNITS[i].key]
-    return {
-      desired: parseLiveNumeric(desiredDp?.value) ?? fallback?.desiredFlow,
-      actual: parseLiveNumeric(unitActualFlows[i]?.value) ?? fallback?.actualFlow,
-    }
-  })
+  const liveUnitPerformance = unitDesiredFlows.map((desiredDp, i) => ({
+    desired: parseLiveNumeric(desiredDp?.value),
+    actual: parseLiveNumeric(unitActualFlows[i]?.value),
+  }))
 
   // Supreme panel publishes site-level desired flow and wells-meeting-rate directly when tags are available.
   const totalDesiredSite = parseLiveNumeric(
     resolvePreferredDatapoint(panel, ['Total Desired Site Flow'])?.value
-  ) ?? SUPREME_STATIC_VALUES.totalDesired
+  )
   const wellsMeetingRateRaw = resolvePreferredDatapoint(panel, ['Wells Meeting Rate', 'All Wells Meeting Rate'])
   const wellsMeetingRate = wellsMeetingRateRaw != null
     ? Math.round(parseLiveNumeric(wellsMeetingRateRaw.value) ?? 0)
     : null
   const totalActualFlowFromWells = liveWellPerformance.reduce((sum, w) => sum + (w.actual ?? 0), 0)
-  const totalActualFlow = totalActualFlowFromWells > 0 ? totalActualFlowFromWells : SUPREME_STATIC_VALUES.totalActual
+  const totalActualFlow = totalActualFlowFromWells
   const padMatchPct = totalDesiredSite != null && totalDesiredSite > 0
     ? Math.max(0, 100 - (Math.abs(totalActualFlow - totalDesiredSite) / totalDesiredSite) * 100)
     : null
@@ -686,6 +712,16 @@ export default function SupremeLiveView() {
     getNumeric(dataMap, ['Speed Control SP', 'Altronic Speed Control SP', 'Speed Auto Discharge SP', 'Discharge Pressure SP', 'Speed SP'])
   )
 
+  const liveProcessConditions = [
+    { label: 'Suction Pressure', value: getNumeric(panel, ['Suction Pressure', 'Station Suction Pressure']), unit: 'PSI', decimals: 1, color: '#4fc3f7' },
+    { label: 'Discharge Pressure', value: getNumeric(panel, ['Discharge Pressure', 'Station Discharge Pressure']), unit: 'PSI', decimals: 0, color: '#22c55e' },
+    { label: 'Current PV Flow Rate', value: getNumeric(panel, ['Current PV Flow Rate', 'Flow Rate PID PV', 'Site Actual Flow']), unit: 'MMSCFD', decimals: 2, color: '#f8c767' },
+    { label: 'Speed Control LVS Index', value: getNumeric(panel, ['Speed Control LVS Index']), unit: '', decimals: 0, color: '#9db2ce' },
+    { label: 'Panel State', value: getNumeric(panel, ['Panel State']), unit: '', decimals: 0, color: '#9db2ce' },
+    { label: 'Speed Suction SP', value: getNumeric(panel, ['Speed Suction SP', 'Speed Suction Setpoint']), unit: 'PSI', decimals: 0, color: '#9db2ce' },
+    { label: 'Comp Discharge Slowdown SP', value: getNumeric(panel, ['Compressor Speed Discharge SP', 'Speed Auto Discharge SP']), unit: 'PSI', decimals: 0, color: '#9db2ce' },
+  ].filter(item => item.value != null && Number.isFinite(item.value))
+
   // ── Alert statuses (pass / fail / gray) ─────────────────────────────────────
   const alertRecycle = recycleVal == null ? 'gray' : recycleVal > 0 ? 'fail' : 'pass'
 
@@ -736,13 +772,13 @@ export default function SupremeLiveView() {
     <div className="flex flex-col min-h-screen bg-[#080810]">
       <header className="flex items-center justify-between px-5 py-3 bg-[#0c0c16] border-b border-[#1a1a2a] shrink-0">
         <div className="flex items-center gap-3">
-          <div className={`w-2.5 h-2.5 rounded-full ${hasLivePanelData ? 'bg-[#22c55e] shadow-lg shadow-[#22c55e]/60 animate-pulse' : 'bg-[#f8c767] shadow-lg shadow-[#f8c767]/40'}`} />
+          <div className={`w-2.5 h-2.5 rounded-full ${hasFreshPanelData ? 'bg-[#22c55e] shadow-lg shadow-[#22c55e]/60 animate-pulse' : hasLivePanelData ? 'bg-[#f8c767] shadow-lg shadow-[#f8c767]/40' : 'bg-[#555]'}`} />
           <div>
             <div className="text-[13px] text-white font-bold" style={{ fontFamily: "'Arial Black'" }}>
               Live Field Data — Supreme COP
             </div>
             <div className="text-[10px] text-[#666]">
-              ConocoPhillips · Supreme · DE4000 · Report SC-WP-SUP-001 · Commissioned July 3, 2026
+              ConocoPhillips · Supreme · DE4000 · Report SC-WP-SUP-001
             </div>
           </div>
         </div>
@@ -758,8 +794,28 @@ export default function SupremeLiveView() {
 
       <div className="flex-1 overflow-auto p-5 sm:p-6">
         <div className="max-w-[1280px] mx-auto">
-          {loading && !panelData ? (
+          {loading && !hasAnyLiveData ? (
             <div className="text-center py-24 text-[#888] text-sm">Connecting to field units…</div>
+          ) : !hasAnyLiveData ? (
+            <div className="mx-auto mt-20 max-w-[760px] rounded-xl border border-[#5a1d1d] bg-[#130c0c] p-6 text-center">
+              <div className="mb-2 text-[12px] font-bold uppercase tracking-[0.18em] text-[#E8200C]">
+                Live Supreme Data Unavailable
+              </div>
+              <div className="text-[24px] font-black text-white" style={{ fontFamily: "'Arial Black'" }}>
+                Waiting on MLink live feed
+              </div>
+              <p className="mt-3 text-[12px] leading-relaxed text-[#b9a0a0]">
+                This page shows live MLink values only. No static fallback data is displayed.
+              </p>
+              {liveError && (
+                <div className="mt-4 rounded border border-[#5a1d1d] bg-[#1f0c0c] px-4 py-3 text-left text-[11px] text-[#fca5a5]">
+                  {liveError}
+                </div>
+              )}
+              <div className="mt-5 flex justify-center">
+                <RefreshCountdown secondsLeft={countdown} loading={loading} onRefresh={refresh} />
+              </div>
+            </div>
           ) : (
             <>
               {liveError && (
@@ -770,16 +826,22 @@ export default function SupremeLiveView() {
 
               <LivePerformanceHero metrics={wowMetrics} wells={liveWellPerformance} timestamp={panelTime} isLive={hasLivePanelData} />
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                <DataPoint label="Suction Pressure" value={(getNumeric(panel, ['Suction Pressure', 'Station Suction Pressure']) ?? SUPREME_STATIC_VALUES.suctionPressure).toFixed(1)} unit="PSI" color="#4fc3f7" compact />
-                <DataPoint label="Discharge Pressure" value={(getNumeric(panel, ['Discharge Pressure', 'Station Discharge Pressure']) ?? SUPREME_STATIC_VALUES.dischargePressure).toFixed(0)} unit="PSI" color="#22c55e" compact />
-                <DataPoint label="Current PV Flow Rate" value={(getNumeric(panel, ['Current PV Flow Rate', 'Flow Rate PID PV', 'Site Actual Flow']) ?? SUPREME_STATIC_VALUES.currentPvFlowRate).toFixed(2)} unit="MMSCFD" color="#f8c767" compact />
-                <DataPoint label="Operating Mode" value="Oil" color="#c69bff" compact />
-                <DataPoint label="Speed Control LVS Index" value={String(getNumeric(panel, ['Speed Control LVS Index']) ?? SUPREME_STATIC_VALUES.speedControlLvsIndex)} color="#9db2ce" compact />
-                <DataPoint label="Panel State" value={String(getNumeric(panel, ['Panel State']) ?? SUPREME_STATIC_VALUES.panelState)} color="#9db2ce" compact />
-                <DataPoint label="Speed Suction SP" value={(getNumeric(panel, ['Speed Suction SP', 'Speed Suction Setpoint']) ?? SUPREME_STATIC_VALUES.speedSuctionSp).toFixed(0)} unit="PSI" color="#9db2ce" compact />
-                <DataPoint label="Comp Discharge Slowdown SP" value={(getNumeric(panel, ['Compressor Speed Discharge SP', 'Speed Auto Discharge SP']) ?? SUPREME_STATIC_VALUES.compressorSpeedDischargeSp).toFixed(0)} unit="PSI" color="#9db2ce" compact />
-              </div>
+              {liveProcessConditions.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  {liveProcessConditions.map(item => (
+                    <DataPoint
+                      key={item.label}
+                      label={item.label}
+                      value={item.value.toFixed(item.decimals)}
+                      unit={item.unit}
+                      color={item.color}
+                      compact
+                    />
+                  ))}
+                </div>
+              )}
+
+              <DemandEventLog events={demandEvents} />
 
               {/* ─── Site Alerts & Status ─────────────────────────────────── */}
               <div style={{ background: '#0c0c16', border: '1px solid #1a1a2a', borderRadius: '12px', padding: '16px 20px', marginBottom: '16px' }}>
@@ -822,26 +884,24 @@ export default function SupremeLiveView() {
               </div>
 
               {/* Surface Equipment */}
-              <div className="bg-[#111118] rounded-xl border border-[#222] px-5 py-3 mb-4">
-                <span className="mb-3 block text-[11px] font-bold uppercase tracking-[0.18em] text-[#49D0E2]">Surface Equipment</span>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <DataPoint
-                    label="Recycle Valve Position"
-                    value={recycleVal != null ? `${recycleVal.toFixed(1)}%` : 'Pending'}
-                    unit={recycleVal == null ? 'Auto valve install' : ''}
-                    color={recycleVal > 0 ? '#E8200C' : '#f8c767'}
-                  />
-                  <DataPoint label="Compressor Auto Start" value="Disabled" unit="Pending auto valves" color="#f8c767" />
-                  <DataPoint label="Discharge Override" value={SUPREME_STATIC_VALUES.wellPanelDischargeOverride.toFixed(0)} unit="PSI" color="#9db2ce" />
-                  <DataPoint label="Operating Mode" value="Oil" color="#c69bff" />
+              {recycleVal != null && (
+                <div className="bg-[#111118] rounded-xl border border-[#222] px-5 py-3 mb-4">
+                  <span className="mb-3 block text-[11px] font-bold uppercase tracking-[0.18em] text-[#49D0E2]">Surface Equipment</span>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <DataPoint
+                      label="Recycle Valve Position"
+                      value={`${recycleVal.toFixed(1)}%`}
+                      color={recycleVal > 0 ? '#E8200C' : '#22c55e'}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Panel status bar */}
               <div className="flex items-center gap-3 mb-6">
-                <div className={`w-3 h-3 rounded-full ${hasLivePanelData ? 'bg-[#22c55e] shadow-lg shadow-[#22c55e]/50' : 'bg-[#f8c767] shadow-lg shadow-[#f8c767]/40'}`} />
-                <span className={`text-[13px] font-bold ${hasLivePanelData ? 'text-[#22c55e]' : 'text-[#f8c767]'}`}>
-                  {hasLivePanelData ? 'ONLINE - Panel Active' : 'COMMISSIONING SNAPSHOT - Awaiting live MLink data'}
+                <div className={`w-3 h-3 rounded-full ${hasFreshPanelData ? 'bg-[#22c55e] shadow-lg shadow-[#22c55e]/50' : hasLivePanelData ? 'bg-[#f8c767] shadow-lg shadow-[#f8c767]/40' : 'bg-[#555]'}`} />
+                <span className={`text-[13px] font-bold ${hasFreshPanelData ? 'text-[#22c55e]' : hasLivePanelData ? 'text-[#f8c767]' : 'text-[#888]'}`}>
+                  {hasFreshPanelData ? 'ONLINE - Fresh MLink panel data' : hasLivePanelData ? 'STALE - MLink panel timestamp is old' : 'OFFLINE - No live MLink panel data'}
                 </span>
                 <div className="ml-auto flex items-center gap-3">
                   {(hourMeterRegister?.datapoint?.value ?? panel['\t Hour Meter']?.value ?? panel['Hour Meter']?.value) != null && (
@@ -886,7 +946,7 @@ export default function SupremeLiveView() {
                         <div className="mt-3 pt-2 border-t border-[#1a1a2a]">
                           <div className="text-[8px] text-[#666] uppercase tracking-wider">{yesterdayVal != null ? 'Yesterday Flow' : wellMeta.active ? 'Desired Flow' : 'Future/Inactive'}</div>
                           <div className="text-[12px] text-white font-bold mt-0.5" style={{ fontFamily: "'Arial Black'" }}>
-                            {yesterdayVal != null && !Number.isNaN(yesterdayVal) ? yesterdayVal.toFixed(3) : wellMeta.active ? wellMeta.desired.toFixed(3) : '--'}
+                            {yesterdayVal != null && !Number.isNaN(yesterdayVal) ? yesterdayVal.toFixed(3) : '--'}
                           </div>
                           <div className="text-[8px] text-[#666]">MMSCFD</div>
                         </div>
@@ -925,7 +985,6 @@ export default function SupremeLiveView() {
                     desiredFlow={unitDesiredFlows[i]}
                     actualFlow={unitActualFlows[i]}
                     registers={getVisibleCompressorRegisters(unitDataMaps[i], {})}
-                    fallback={SUPREME_STATIC_COMPRESSORS[u.key]}
                   />
                 ))}
               </div>
