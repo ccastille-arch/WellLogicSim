@@ -576,30 +576,15 @@ app.post('/api/mlink/history/tick', async (_req, res) => {
 
 const distPath = join(__dirname, '..', 'dist')
 
-// Public live-data view — no auth required
-app.get('/live-view', (_req, res) => {
-  res.sendFile(join(distPath, 'live-view.html'))
-})
-
-// Halfmann 1214 standalone live view - no auth required, no app chrome
-app.get('/halfmann-view', (_req, res) => {
-  res.sendFile(join(distPath, 'halfmann-view.html'))
-})
-
 // Supreme COP standalone live view - no auth required, no app chrome
-app.get(['/supreme-view', '/supreme'], (_req, res) => {
+app.get(['/', '/supreme-view', '/supreme'], (_req, res) => {
   res.sendFile(join(distPath, 'supreme-view.html'))
-})
-
-// Halfmann 1214 trending / playback view - no auth required, no app chrome
-app.get('/halfmann-trending', (_req, res) => {
-  res.sendFile(join(distPath, 'halfmann-trending.html'))
 })
 
 app.use(express.static(distPath))
 app.get(/(.*)/, (req, res) => {
   if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' })
-  res.sendFile(join(distPath, 'index.html'))
+  res.sendFile(join(distPath, 'supreme-view.html'))
 })
 
 app.listen(PORT, () => {
