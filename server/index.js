@@ -30,6 +30,10 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, db: dbReady, storage: getStorageStatus(), ts: new Date().toISOString() })
 })
 
+app.get('/api/public/pad-visibility', (_req, res) => {
+  res.json({ supreme: true })
+})
+
 app.use('/api', (req, res, next) => {
   if (req.path === '/health') return next()
   if (req.path.startsWith('/mlink/')) return next()
@@ -591,7 +595,7 @@ app.get(/(.*)/, (req, res) => {
 })
 
 app.listen(PORT, () => {
-  console.log(`WellLogic server listening on port ${PORT}`)
+  console.log(`Supreme COP live data server listening on port ${PORT}`)
   ensureStorageReady()
     .then(status => {
       if (status.enabled) console.log(`Storage ready at ${status.dataDir}`)
@@ -602,14 +606,9 @@ app.listen(PORT, () => {
   // the Railway volume regardless of PostgreSQL state, so we start it
   // right away. The scheduler idles harmlessly if MLINK_API_KEY isn't
   // set, so we can always kick it.
-  startMlinkHistoryScheduler()
   // One-shot seed of ~30 days of compressor history from the bundled
   // CSV exports. Idempotent — safe to run on every boot, only writes
   // rows the first time the volume sees it.
-  seedCompressorHistoryIfNeeded()
-    .then(result => console.log(`[seedCompressorHistory] ${JSON.stringify(result)}`))
-    .catch(err => console.warn(`[seedCompressorHistory] failed: ${err.message}`))
-  connectWithRetry()
 })
 
 async function connectWithRetry(attempt = 1) {
