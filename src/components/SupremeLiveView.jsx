@@ -294,7 +294,7 @@ function DeviceHealthBar({ panelHealth, compressorHealth }) {
             <div className="flex min-w-0 items-start gap-2">
               <span className="mt-1"><Dot tone={device.health.tone} /></span>
               <div className="min-w-0">
-                <div className="text-[12px] font-bold leading-tight text-white">{device.label}</div>
+                <div className="truncate whitespace-nowrap text-[12px] font-bold leading-tight text-white">{device.label}</div>
                 <div className="mt-1 text-[10px] leading-tight opacity-75">{device.health.age}</div>
               </div>
             </div>
@@ -568,7 +568,7 @@ export default function SupremeLiveView() {
                 </div>
                 <DeviceHealthBar
                   panelHealth={panelHealth}
-                  compressorHealth={compressorRows.map((compressor, index) => ({ label: `Comp ${index + 1} / ${compressor.unit}`, health: compressor.health }))}
+                  compressorHealth={compressorRows.map(compressor => ({ label: compressor.unit, health: compressor.health }))}
                 />
               </div>
             </section>
