@@ -165,6 +165,7 @@ function formatUnit(unit) {
 function statusForDevice(data) {
   const timestamp = latestTimestamp(data)
   if (!data) return { state: 'offline', label: 'NO DATA', tone: 'neutral', timestamp, age: 'No data' }
+  if (data._sampleQuality?.unstable) return { state: 'unstable', label: 'VERIFY', tone: 'warn', timestamp, age: 'Unstable MLink samples' }
   if (!isFresh(timestamp)) return { state: 'stale', label: 'STALE', tone: 'warn', timestamp, age: ageText(timestamp) }
   return { state: 'fresh', label: 'LIVE', tone: 'good', timestamp, age: ageText(timestamp) }
 }
@@ -368,7 +369,9 @@ function CompressorCard({ compressor }) {
 
       {!fresh ? (
         <div className="rounded border border-[#70521e] bg-[#1a1308] p-3 text-[11px] leading-relaxed text-[#f8c767]">
-          MLink has not returned a fresh compressor update. Old compressor readings are hidden.
+          {compressor.health.state === 'unstable'
+            ? 'MLink returned conflicting compressor samples on this refresh. Current compressor readings are hidden until the feed is stable.'
+            : 'MLink has not returned a fresh compressor update. Old compressor readings are hidden.'}
           <div className="mt-2 text-[#b7924f]">Last compressor update: {compressor.health.timestamp ? compressor.health.timestamp.toLocaleString() : 'No timestamp'}</div>
         </div>
       ) : (

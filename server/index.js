@@ -176,6 +176,10 @@ function readMlinkTimestamp(data) {
 
 const SUPREME_DEMAND_EVENT_FILE = () => join(getStorageStatus().dataDir || '/data', 'supreme-compressor-demand-events.jsonl')
 
+const SUPREME_COMPRESSOR_FLOW_KEYS = ['Flow Rate PID PV', 'Flow Rate', 'Flow Rate PV', 'Compressor Flow Rate PID PV']
+const SUPREME_COMPRESSOR_RPM_KEYS = ['RPM', 'Engine Speed', 'Driver Speed', 'Compressor Speed']
+const SUPREME_SAMPLE_DELAY_MS = 400
+
 const SUPREME_DEMAND_KEYS = [
   {
     id: 'comp1',
@@ -284,6 +288,74 @@ async function fetchMlinkLatest(deviceId, key) {
     throw err
   }
   return r.json()
+}
+
+function latestMlinkTimestampSeconds(data) {
+  const values = (Array.isArray(data?.timestamps) ? data.timestamps : [])
+    .map(value => Number(value))
+    .filter(value => Number.isFinite(value) && value > 0)
+  return values.length ? Math.max(...values) : null
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function summarizeSupremeSample(data) {
+  const map = buildMlinkMap(data)
+  const flow = readMlinkNumber(map, SUPREME_COMPRESSOR_FLOW_KEYS)
+  const rpm = readMlinkNumber(map, SUPREME_COMPRESSOR_RPM_KEYS)
+  const latestTs = latestMlinkTimestampSeconds(data)
+  const operatingState = (rpm != null && rpm > 100) || (flow != null && flow > 0.01) ? 'running' : 'stopped'
+  return { latestTs, flow, rpm, operatingState }
+}
+
+function buildSampleQuality(samples, errors) {
+  const summaries = samples.map(summarizeSupremeSample)
+  const timestamps = summaries.map(sample => sample.latestTs).filter(value => value != null)
+  const states = new Set(summaries.map(sample => sample.operatingState))
+  const spreadSeconds = timestamps.length > 1 ? Math.max(...timestamps) - Math.min(...timestamps) : 0
+  const unstable = states.size > 1 || spreadSeconds > 300
+  const reason = states.size > 1
+    ? 'conflicting running/stopped samples'
+    : spreadSeconds > 300
+      ? 'conflicting sample timestamps'
+      : ''
+
+  return {
+    sampleCount: samples.length,
+    errorCount: errors.length,
+    unstable,
+    reason,
+    summaries,
+  }
+}
+
+async function fetchMlinkLatestWithQuality(deviceId, key, sampleCount = 1) {
+  const samples = []
+  const errors = []
+
+  for (let i = 0; i < sampleCount; i += 1) {
+    try {
+      samples.push(await fetchMlinkLatest(deviceId, key))
+    } catch (err) {
+      errors.push(err.message)
+    }
+    if (i < sampleCount - 1) await sleep(SUPREME_SAMPLE_DELAY_MS)
+  }
+
+  if (!samples.length) {
+    const err = new Error(errors[0] || 'No data from MLink')
+    err.status = 502
+    throw err
+  }
+
+  const quality = buildSampleQuality(samples, errors)
+  const selected = samples
+    .map(data => ({ data, latestTs: latestMlinkTimestampSeconds(data) || 0 }))
+    .sort((a, b) => b.latestTs - a.latestTs)[0].data
+
+  return { data: selected, quality }
 }
 
 async function fetchMlinkFull(deviceId, key) {
@@ -443,9 +515,10 @@ app.get('/api/mlink/supreme/device', async (req, res) => {
     })
   }
   try {
-    const data = await fetchMlinkLatest(resolved.deviceId, key)
+    const sampleCount = resolved.asset.startsWith('unit') ? 3 : 1
+    const { data, quality } = await fetchMlinkLatestWithQuality(resolved.deviceId, key, sampleCount)
     const demandEvent = resolved.asset === 'panel' ? await recordSupremeDemandChange(data).catch(() => null) : null
-    res.json({ ...data, _supremeAsset: resolved.asset, _assetName: resolved.name, _demandEvent: demandEvent })
+    res.json({ ...data, _supremeAsset: resolved.asset, _assetName: resolved.name, _sampleQuality: quality, _demandEvent: demandEvent })
   } catch (err) {
     res.status(err.status || 502).json({ error: 'MLINK error', status: err.status || 502, details: err.message })
   }
