@@ -287,17 +287,19 @@ function DeviceHealthBar({ panelHealth, compressorHealth }) {
   const devices = [{ label: 'Panel', health: panelHealth }, ...compressorHealth]
 
   return (
-    <div className="grid gap-2 md:grid-cols-3">
+    <div className="grid content-start gap-2 sm:grid-cols-3">
       {devices.map(device => (
-        <div key={device.label} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${toneClasses(device.health.tone)}`}>
-          <div className="flex min-w-0 items-center gap-2">
-            <Dot tone={device.health.tone} />
-            <div className="min-w-0">
-              <div className="truncate text-[11px] font-bold text-white">{device.label}</div>
-              <div className="truncate text-[10px] opacity-75">{device.health.age}</div>
+        <div key={device.label} className={`min-h-[76px] rounded-lg border p-3 ${toneClasses(device.health.tone)}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-2">
+              <span className="mt-1"><Dot tone={device.health.tone} /></span>
+              <div className="min-w-0">
+                <div className="text-[12px] font-bold leading-tight text-white">{device.label}</div>
+                <div className="mt-1 text-[10px] leading-tight opacity-75">{device.health.age}</div>
+              </div>
             </div>
+            <div className="shrink-0 text-[10px] font-black tracking-[0.12em]">{device.health.label}</div>
           </div>
-          <div className="text-[10px] font-black tracking-[0.12em]">{device.health.label}</div>
         </div>
       ))}
     </div>
@@ -549,7 +551,7 @@ export default function SupremeLiveView() {
         ) : (
           <>
             <section className="mb-5 rounded-lg border border-[#202b3a] bg-[#0d1118] p-4">
-              <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+              <div className="grid items-start gap-4 xl:grid-cols-[1fr_0.95fr]">
                 <div>
                   <div className={`mb-3 inline-flex items-center gap-2 rounded border px-2 py-1 text-[10px] font-black tracking-[0.14em] ${toneClasses(pageTone)}`}>
                     <Dot tone={pageTone} />
@@ -566,7 +568,7 @@ export default function SupremeLiveView() {
                 </div>
                 <DeviceHealthBar
                   panelHealth={panelHealth}
-                  compressorHealth={compressorRows.map(compressor => ({ label: `${compressor.label} ${compressor.unit}`, health: compressor.health }))}
+                  compressorHealth={compressorRows.map((compressor, index) => ({ label: `Comp ${index + 1} / ${compressor.unit}`, health: compressor.health }))}
                 />
               </div>
             </section>
