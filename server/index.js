@@ -141,6 +141,12 @@ function resolveSupremeDevice(asset) {
   }
 }
 
+function setNoStore(res) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  res.setHeader('Pragma', 'no-cache')
+  res.setHeader('Expires', '0')
+}
+
 function mlinkDatapointKey(dp) {
   return dp.alias || dp.desc || dp.dataSourceName || dp.Name || dp.name
 }
@@ -396,6 +402,7 @@ app.get('/api/mlink/devices/discover', async (_req, res) => {
 })
 
 app.get('/api/mlink/supreme/devices', (_req, res) => {
+  setNoStore(res)
   const devices = {}
   for (const asset of Object.keys(SUPREME_MLINK_DEVICES)) {
     const resolved = resolveSupremeDevice(asset)
@@ -421,6 +428,7 @@ app.get('/api/mlink/supreme/devices', (_req, res) => {
 })
 
 app.get('/api/mlink/supreme/device', async (req, res) => {
+  setNoStore(res)
   const key = process.env.MLINK_API_KEY
   if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
   const resolved = resolveSupremeDevice(req.query.asset)
@@ -444,6 +452,7 @@ app.get('/api/mlink/supreme/device', async (req, res) => {
 })
 
 app.get('/api/mlink/supreme/demand-events', async (req, res) => {
+  setNoStore(res)
   const limit = Math.max(1, Math.min(200, parseInt(req.query.limit || '50', 10) || 50))
   try {
     res.json({ events: await readSupremeDemandEvents(limit) })
@@ -453,6 +462,7 @@ app.get('/api/mlink/supreme/demand-events', async (req, res) => {
 })
 
 app.get('/api/mlink/supreme/device/full', async (req, res) => {
+  setNoStore(res)
   const key = process.env.MLINK_API_KEY
   if (!key) return res.status(503).json({ error: 'MLINK_API_KEY not configured' })
   const resolved = resolveSupremeDevice(req.query.asset)

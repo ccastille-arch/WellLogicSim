@@ -273,10 +273,18 @@ export function parseLiveDatapoints(data) {
     // server/mlinkHistory.js so frontend + backend agree on what's
     // in the payload.
     const value = dp.value ?? (Array.isArray(dp.values) ? dp.values[0] : undefined)
+    const timestampIdx = Number(dp.timestampIdx)
+    const timestampSeconds = Number.isInteger(timestampIdx) && Array.isArray(data.timestamps)
+      ? Number(data.timestamps[timestampIdx])
+      : null
     const dpObj = {
       value,
       units: dp.units || dp.unit,
       desc: dp.desc || dp.dataSourceName,
+      timestampIdx: Number.isInteger(timestampIdx) ? timestampIdx : undefined,
+      timestamp: Number.isFinite(timestampSeconds) && timestampSeconds > 0
+        ? new Date(timestampSeconds * 1000)
+        : undefined,
     }
     // Index by alias (primary key used by MLink cloud)
     result[alias] = dpObj

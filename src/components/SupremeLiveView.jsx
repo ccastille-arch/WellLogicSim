@@ -65,7 +65,11 @@ async function readErrorPayload(res) {
 
 async function fetchSupremeDevice(asset) {
   try {
-    const res = await fetch(`${API_BASE}/api/mlink/supreme/device?asset=${encodeURIComponent(asset)}`)
+    const params = new URLSearchParams({ asset, ts: String(Date.now()) })
+    const res = await fetch(`${API_BASE}/api/mlink/supreme/device?${params}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' },
+    })
     if (!res.ok) return { data: null, error: `${asset}: ${await readErrorPayload(res)}` }
     return { data: await res.json(), error: '' }
   } catch (err) {
@@ -75,7 +79,10 @@ async function fetchSupremeDevice(asset) {
 
 async function fetchDemandEvents() {
   try {
-    const res = await fetch(`${API_BASE}/api/mlink/supreme/demand-events?limit=25`)
+    const res = await fetch(`${API_BASE}/api/mlink/supreme/demand-events?limit=25&ts=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' },
+    })
     if (!res.ok) return []
     const body = await res.json()
     return Array.isArray(body.events) ? body.events : []
@@ -127,8 +134,17 @@ function toNumber(value) {
   return Number.isFinite(numeric) ? numeric : null
 }
 
-function readNumber(dataMap, labels) {
-  return toNumber(readPoint(dataMap, labels)?.value)
+function isFreshPoint(point) {
+  return !point?.timestamp || isFresh(point.timestamp)
+}
+
+function readFreshPoint(dataMap, labels) {
+  const point = readPoint(dataMap, labels)
+  return isFreshPoint(point) ? point : null
+}
+
+function readFreshNumber(dataMap, labels) {
+  return toNumber(readFreshPoint(dataMap, labels)?.value)
 }
 
 function formatNumber(value, decimals = 1) {
@@ -174,6 +190,7 @@ function buildWells(panelMap) {
       variance,
       matchPct,
       flowUnit: formatUnit(flowPoint?.units || 'MMSCFD'),
+      flowTimestamp: flowPoint?.timestamp,
       hasLiveValue: actual != null || target != null || staticPressure != null,
     }
   }).filter(well => well.hasLiveValue)
@@ -181,10 +198,10 @@ function buildWells(panelMap) {
 
 function buildCompressor(unit, rawData, panelMap, dataMap, index) {
   const health = statusForDevice(rawData)
-  const actualFlowPoint = readPoint(dataMap, COMPRESSOR_FLOW_LABELS)
-  const desiredFlowPoint = readPoint(panelMap, COMPRESSOR_TARGET_LABELS[index]) || readPoint(dataMap, COMPRESSOR_TARGET_LABELS[index])
-  const rpm = readNumber(dataMap, COMPRESSOR_SPEED_LABELS)
-  const shutdownPoint = readPoint(dataMap, COMPRESSOR_SHUTDOWN_LABELS)
+  const actualFlowPoint = readFreshPoint(dataMap, COMPRESSOR_FLOW_LABELS)
+  const desiredFlowPoint = readFreshPoint(panelMap, COMPRESSOR_TARGET_LABELS[index]) || readFreshPoint(dataMap, COMPRESSOR_TARGET_LABELS[index])
+  const rpm = readFreshNumber(dataMap, COMPRESSOR_SPEED_LABELS)
+  const shutdownPoint = readFreshPoint(dataMap, COMPRESSOR_SHUTDOWN_LABELS)
   const actualFlow = toNumber(actualFlowPoint?.value)
   const desiredFlow = toNumber(desiredFlowPoint?.value)
   const shutdownText = shutdownPoint?.value == null ? '' : String(shutdownPoint.value)
@@ -200,6 +217,7 @@ function buildCompressor(unit, rawData, panelMap, dataMap, index) {
 
   const registers = getVisibleCompressorRegisters(dataMap, {})
     .filter(meta => meta.datapoint?.value != null && String(meta.datapoint.value).trim() !== '')
+    .filter(meta => isFreshPoint(meta.datapoint))
     .filter(meta => meta.label !== 'Flow Rate PID PV')
     .slice(0, 10)
 
@@ -285,16 +303,18 @@ function DeviceHealthBar({ panelHealth, compressorHealth }) {
   )
 }
 
-function WellFlowTable({ wells, hasTargets }) {
+function WellFlowTable({ wells, hasTargets, panelFresh }) {
   if (!wells.length) {
-    return <EmptyState title="No live well values" body="MLink did not return well flow, target, or static pressure tags on this refresh." />
+    return <EmptyState title="No well values returned" body="MLink did not return well flow, target, or static pressure tags on this refresh." />
   }
+
+  const flowLabel = panelFresh ? 'Current Flow' : 'Last Known Flow'
 
   return (
     <div className="overflow-hidden rounded-lg border border-[#202b3a] bg-[#0d1118]">
       <div className="grid grid-cols-[1fr_1fr] gap-0 border-b border-[#202b3a] bg-[#111827] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8fa1b8] md:grid-cols-[1.2fr_1fr_1fr_1fr_1fr]">
         <div>Well</div>
-        <div className="text-right">Actual Flow</div>
+        <div className="text-right">{flowLabel}</div>
         <div className="hidden text-right md:block">Target</div>
         <div className="hidden text-right md:block">Variance</div>
         <div className="hidden text-right md:block">Static Pressure</div>
@@ -304,6 +324,9 @@ function WellFlowTable({ wells, hasTargets }) {
           <div>
             <div className="text-[13px] font-bold text-white">Well {well.number} / {well.name}</div>
             <div className="mt-0.5 text-[10px] text-[#68758a]">Gas P{well.gasPriority} / Oil P{well.oilPriority}</div>
+            {!panelFresh && well.flowTimestamp && (
+              <div className="mt-0.5 text-[10px] text-[#9a7a3d]">Last value {well.flowTimestamp.toLocaleTimeString()}</div>
+            )}
           </div>
           <div className="text-right text-[14px] font-black text-[#58e68f]" style={{ fontFamily: "'Arial Black', sans-serif" }}>
             {formatFlow(well.actual)}
@@ -472,6 +495,15 @@ export default function SupremeLiveView() {
   const freshCompressors = compressorRows.filter(compressor => compressor.health.state === 'fresh').length
   const hasAnyData = !!panelData || compressorRows.some(compressor => compressor.health.state !== 'offline')
   const pageTone = panelHealth.tone === 'good' ? 'good' : panelHealth.tone === 'warn' ? 'warn' : 'bad'
+  const panelFresh = panelHealth.state === 'fresh'
+  const injectionLabel = panelFresh ? 'Current Injection' : 'Last Known Injection'
+  const injectionHelper = panelFresh
+    ? `${wells.length} wells publishing now`
+    : `${wells.length} wells last returned by panel`
+  const wellSectionTitle = panelFresh ? 'Current Well Flow' : 'Last Known Well Flow'
+  const wellSectionSubtitle = panelFresh
+    ? (hasTargets ? 'Actual flow and target values from fresh MLink data.' : 'Actual flow only. Desired-flow target tags are not currently published.')
+    : 'Panel data is stale. Values below are the last MLink values returned, not current operating proof.'
 
   return (
     <div className="min-h-screen bg-[#070a0f] text-[#d8e0ec]">
@@ -524,7 +556,9 @@ export default function SupremeLiveView() {
                     Supreme Field Data
                   </h2>
                   <p className="mt-2 max-w-[720px] text-[13px] leading-relaxed text-[#9aa7b8]">
-                    Current well flow values are shown from MLink. Target comparisons, pressure checks, and compressor readings appear only when those live tags are published fresh.
+                    {panelFresh
+                      ? 'Current well flow values are shown from fresh MLink data. Target comparisons, pressure checks, and compressor readings appear only when those tags are published fresh.'
+                      : 'MLink panel data is stale. The well values below are last-known readings only, so this screen should trigger MLink investigation before field decisions.'}
                   </p>
                 </div>
                 <DeviceHealthBar
@@ -535,14 +569,14 @@ export default function SupremeLiveView() {
             </section>
 
             <div className="mb-5 grid gap-3 md:grid-cols-4">
-              <MetricCard label="Total Live Injection" value={formatFlow(totalInjection)} helper={`${wells.length} wells publishing`} tone="good" />
+              <MetricCard label={injectionLabel} value={formatFlow(totalInjection)} helper={injectionHelper} tone={panelFresh ? 'good' : 'warn'} />
               <MetricCard label="Panel Timestamp" value={panelHealth.timestamp ? panelHealth.timestamp.toLocaleTimeString() : '--'} helper={panelHealth.age} tone={panelHealth.tone} />
               <MetricCard label="Compressor Live Feeds" value={`${freshCompressors}/${COMPRESSORS.length}`} helper="Fresh compressor devices" tone={freshCompressors === COMPRESSORS.length ? 'good' : 'warn'} />
               <MetricCard label="Target Tags" value={hasTargets ? `${wellsWithTargets.length}/${wells.length}` : 'Not published'} helper="No target math without target tags" tone={hasTargets ? 'good' : 'neutral'} />
             </div>
 
-            <Section title="Active Well Flow" subtitle={hasTargets ? 'Actual flow and target values from MLink.' : 'Actual flow only. Desired-flow target tags are not currently published.'}>
-              <WellFlowTable wells={wells} hasTargets={hasTargets} />
+            <Section title={wellSectionTitle} subtitle={wellSectionSubtitle}>
+              <WellFlowTable wells={wells} hasTargets={hasTargets} panelFresh={panelFresh} />
             </Section>
 
             <Section title="Compressor Availability" subtitle="Stale compressor readings are hidden and shown as stale, not as current operating data.">
